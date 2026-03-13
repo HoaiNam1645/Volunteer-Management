@@ -31,7 +31,7 @@
 
 								<h3 class="fw-bold mb-4 text-primary">3. Trách nhiệm của Tình nguyện viên</h3>
 								<ul class="text-muted lh-lg mb-4">
-									<li>Tuân thủ các quy định, hướng dẫn của Điều phối viên trong mỗi chiến dịch.</li>
+									<li>Tuân thủ các quy định, hướng dẫn của Kiểm duyệt viên trong mỗi chiến dịch.</li>
 									<li>Tham gia đầy đủ và có trách nhiệm với các hoạt động đã đăng ký.</li>
 									<li>Giữ gìn hình ảnh, uy tín của tổ chức và cộng đồng tình nguyện.</li>
 									<li>Thông báo trước nếu không thể tham gia chiến dịch đã đăng ký.</li>

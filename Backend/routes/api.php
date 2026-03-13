@@ -34,13 +34,13 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/nguoi-dung/ho-so-nang-luc', [NguoiDungController::class, 'luuHoSoNangLuc']);
 });
 
-// =========================================== ĐIỀU PHỐI VIÊN ==========================================
-Route::middleware(['auth:api', 'dieuPhoiVien'])->group(function () {
-    Route::get('/dieu-phoi/chien-dich', [ChienDichController::class, 'danhSach']);
-    Route::post('/dieu-phoi/chien-dich', [ChienDichController::class, 'taoMoi']);
-    Route::get('/dieu-phoi/chien-dich/{id}', [ChienDichController::class, 'chiTiet']);
-    Route::put('/dieu-phoi/chien-dich/{id}', [ChienDichController::class, 'capNhat']);
-    Route::put('/dieu-phoi/chien-dich/{id}/huy', [ChienDichController::class, 'huyChienDich']);
+// =========================================== KIỂM DUYỆT VIÊN ==========================================
+Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
+    Route::get('/kiem-duyet/chien-dich', [ChienDichController::class, 'danhSach']);
+    Route::post('/kiem-duyet/chien-dich', [ChienDichController::class, 'taoMoi']);
+    Route::get('/kiem-duyet/chien-dich/{id}', [ChienDichController::class, 'chiTiet']);
+    Route::put('/kiem-duyet/chien-dich/{id}', [ChienDichController::class, 'capNhat']);
+    Route::put('/kiem-duyet/chien-dich/{id}/huy', [ChienDichController::class, 'huyChienDich']);
 });
 
 // =========================================== QUẢN TRỊ VIÊN ==========================================

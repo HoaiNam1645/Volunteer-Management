@@ -50,7 +50,7 @@ class NguoiDungController extends Controller
     public function capNhatVaiTro(Request $request, $id)
     {
         $request->validate([
-            'vai_tro' => 'required|in:tinh_nguyen_vien,dieu_phoi_vien,quan_tri_vien',
+            'vai_tro' => 'required|in:tinh_nguyen_vien,kiem_duyet_vien,quan_tri_vien',
         ]);
 
         $admin = auth('api')->user();

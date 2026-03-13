@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\DB;
 
 class ChienDichController extends Controller
 {
-    // ======================== DANH SÁCH CHIẾN DỊCH CỦA ĐPV ========================
+    // ======================== DANH SÁCH CHIẾN DỊCH CỦA KDV ========================
     public function danhSach(Request $request)
     {
         $user = auth('api')->user();
         $perPage = (int) $request->input('per_page', 10);
 
-        $query = ChienDich::where('dieu_phoi_vien_id', $user->id)
+        $query = ChienDich::where('kiem_duyet_vien_id', $user->id)
             ->whereNull('xoa_luc')
             ->with(['loaiChienDich:id,ten,bieu_tuong,mau_sac', 'kyNangs:ky_nangs.id,ten']);
 
@@ -87,12 +87,12 @@ class ChienDichController extends Controller
         $user = auth('api')->user();
 
         $cd = ChienDich::where('id', $id)
-            ->where('dieu_phoi_vien_id', $user->id)
+            ->where('kiem_duyet_vien_id', $user->id)
             ->whereNull('xoa_luc')
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
-                'dieuPhoiVien:id,ho_ten,email'
+                'kiemDuyetVien:id,ho_ten,email'
             ])
             ->first();
 
@@ -125,7 +125,7 @@ class ChienDichController extends Controller
                 'so_xac_nhan'         => $cd->so_xac_nhan,
                 'loai_chien_dich_id'  => $cd->loai_chien_dich_id,
                 'loai_chien_dich'     => $cd->loaiChienDich,
-                'dieu_phoi_vien'      => $cd->dieuPhoiVien,
+                'kiem_duyet_vien'      => $cd->kiemDuyetVien,
                 'ky_nang_ids'         => $cd->kyNangs->pluck('id')->toArray(),
                 'tao_luc'             => $cd->tao_luc?->format('Y-m-d H:i:s'),
             ],
@@ -156,7 +156,7 @@ class ChienDichController extends Controller
 
         $cd = DB::transaction(function () use ($request, $user) {
             $cd = ChienDich::create([
-                'dieu_phoi_vien_id'  => $user->id,
+                'kiem_duyet_vien_id'  => $user->id,
                 'loai_chien_dich_id' => $request->loai_chien_dich_id,
                 'tieu_de'            => $request->tieu_de,
                 'mo_ta'              => $request->mo_ta,
@@ -210,7 +210,7 @@ class ChienDichController extends Controller
         $user = auth('api')->user();
 
         $cd = ChienDich::where('id', $id)
-            ->where('dieu_phoi_vien_id', $user->id)
+            ->where('kiem_duyet_vien_id', $user->id)
             ->whereNull('xoa_luc')
             ->first();
 
@@ -255,13 +255,13 @@ class ChienDichController extends Controller
         ]);
     }
 
-    // ======================== YÊU CẦU HỦY CHIẾN DỊCH (ĐPV gửi yêu cầu → Admin duyệt) ========================
+    // ======================== YÊU CẦU HỦY CHIẾN DỊCH (KDV gửi yêu cầu → Admin duyệt) ========================
     public function huyChienDich(Request $request, $id)
     {
         $user = auth('api')->user();
 
         $cd = ChienDich::where('id', $id)
-            ->where('dieu_phoi_vien_id', $user->id)
+            ->where('kiem_duyet_vien_id', $user->id)
             ->whereNull('xoa_luc')
             ->first();
 
@@ -293,7 +293,7 @@ class ChienDichController extends Controller
             ], 422);
         }
 
-        $lyDo = $request->ly_do ?? 'Điều phối viên yêu cầu hủy chiến dịch.';
+        $lyDo = $request->ly_do ?? 'Kiểm duyệt viên yêu cầu hủy chiến dịch.';
 
         $cd->update([
             'trang_thai'    => 'yeu_cau_huy',

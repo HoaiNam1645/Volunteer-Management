@@ -52,7 +52,7 @@
 
                             @if($isPending)
                             <p style="font-size:15px;color:#6B7280;line-height:24px;margin:0 0 24px;">
-                                Chúng tôi xin thông báo rằng điều phối viên đã gửi <strong>yêu cầu hủy</strong> chiến dịch mà bạn đã đăng ký tham gia.
+                                Chúng tôi xin thông báo rằng kiểm duyệt viên đã gửi <strong>yêu cầu hủy</strong> chiến dịch mà bạn đã đăng ký tham gia.
                                 Yêu cầu này hiện đang được <strong>Admin xét duyệt</strong>. Chúng tôi sẽ thông báo lại khi có kết quả.
                             </p>
                             @else

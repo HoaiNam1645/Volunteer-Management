@@ -485,7 +485,7 @@ export default {
 		async loadCampaignDetail() {
 			this.isLoading = true;
 			try {
-				const res = await api.get(`/dieu-phoi/chien-dich/${this.campaignId}`);
+				const res = await api.get(`/kiem-duyet/chien-dich/${this.campaignId}`);
 				if (res.data.status === 1) {
 					const cd = res.data.data;
 					const loai = cd.loai_chien_dich;
@@ -507,8 +507,8 @@ export default {
 						requiredSkills: cd.ky_nang_ids || [],
 						icon: loai ? `fa-solid ${loai.bieu_tuong || 'fa-flag'}` : 'fa-solid fa-flag',
 						color: loai ? `linear-gradient(135deg, ${loai.mau_sac || '#0d6efd'}, ${this.lightenColor(loai.mau_sac || '#0d6efd')})` : 'linear-gradient(135deg, #0d6efd, #6610f2)',
-						coordinatorName: cd.dieu_phoi_vien?.ho_ten || '',
-						coordinatorEmail: cd.dieu_phoi_vien?.email || '',
+						coordinatorName: cd.kiem_duyet_vien?.ho_ten || '',
+						coordinatorEmail: cd.kiem_duyet_vien?.email || '',
 					};
 					this.$nextTick(() => this.geocodeAndShowMap());
 				}

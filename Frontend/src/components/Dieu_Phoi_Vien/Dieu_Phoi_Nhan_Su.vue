@@ -495,7 +495,7 @@ export default {
 		},
 		sendNotifications() {
 			this.notifySubject = `[VMS-AI] Phân công: ${this.activeCampaign?.name || ''}`;
-			this.notifyMessage = `Chào bạn,\n\nBạn đã được phân công vào chiến dịch "${this.activeCampaign?.name || ''}". Vui lòng xác nhận tham gia trên hệ thống.\n\nTrân trọng,\nĐiều phối viên VMS-AI`;
+			this.notifyMessage = `Chào bạn,\n\nBạn đã được phân công vào chiến dịch "${this.activeCampaign?.name || ''}". Vui lòng xác nhận tham gia trên hệ thống.\n\nTrân trọng,\nKiểm duyệt viên VMS-AI`;
 			this.showNotifyModal = true;
 		},
 		confirmSendNotifications() {

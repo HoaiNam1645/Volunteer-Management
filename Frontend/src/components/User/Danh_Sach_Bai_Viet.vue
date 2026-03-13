@@ -302,7 +302,7 @@ export default {
 			articles: [
 				{
 					id: 2,
-					title: 'Câu chuyện TNV: Từ sinh viên nhút nhát đến điều phối viên tự tin',
+					title: 'Câu chuyện TNV: Từ sinh viên nhút nhát đến kiểm duyệt viên tự tin',
 					summary: 'Hành trình đầy cảm hứng của bạn Minh Anh — từ một tình nguyện viên mới chưa dám phát biểu trước đông người, trở thành người điều phối thành công nhiều chiến dịch lớn.',
 					category: 'story',
 					date: '03/03/2026',
@@ -312,7 +312,7 @@ export default {
 					readTime: 6,
 					coverImage: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&q=80',
 					authorName: 'Minh Anh',
-					authorRole: 'Điều phối viên',
+					authorRole: 'Kiểm duyệt viên',
 					authorColor: '#dc3545',
 					tags: ['câu_chuyện', 'cảm_hứng', 'điều_phối']
 				},
@@ -351,7 +351,7 @@ export default {
 				{
 					id: 5,
 					title: 'Sự kiện giao lưu tình nguyện viên Đà Nẵng 2026',
-					summary: 'Buổi giao lưu, kết nối giữa các tình nguyện viên và điều phối viên tại Đà Nẵng sẽ diễn ra vào ngày 15/04/2026 với nhiều hoạt động thú vị.',
+					summary: 'Buổi giao lưu, kết nối giữa các tình nguyện viên và kiểm duyệt viên tại Đà Nẵng sẽ diễn ra vào ngày 15/04/2026 với nhiều hoạt động thú vị.',
 					category: 'event',
 					date: '22/02/2026',
 					views: '723',
@@ -360,7 +360,7 @@ export default {
 					readTime: 3,
 					coverImage: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&q=80',
 					authorName: 'Nguyễn Hoàng',
-					authorRole: 'Điều phối viên',
+					authorRole: 'Kiểm duyệt viên',
 					authorColor: '#fd7e14',
 					tags: ['sự_kiện', 'giao_lưu', 'đà_nẵng']
 				},
@@ -399,7 +399,7 @@ export default {
 				{
 					id: 8,
 					title: 'Chia sẻ kinh nghiệm tổ chức chiến dịch thiện nguyện quy mô lớn',
-					summary: 'Bài viết chia sẻ những bí quyết và kinh nghiệm thực tế từ người điều phối viên đã tổ chức thành công hơn 20 chiến dịch.',
+					summary: 'Bài viết chia sẻ những bí quyết và kinh nghiệm thực tế từ người kiểm duyệt viên đã tổ chức thành công hơn 20 chiến dịch.',
 					category: 'story',
 					date: '10/02/2026',
 					views: '890',
@@ -408,7 +408,7 @@ export default {
 					readTime: 9,
 					coverImage: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&q=80',
 					authorName: 'Phạm Đức',
-					authorRole: 'Điều phối viên',
+					authorRole: 'Kiểm duyệt viên',
 					authorColor: '#20c997',
 					tags: ['kinh_nghiệm', 'tổ_chức', 'điều_phối']
 				},

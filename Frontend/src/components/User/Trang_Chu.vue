@@ -324,7 +324,7 @@ export default {
 					badgeClass: 'bg-primary'
 				},
 				{
-					title: 'Câu chuyện TNV: Từ sinh viên đến điều phối viên',
+					title: 'Câu chuyện TNV: Từ sinh viên đến kiểm duyệt viên',
 					summary: 'Hành trình đầy cảm hứng của bạn Minh Anh từ một tình nguyện viên mới đến người điều phối.',
 					date: '02/03/2026',
 					views: '890',

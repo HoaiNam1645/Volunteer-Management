@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('gioi_thieu')->nullable();
             // Vai tro & trang thai
             // Vai tro & trang thai
-            $table->enum('vai_tro', ['tinh_nguyen_vien', 'dieu_phoi_vien', 'quan_tri_vien'])->default('tinh_nguyen_vien');
+            $table->enum('vai_tro', ['tinh_nguyen_vien', 'kiem_duyet_vien', 'quan_tri_vien'])->default('tinh_nguyen_vien');
             $table->enum('trang_thai', ['cho_duyet', 'hoat_dong', 'bi_khoa'])->default('cho_duyet');
             // Dia chi cu the (dung cho AI Haversine)
             $table->unsignedBigInteger('tinh_thanh_id')->nullable();

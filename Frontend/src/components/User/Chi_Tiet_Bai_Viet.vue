@@ -398,7 +398,7 @@ export default {
 				},
 				{
 					id: 2,
-					title: 'Câu chuyện TNV: Từ sinh viên nhút nhát đến điều phối viên tự tin',
+					title: 'Câu chuyện TNV: Từ sinh viên nhút nhát đến kiểm duyệt viên tự tin',
 					category: 'story',
 					date: '03/03/2026',
 					coverImage: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=300&q=80'
@@ -421,7 +421,7 @@ export default {
 			prevArticle: null,
 			nextArticle: {
 				id: 2,
-				title: 'Câu chuyện TNV: Từ sinh viên nhút nhát đến điều phối viên tự tin'
+				title: 'Câu chuyện TNV: Từ sinh viên nhút nhát đến kiểm duyệt viên tự tin'
 			},
 			popularTags: [
 				'tình_nguyện', 'mùa_hè_xanh', 'giáo_dục', 'môi_trường',

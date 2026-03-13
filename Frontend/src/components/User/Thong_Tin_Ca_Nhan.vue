@@ -387,7 +387,7 @@ export default {
 				{ key: 'campaign_new', title: 'Chiến dịch mới', description: 'Nhận thông báo khi có chiến dịch mới phù hợp với kỹ năng', enabled: true, icon: 'fa-solid fa-bullhorn', bgColor: '#dbeafe', iconColor: '#2563eb' },
 				{ key: 'campaign_assign', title: 'Phân công chiến dịch', description: 'Nhận thông báo khi được phân công vào chiến dịch', enabled: true, icon: 'fa-solid fa-clipboard-check', bgColor: '#d1fae5', iconColor: '#059669' },
 				{ key: 'campaign_remind', title: 'Nhắc nhở chiến dịch', description: 'Nhận nhắc nhở trước khi chiến dịch bắt đầu', enabled: true, icon: 'fa-solid fa-clock', bgColor: '#fef3c7', iconColor: '#d97706' },
-				{ key: 'rating', title: 'Đánh giá mới', description: 'Nhận thông báo khi có đánh giá mới từ điều phối viên', enabled: true, icon: 'fa-solid fa-star', bgColor: '#fce7f3', iconColor: '#db2777' },
+				{ key: 'rating', title: 'Đánh giá mới', description: 'Nhận thông báo khi có đánh giá mới từ kiểm duyệt viên', enabled: true, icon: 'fa-solid fa-star', bgColor: '#fce7f3', iconColor: '#db2777' },
 				{ key: 'email_digest', title: 'Email tổng hợp hàng tuần', description: 'Nhận email tổng hợp hoạt động mỗi tuần', enabled: false, icon: 'fa-solid fa-envelope', bgColor: '#e0e7ff', iconColor: '#4f46e5' },
 				{ key: 'ai_suggest', title: 'Gợi ý AI', description: 'Nhận thông báo khi AI gợi ý chiến dịch phù hợp', enabled: true, icon: 'fa-solid fa-robot', bgColor: '#f3e8ff', iconColor: '#7c3aed' }
 			]

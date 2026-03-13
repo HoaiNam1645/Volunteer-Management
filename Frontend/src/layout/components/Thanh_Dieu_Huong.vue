@@ -33,8 +33,8 @@
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.campaignList') }}
 							</a>
 						</li>
-						<!-- Chỉ điều phối viên thấy Quản lý chiến dịch -->
-						<li v-if="userRole === 'dieu_phoi_vien'">
+						<!-- Chỉ kiểm duyệt viên thấy Quản lý chiến dịch -->
+						<li v-if="userRole === 'kiem_duyet_vien'">
 							<a class="dropdown-item" href="/quan-ly-chien-dich">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.myCampaigns') }}
 							</a>
@@ -42,8 +42,8 @@
 					</ul>
 				</li>
 
-				<!-- Điều phối (chỉ dieu_phoi_vien) -->
-				<li class="nav-item dropdown" v-if="userRole === 'dieu_phoi_vien'">
+				<!-- Điều phối (chỉ kiem_duyet_vien) -->
+				<li class="nav-item dropdown" v-if="userRole === 'kiem_duyet_vien'">
 					<a href="javascript:;" class="nav-link dropdown-toggle dropdown-toggle-nocaret"
 						data-bs-toggle="dropdown">
 						<div class="parent-icon"><i class="fa-solid fa-people-arrows"></i></div>
@@ -51,7 +51,7 @@
 					</a>
 					<ul class="dropdown-menu">
 						<li>
-							<a class="dropdown-item" href="/dieu-phoi-nhan-su">
+							<a class="dropdown-item" href="/kiem-duyet-nhan-su">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.hrCoordination') }}
 							</a>
 						</li>

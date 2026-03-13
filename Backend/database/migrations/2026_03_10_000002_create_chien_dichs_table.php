@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('chien_dichs', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('dieu_phoi_vien_id')->comment('Nguoi DPV tao & leader');
+            $table->unsignedBigInteger('kiem_duyet_vien_id')->comment('Nguoi KDV tao & leader');
             $table->unsignedBigInteger('loai_chien_dich_id')->nullable();
             $table->string('tieu_de', 300);
             $table->text('mo_ta')->nullable();
@@ -48,7 +48,7 @@ return new class extends Migration
             $table->timestamp('xoa_luc')->nullable();
 
             // Indexes
-            $table->index('dieu_phoi_vien_id', 'idx_cd_dieu_phoi');
+            $table->index('kiem_duyet_vien_id', 'idx_cd_dieu_phoi');
             $table->index('loai_chien_dich_id', 'idx_cd_loai');
             $table->index('khu_vuc_id', 'idx_cd_khu_vuc');
             $table->index('trang_thai', 'idx_cd_trang_thai');
@@ -58,7 +58,7 @@ return new class extends Migration
             $table->index('xoa_luc', 'idx_cd_xoa');
 
             // Foreign keys
-            $table->foreign('dieu_phoi_vien_id', 'fk_cd_dieu_phoi')->references('id')->on('nguoi_dungs');
+            $table->foreign('kiem_duyet_vien_id', 'fk_cd_dieu_phoi')->references('id')->on('nguoi_dungs');
             $table->foreign('loai_chien_dich_id', 'fk_cd_loai')->references('id')->on('loai_chien_dichs')->nullOnDelete();
             $table->foreign('khu_vuc_id', 'fk_cd_khu_vuc')->references('id')->on('khu_vucs')->nullOnDelete();
             $table->foreign('duyet_boi', 'fk_cd_duyet_boi')->references('id')->on('nguoi_dungs')->nullOnDelete();

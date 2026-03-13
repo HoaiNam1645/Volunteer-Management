@@ -87,7 +87,7 @@ const routes = [
         meta: { layout: 'default' }
     },
     {
-        path: '/dieu-phoi-nhan-su',
+        path: '/kiem-duyet-nhan-su',
         component: () => import('../components/Dieu_Phoi_Vien/Dieu_Phoi_Nhan_Su.vue'),
         meta: { layout: 'default' }
     },

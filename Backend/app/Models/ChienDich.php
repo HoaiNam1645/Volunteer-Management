@@ -12,7 +12,7 @@ class ChienDich extends Model
     const UPDATED_AT = 'cap_nhat_luc';
 
     protected $fillable = [
-        'dieu_phoi_vien_id',
+        'kiem_duyet_vien_id',
         'loai_chien_dich_id',
         'tieu_de',
         'mo_ta',
@@ -52,9 +52,9 @@ class ChienDich extends Model
 
     // ======================== RELATIONSHIPS ========================
 
-    public function dieuPhoiVien()
+    public function kiemDuyetVien()
     {
-        return $this->belongsTo(NguoiDung::class, 'dieu_phoi_vien_id');
+        return $this->belongsTo(NguoiDung::class, 'kiem_duyet_vien_id');
     }
 
     public function loaiChienDich()

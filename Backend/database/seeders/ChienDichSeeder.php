@@ -15,14 +15,14 @@ class ChienDichSeeder extends Seeder
     public function run(): void
     {
         // Lấy dữ liệu cần thiết
-        $dpvIds = NguoiDung::where('vai_tro', 'dieu_phoi_vien')->pluck('id')->toArray();
+        $dpvIds = NguoiDung::where('vai_tro', 'kiem_duyet_vien')->pluck('id')->toArray();
         $tnvIds = NguoiDung::where('vai_tro', 'tinh_nguyen_vien')->pluck('id')->toArray();
         $loaiIds = LoaiChienDich::pluck('id')->toArray();
         $kyNangIds = KyNang::pluck('id')->toArray();
         $adminId = NguoiDung::where('vai_tro', 'quan_tri_vien')->value('id');
 
         if (empty($dpvIds) || empty($loaiIds)) {
-            $this->command->warn('Cần có DPV và Loại chiến dịch trước. Bỏ qua ChienDichSeeder.');
+            $this->command->warn('Cần có KDV và Loại chiến dịch trước. Bỏ qua ChienDichSeeder.');
             return;
         }
 
@@ -150,8 +150,8 @@ class ChienDichSeeder extends Seeder
         ];
 
         foreach ($chienDichs as $index => $cdData) {
-            // Gán DPV luân phiên
-            $cdData['dieu_phoi_vien_id'] = $dpvIds[$index % count($dpvIds)];
+            // Gán KDV luân phiên
+            $cdData['kiem_duyet_vien_id'] = $dpvIds[$index % count($dpvIds)];
 
             // Nếu đã duyệt / hoàn thành → gán admin duyệt
             if (in_array($cdData['trang_thai'], ['da_duyet', 'dang_dien_ra', 'hoan_thanh'])) {

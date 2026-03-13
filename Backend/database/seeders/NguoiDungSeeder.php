@@ -42,15 +42,15 @@ class NguoiDungSeeder extends Seeder
             ]
         );
 
-        // 3. Tạo 2 Điều phối viên
+        // 3. Tạo 2 Kiểm duyệt viên
         for ($i = 1; $i <= 2; $i++) {
             NguoiDung::updateOrCreate(
-                ['email' => "dieu_phoi_vien_$i@gmail.com"],
+                ['email' => "kiem_duyet_vien_$i@gmail.com"],
                 [
-                    'ho_ten' => "Điều Phối Viên $i",
+                    'ho_ten' => "Kiểm Duyệt Viên $i",
                     'mat_khau' => $matKhauChung,
                     'so_dien_thoai' => "091234567$i",
-                    'vai_tro' => 'dieu_phoi_vien',
+                    'vai_tro' => 'kiem_duyet_vien',
                     'trang_thai' => 'hoat_dong',
                     'xac_thuc_email_luc' => $now,
                     'ngay_sinh' => "1995-05-0$i",

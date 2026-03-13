@@ -21,7 +21,7 @@
 									<strong>VMS-AI</strong> thu thập thông tin cá nhân của người dùng (bao gồm Họ tên, Số điện thoại, Email, Địa chỉ, Kỹ năng) nhằm mục đích:
 								</p>
 								<ul class="text-muted lh-lg mb-4">
-									<li>Quản lý hồ sơ Tình nguyện viên và Điều phối viên.</li>
+									<li>Quản lý hồ sơ Tình nguyện viên và Kiểm duyệt viên.</li>
 									<li>Gợi ý các chiến dịch tình nguyện phù hợp với năng lực và vị trí thông qua hệ thống AI.</li>
 									<li>Liên hệ, gửi thông báo và điều phối trong các hoạt động tình nguyện.</li>
 									<li>Phân tích dữ liệu ẩn danh để cải thiện chất lượng dịch vụ của nền tảng.</li>
@@ -34,7 +34,7 @@
 								<ul class="text-muted lh-lg mb-4">
 									<li>Mật khẩu được mã hóa an toàn (Hashing) trước khi lưu vào cơ sở dữ liệu.</li>
 									<li>Sử dụng giao thức HTTPS để mã hóa dữ liệu truyền tải trên mạng.</li>
-									<li>Truy cập vào dữ liệu cá nhân bị hạn chế nghiêm ngặt, chỉ dành cho những nhân sự có thẩm quyền (Admin, Điều phối viên của chiến dịch bạn tham gia).</li>
+									<li>Truy cập vào dữ liệu cá nhân bị hạn chế nghiêm ngặt, chỉ dành cho những nhân sự có thẩm quyền (Admin, Kiểm duyệt viên của chiến dịch bạn tham gia).</li>
 								</ul>
 
 								<h3 class="fw-bold mb-4 text-success">3. Chia sẻ thông tin</h3>
@@ -42,7 +42,7 @@
 									Chúng tôi <strong>KHÔNG</strong> bán, trao đổi hoặc cho thuê thông tin cá nhân của bạn cho bên thứ ba. Thông tin của bạn chỉ được chia sẻ trong các trường hợp sau:
 								</p>
 								<ul class="text-muted lh-lg mb-4">
-									<li>Với các Điều phối viên tổ chức chiến dịch mà bạn đăng ký tham gia (để phục vụ mục đích quản lý và liên lạc).</li>
+									<li>Với các Kiểm duyệt viên tổ chức chiến dịch mà bạn đăng ký tham gia (để phục vụ mục đích quản lý và liên lạc).</li>
 									<li>Khi có yêu cầu hợp pháp từ cơ quan nhà nước có thẩm quyền.</li>
 								</ul>
 

@@ -133,7 +133,7 @@ export default {
 		getRoleLabel(role) {
 			const map = {
 				'tinh_nguyen_vien': 'Tình nguyện viên',
-				'dieu_phoi_vien': 'Điều phối viên',
+				'kiem_duyet_vien': 'Kiểm duyệt viên',
 				'quan_tri_vien': 'Quản trị viên',
 			};
 			return map[role] || role;

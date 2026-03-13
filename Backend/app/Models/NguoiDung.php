@@ -104,6 +104,6 @@ class NguoiDung extends Authenticatable implements JWTSubject
 
     public function chienDichs()
     {
-        return $this->hasMany(\App\Models\ChienDich::class, 'dieu_phoi_vien_id');
+        return $this->hasMany(\App\Models\ChienDich::class, 'kiem_duyet_vien_id');
     }
 }

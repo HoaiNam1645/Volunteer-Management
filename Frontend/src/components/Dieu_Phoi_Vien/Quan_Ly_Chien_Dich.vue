@@ -572,7 +572,7 @@ export default {
 				if (this.filterCategory) params.loai_chien_dich_id = this.filterCategory;
 				if (this.filterPriority) params.muc_do_uu_tien = PRIORITY_MAP_REVERSE[this.filterPriority] || this.filterPriority;
 
-				const res = await api.get('/dieu-phoi/chien-dich', { params });
+				const res = await api.get('/kiem-duyet/chien-dich', { params });
 				if (res.data.status === 1) {
 					this.campaigns = res.data.data.map(cd => this.mapCampaignFromApi(cd));
 					this.currentPage = res.data.current_page;
@@ -706,12 +706,12 @@ export default {
 
 			try {
 				if (this.isEditing) {
-					const res = await api.put(`/dieu-phoi/chien-dich/${this.formData.id}`, payload);
+					const res = await api.put(`/kiem-duyet/chien-dich/${this.formData.id}`, payload);
 					if (res.data.status === 1) {
 						if (this.toast) this.toast.success('Thành công!', res.data.message);
 					}
 				} else {
-					const res = await api.post('/dieu-phoi/chien-dich', payload);
+					const res = await api.post('/kiem-duyet/chien-dich', payload);
 					if (res.data.status === 1) {
 						if (this.toast) this.toast.success('Thành công!', res.data.message);
 					}
@@ -737,7 +737,7 @@ export default {
 				return;
 			}
 			try {
-				const res = await api.put(`/dieu-phoi/chien-dich/${this.cancelTarget.id}/huy`, { ly_do: this.cancelReason });
+				const res = await api.put(`/kiem-duyet/chien-dich/${this.cancelTarget.id}/huy`, { ly_do: this.cancelReason });
 				if (res.data.status === 1) {
 					if (this.toast) this.toast.success('Thành công!', res.data.message);
 					await this.loadCampaigns();
