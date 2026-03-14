@@ -82,4 +82,24 @@ class ChienDich extends Model
     {
         return $this->hasMany(DangKyThamGia::class, 'chien_dich_id');
     }
+
+    public function feedbacks()
+    {
+        return $this->hasMany(PhanHoiTnv::class, 'chien_dich_id');
+    }
+
+    public function baoCaos()
+    {
+        return $this->hasMany(BaoCaoChienDich::class, 'chien_dich_id');
+    }
+
+    public function lichSuKiemDuyets()
+    {
+        return $this->hasMany(LichSuKiemDuyetChienDich::class, 'chien_dich_id');
+    }
+
+    public function danhGiaTnvs()
+    {
+        return $this->hasMany(DanhGiaTnv::class, 'chien_dich_id');
+    }
 }

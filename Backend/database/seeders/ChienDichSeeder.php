@@ -116,7 +116,7 @@ class ChienDichSeeder extends Seeder
                 'so_luong_toi_da'   => 25,
                 'so_luong_toi_thieu' => 10,
                 'muc_do_uu_tien'    => 'cao',
-                'trang_thai'        => 'nhap',
+                'trang_thai'        => 'yeu_cau_huy',
             ],
             [
                 'tieu_de'           => 'Ngày hội hiến máu Xuân 2026',
@@ -147,6 +147,22 @@ class ChienDichSeeder extends Seeder
                 'muc_do_uu_tien'    => 'trung_binh',
                 'trang_thai'        => 'da_duyet',
             ],
+            [
+                'tieu_de'           => 'Chương trình hỗ trợ thư viện vùng ven',
+                'mo_ta'             => 'Bổ sung đầu sách và tổ chức đọc sách cho trẻ em tại thư viện cộng đồng vùng ven.',
+                'loai_chien_dich_id' => $loaiIds[1] ?? $loaiIds[0],
+                'dia_diem'          => 'Nhà văn hóa xã Bình Mỹ, Củ Chi, TP.HCM',
+                'vi_do'             => 10.9542,
+                'kinh_do'           => 106.5320,
+                'ngay_bat_dau'      => $now->copy()->addDays(11)->toDateString(),
+                'ngay_ket_thuc'     => $now->copy()->addDays(13)->toDateString(),
+                'han_dang_ky'       => $now->copy()->addDays(7)->toDateString(),
+                'so_luong_toi_da'   => 18,
+                'so_luong_toi_thieu' => 6,
+                'muc_do_uu_tien'    => 'thap',
+                'trang_thai'        => 'tu_choi',
+                'ly_do_tu_choi'     => 'Kế hoạch tổ chức và phương án an toàn chưa đầy đủ.',
+            ],
         ];
 
         foreach ($chienDichs as $index => $cdData) {
@@ -154,7 +170,7 @@ class ChienDichSeeder extends Seeder
             $cdData['nguoi_tao_id'] = $nguoiTaoIds[$index % count($nguoiTaoIds)];
 
             // Nếu đã duyệt / hoàn thành → gán KDV duyệt.
-            if (in_array($cdData['trang_thai'], ['da_duyet', 'dang_dien_ra', 'hoan_thanh'])) {
+            if (in_array($cdData['trang_thai'], ['da_duyet', 'dang_dien_ra', 'hoan_thanh', 'tu_choi', 'yeu_cau_huy'])) {
                 $cdData['duyet_boi'] = $kiemDuyetVienIds[$index % count($kiemDuyetVienIds)];
                 $cdData['duyet_luc'] = $now->copy()->subDays(rand(1, 5));
             }
@@ -181,7 +197,7 @@ class ChienDichSeeder extends Seeder
             }
 
             // Tạo đăng ký tham gia cho chiến dịch đã duyệt / đang diễn ra / hoàn thành
-            if (in_array($cd->trang_thai, ['da_duyet', 'dang_dien_ra', 'hoan_thanh']) && !empty($tnvIds)) {
+            if (in_array($cd->trang_thai, ['da_duyet', 'dang_dien_ra', 'hoan_thanh', 'yeu_cau_huy']) && !empty($tnvIds)) {
                 $numRegistrations = rand(2, min(4, count($tnvIds)));
                 $selectedTnvIds = array_slice($tnvIds, 0, $numRegistrations);
 

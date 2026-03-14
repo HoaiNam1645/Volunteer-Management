@@ -132,10 +132,13 @@ export default {
 					localStorage.setItem('token', res.data.token);
 					localStorage.setItem('user', JSON.stringify(res.data.data));
 					const role = res.data.data?.vai_tro;
+					const redirect = typeof this.$route.query.redirect === 'string' ? this.$route.query.redirect : '';
 					if (role === 'kiem_duyet_vien') {
 						this.$router.push('/admin/chien-dich');
 					} else if (role === 'quan_tri_vien') {
 						this.$router.push('/admin');
+					} else if (redirect) {
+						this.$router.push(redirect);
 					} else {
 						this.$router.push('/');
 					}

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChienDich;
+use App\Models\LichSuKiemDuyetChienDich;
 use App\Models\LoaiChienDich;
+use App\Models\ThongBao;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -345,6 +347,35 @@ class ChienDichController extends Controller
             'trang_thai'    => 'yeu_cau_huy',
             'ly_do_tu_choi' => $lyDo,
         ]);
+
+        LichSuKiemDuyetChienDich::create([
+            'chien_dich_id' => $cd->id,
+            'nguoi_thuc_hien_id' => $user->id,
+            'hanh_dong' => 'gui_yeu_cau_huy',
+            'tu_trang_thai' => $cd->getOriginal('trang_thai'),
+            'den_trang_thai' => 'yeu_cau_huy',
+            'ghi_chu' => $lyDo,
+            'du_lieu_bo_sung' => [
+                'nguoi_tao_id' => $user->id,
+            ],
+        ]);
+
+        $danhSachKiemDuyetVien = \App\Models\NguoiDung::where('vai_tro', 'kiem_duyet_vien')
+            ->whereNull('xoa_luc')
+            ->get(['id']);
+
+        foreach ($danhSachKiemDuyetVien as $kiemDuyetVien) {
+            ThongBao::create([
+                'nguoi_dung_id' => $kiemDuyetVien->id,
+                'nguoi_gui_id' => $user->id,
+                'loai' => 'cap_nhat_cd',
+                'tieu_de' => 'Có yêu cầu hủy chiến dịch mới',
+                'noi_dung' => 'Chiến dịch "' . $cd->tieu_de . '" đang chờ kiểm duyệt yêu cầu hủy.',
+                'loai_tham_chieu' => 'chien_dich',
+                'tham_chieu_id' => $cd->id,
+                'gui_qua' => 'he_thong',
+            ]);
+        }
 
         // Gửi email thông báo cho tất cả TNV đã đăng ký (chưa hủy) rằng chiến dịch đang chờ xét duyệt hủy.
         $danhSachDangKy = $cd->dangKyThamGias()

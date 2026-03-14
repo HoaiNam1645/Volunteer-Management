@@ -59,16 +59,14 @@
 								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.location') }}</h6>
 								<select class="form-select form-select-sm" v-model="filters.location">
 									<option value="">{{ $t('campaignList.allAreas') }}</option>
-									<option value="TP.HCM">TP.HCM</option>
-									<option value="Hà Nội">Hà Nội</option>
-									<option value="Đà Nẵng">Đà Nẵng</option>
-									<option value="Khác">{{ $t('campaignList.otherArea') }}</option>
+									<option v-for="location in locations" :key="location" :value="location">{{ location }}</option>
+									<option v-if="!locations.includes('Khác')" value="Khác">{{ $t('campaignList.otherArea') }}</option>
 								</select>
 							</div>
 
 							<!-- Người điều phối -->
 							<div class="p-3">
-								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.coordinatorLabel') }}</h6>
+								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.creatorLabel') }}</h6>
 								<select class="form-select form-select-sm" v-model="filters.coordinator">
 									<option value="">{{ $t('common.all') }}</option>
 									<option v-for="coord in coordinators" :key="coord.id" :value="coord.id">
@@ -99,8 +97,22 @@
 						</div>
 					</div>
 
+					<div v-if="loading" class="row g-4">
+						<div class="col-md-6 col-xl-4" v-for="n in 6" :key="n">
+							<div class="card h-100 border-0 shadow-sm placeholder-glow">
+								<div class="placeholder campaign-banner-img"></div>
+								<div class="card-body p-4">
+									<span class="placeholder col-9 mb-3 d-block"></span>
+									<span class="placeholder col-12 mb-2 d-block"></span>
+									<span class="placeholder col-8 mb-4 d-block"></span>
+									<span class="placeholder col-6 d-block"></span>
+								</div>
+							</div>
+						</div>
+					</div>
+
 					<!-- Campaigns Grid -->
-					<div class="row g-4">
+					<div v-else class="row g-4">
 						<div class="col-md-6 col-xl-4" v-for="campaign in sortedCampaigns" :key="campaign.id">
 							<div class="card h-100 border-0 shadow-sm campaign-card">
 								<!-- Image/Banner Placeholder -->
@@ -109,10 +121,11 @@
 										<span class="badge bg-white text-dark shadow-sm">{{ getCategoryLabel(campaign.category) }}</span>
 										<span class="badge" :class="getPriorityClassBadge(campaign.priority)">{{ getPriorityLabel(campaign.priority) }}</span>
 									</div>
-									<div class="position-absolute bottom-0 end-0 m-3">
+									<div class="position-absolute bottom-0 end-0 m-3 d-flex flex-column align-items-end gap-2">
 										<span class="badge shadow-sm" :class="getStatusClassBadge(campaign.status)">
 											<i class="me-1" :class="getStatusIconBadge(campaign.status)"></i>{{ getStatusLabel(campaign.status) }}
 										</span>
+										<span v-if="campaign.personalRegistrationLabel" class="badge bg-light text-dark border shadow-sm">{{ campaign.personalRegistrationLabel }}</span>
 									</div>
 								</div>
 
@@ -122,11 +135,6 @@
 											{{ getCoordinatorInitial(campaign.coordinatorId) }}
 										</div>
 										<span class="small text-muted text-truncate">{{ getCoordinatorName(campaign.coordinatorId) }}</span>
-										<span class="ms-auto d-flex align-items-center gap-1 small text-nowrap" v-if="campaign.avgRating">
-											<i class="fa-solid fa-star text-warning" style="font-size:11px"></i>
-											<span class="fw-bold text-dark">{{ campaign.avgRating }}</span>
-											<span class="text-muted">({{ campaign.reviewCount }})</span>
-										</span>
 									</div>
 
 									<!-- Title & Desc -->
@@ -177,9 +185,7 @@
 						<ul class="pagination justify-content-center border-0">
 							<li class="page-item disabled"><a class="page-link border-0 shadow-sm rounded-start-pill px-3" href="#">{{ $t('campaignList.prev') }}</a></li>
 							<li class="page-item active"><a class="page-link border-0 shadow-sm" href="#">1</a></li>
-							<li class="page-item"><a class="page-link border-0 shadow-sm" href="#">2</a></li>
-							<li class="page-item"><a class="page-link border-0 shadow-sm" href="#">3</a></li>
-							<li class="page-item"><a class="page-link border-0 shadow-sm rounded-end-pill px-3" href="#">{{ $t('campaignList.nextPage') }}</a></li>
+							<li class="page-item disabled"><a class="page-link border-0 shadow-sm rounded-end-pill px-3" href="#">{{ $t('campaignList.nextPage') }}</a></li>
 						</ul>
 					</nav>
 				</div>
@@ -240,10 +246,14 @@
 </template>
 
 <script>
+import api from '@/services/api.js';
+
 export default {
 	name: 'DanhSachChienDich',
+	inject: ['toast'],
 	data() {
 		return {
+			loading: false,
 			sortBy: 'newest',
 			filters: {
 				search: '',
@@ -252,73 +262,145 @@ export default {
 				location: '',
 				coordinator: ''
 			},
-			coordinators: [
-				{ id: '1', name: 'Tổ chức Thanh Niên Tình Nguyện' },
-				{ id: '2', name: 'Nguyễn Điều Phối' },
-				{ id: '3', name: 'Quỹ Bảo Trợ Trẻ Em' }
-			],
-			// Tương đương product mock data
-			campaigns: [
-				{ id: 1, coordinatorId: '2', title: 'Trồng cây xanh tại TP.HCM', description: 'Chiến dịch trồng 1000 cây xanh tại các tuyến đường trọng điểm, hướng tới thành phố xanh sạch đẹp.', category: 'environment', priority: 'high', location: 'TP.HCM', startDate: '15/03/2026', endDate: '20/03/2026', maxVolunteers: 80, registered: 45, status: 'registering', color: 'linear-gradient(135deg, #198754, #20c997)', avgRating: 4.7, reviewCount: 23 },
-				{ id: 2, coordinatorId: '1', title: 'Dạy tiếng Anh cho trẻ em Sapa', description: 'Dạy tiếng Anh và kỹ năng sống cho trẻ em tại Sa Pa, Lào Cai kết hợp giao lưu văn hóa.', category: 'education', priority: 'medium', location: 'Khác', startDate: '20/04/2026', endDate: '03/05/2026', maxVolunteers: 40, registered: 38, status: 'registering', color: 'linear-gradient(135deg, #0d6efd, #6610f2)', avgRating: 4.9, reviewCount: 15 },
-				{ id: 3, coordinatorId: '3', title: 'Khám bệnh miễn phí vùng sâu', description: 'Đoàn y bác sĩ khám phát thuốc miễn phí cho bà con nghèo tại các xã vùng sâu.', category: 'health', priority: 'urgent', location: 'Khác', startDate: '25/03/2026', endDate: '27/03/2026', maxVolunteers: 30, registered: 30, status: 'upcoming', color: 'linear-gradient(135deg, #dc3545, #e35d6a)', avgRating: 4.8, reviewCount: 31 },
-				{ id: 4, coordinatorId: '1', title: 'Mùa hè xanh Bến Tre', description: 'Tình nguyện mùa hè cho sinh viên, hỗ trợ xây dựng cầu đường nông thôn mới.', category: 'community', priority: 'medium', location: 'Khác', startDate: '01/06/2026', endDate: '30/06/2026', maxVolunteers: 120, registered: 20, status: 'registering', color: 'linear-gradient(135deg, #fd7e14, #ffc107)', avgRating: 0, reviewCount: 0 },
-				{ id: 5, coordinatorId: '2', title: 'Phân phát nhu yếu phẩm bão lũ', description: 'Cứu trợ khẩn cấp gạo và mì tôm cho hộ dân bị ảnh hưởng bởi bão tại miền Trung.', category: 'disaster', priority: 'urgent', location: 'Khác', startDate: '01/02/2026', endDate: '10/02/2026', maxVolunteers: 200, registered: 200, status: 'completed', color: 'linear-gradient(135deg, #6c757d, #adb5bd)', avgRating: 4.5, reviewCount: 87 },
-				{ id: 6, coordinatorId: '2', title: 'Phát cháo đêm cho người vô gia cư', description: 'Nấu và phát 300 suất cháo miễn phí tại các con hẼm nhỏ trung tâm.', category: 'community', priority: 'low', location: 'TP.HCM', startDate: '10/11/2025', endDate: '10/11/2025', maxVolunteers: 50, registered: 50, status: 'completed', color: 'linear-gradient(135deg, #6c757d, #adb5bd)', avgRating: 4.3, reviewCount: 42 },
-				{ id: 7, coordinatorId: '1', title: 'Ngày hội Hiến máu nhân đạo', description: 'Cùng chung tay hiến máu cứu người, một giọt máu cho đi một cuộc đời ở lại.', category: 'health', priority: 'high', location: 'Hà Nội', startDate: '05/04/2026', endDate: '05/04/2026', maxVolunteers: 200, registered: 156, status: 'registering', color: 'linear-gradient(135deg, #dc3545, #fd7e14)', avgRating: 4.6, reviewCount: 8 },
-				{ id: 8, coordinatorId: '3', title: 'Làm sạch bãi biển Sơn Trà', description: 'Thu gom rác ven biển, bảo vệ hệ sinh thái biển và lan tỏa ý thức cộng đồng.', category: 'environment', priority: 'medium', location: 'Đà Nẵng', startDate: '01/05/2026', endDate: '02/05/2026', maxVolunteers: 100, registered: 20, status: 'registering', color: 'linear-gradient(135deg, #0dcaf0, #0d6efd)', avgRating: 0, reviewCount: 0 }
-			]
+			campaigns: []
 		}
 	},
 	computed: {
 		categories() {
-			return [
-				{ label: this.$t('categories.environment'), value: 'environment' },
-				{ label: this.$t('categories.education'), value: 'education' },
-				{ label: this.$t('categories.health'), value: 'health' },
-				{ label: this.$t('categories.community'), value: 'community' },
-				{ label: this.$t('categories.disaster'), value: 'disaster' }
-			];
+			const map = new Map();
+			this.campaigns.forEach(c => {
+				if (!map.has(c.category)) {
+					map.set(c.category, { label: c.categoryLabel, value: c.category });
+				}
+			});
+			return Array.from(map.values());
+		},
+		coordinators() {
+			const map = new Map();
+			this.campaigns.forEach(c => {
+				if (c.coordinatorId && !map.has(c.coordinatorId)) {
+					map.set(c.coordinatorId, { id: c.coordinatorId, name: c.coordinatorName });
+				}
+			});
+			return Array.from(map.values());
+		},
+		locations() {
+			return Array.from(new Set(this.campaigns.map(c => c.location).filter(Boolean))).slice(0, 10);
 		},
 		filteredCampaigns() {
 			return this.campaigns.filter(c => {
-				// Search
-				if (this.filters.search && !c.title.toLowerCase().includes(this.filters.search.toLowerCase())) return false;
-				// Status
+				if (this.filters.search) {
+					const q = this.filters.search.toLowerCase();
+					if (!`${c.title} ${c.description} ${c.location}`.toLowerCase().includes(q)) return false;
+				}
 				if (this.filters.status.length > 0 && !this.filters.status.includes(c.status)) return false;
-				// Category
 				if (this.filters.category.length > 0 && !this.filters.category.includes(c.category)) return false;
-				// Location
 				if (this.filters.location && c.location !== this.filters.location) return false;
-				// Coordinator
 				if (this.filters.coordinator && c.coordinatorId !== this.filters.coordinator) return false;
 				return true;
 			});
 		},
 		sortedCampaigns() {
-			let arr = [...this.filteredCampaigns];
+			const arr = [...this.filteredCampaigns];
 			if (this.sortBy === 'urgent') {
-				// Đưa urgent lên đầu, đăng ký chưa đầy lên đầu
-				const priorityVal = { 'urgent': 3, 'high': 2, 'medium': 1, 'low': 0 };
+				const priorityVal = { urgent: 3, high: 2, medium: 1, low: 0 };
 				arr.sort((a, b) => priorityVal[b.priority] - priorityVal[a.priority]);
 			} else if (this.sortBy === 'soonest') {
-				// So sánh startDate (giả lập đơn giản)
-				arr.sort((a, b) => a.startDate.localeCompare(b.startDate));
-			}
-			// newest (mặc định id giảm dần)
-			else {
+				arr.sort((a, b) => a.startDateRaw.localeCompare(b.startDateRaw));
+			} else {
 				arr.sort((a, b) => b.id - a.id);
 			}
 			return arr;
 		}
 	},
+	async mounted() {
+		await this.loadCampaigns();
+	},
 	methods: {
+		async loadCampaigns() {
+			this.loading = true;
+			try {
+				const res = await api.get('/chien-dich');
+				this.campaigns = (res.data?.data || []).map(item => this.mapCampaignFromApi(item));
+			} catch (error) {
+				this.showToast(
+					'error',
+					this.$t('common.error'),
+					error.response?.data?.message || this.$t('campaignList.loadErrorMessage')
+				);
+			} finally {
+				this.loading = false;
+			}
+		},
+		mapCampaignFromApi(item) {
+			const status = this.mapCampaignStatus(item.trang_thai);
+			const priority = this.mapPriority(item.muc_do_uu_tien);
+			const coordinatorId = String(item.nguoi_tao?.id || item.duyet_boi?.id || item.id);
+			const coordinatorName = item.nguoi_tao?.ho_ten || item.duyet_boi?.ho_ten || this.$t('campaignList.unknownCreator');
+			return {
+				id: item.id,
+				coordinatorId,
+				coordinatorName,
+				title: item.tieu_de || this.$t('common.notAvailable'),
+				description: item.mo_ta || '',
+				category: String(item.loai_chien_dich?.id || item.id),
+				categoryLabel: item.loai_chien_dich?.ten || this.$t('campaignList.defaultCategory'),
+				priority,
+				location: item.dia_diem || this.$t('common.notAvailable'),
+				startDate: this.formatDate(item.ngay_bat_dau),
+				endDate: this.formatDate(item.ngay_ket_thuc),
+				startDateRaw: item.ngay_bat_dau || '',
+				endDateRaw: item.ngay_ket_thuc || '',
+				maxVolunteers: item.so_luong_toi_da || 0,
+				registered: item.so_dang_ky || 0,
+				confirmed: item.so_xac_nhan || 0,
+				status,
+				color: this.getBannerColor(priority),
+				personalRegistrationLabel: this.getRegistrationLabel(item.dang_ky_hien_tai?.trang_thai),
+			};
+		},
+		mapCampaignStatus(status) {
+			return {
+				da_duyet: 'registering',
+				dang_dien_ra: 'upcoming',
+				hoan_thanh: 'completed',
+			}[status] || 'registering';
+		},
+		mapPriority(priority) {
+			return {
+				thap: 'low',
+				trung_binh: 'medium',
+				cao: 'high',
+				khan_cap: 'urgent',
+			}[priority] || 'medium';
+		},
+		getBannerColor(priority) {
+			return {
+				urgent: 'linear-gradient(135deg, #dc3545, #e35d6a)',
+				high: 'linear-gradient(135deg, #fd7e14, #ffc107)',
+				medium: 'linear-gradient(135deg, #0d6efd, #0dcaf0)',
+				low: 'linear-gradient(135deg, #6c757d, #adb5bd)',
+			}[priority] || 'linear-gradient(135deg, #0d6efd, #0dcaf0)';
+		},
+		formatDate(date) {
+			if (!date) return this.$t('common.notAvailable');
+			const d = new Date(date);
+			if (Number.isNaN(d.getTime())) return date;
+			return d.toLocaleDateString('vi-VN');
+		},
+		getRegistrationLabel(status) {
+			if (!status) return '';
+			const translated = this.$t(`campaignRegistration.statuses.${status}`);
+			if (translated !== `campaignRegistration.statuses.${status}`) return translated;
+			const fallback = this.$t(`statuses.${status}`);
+			return fallback !== `statuses.${status}` ? fallback : status;
+		},
 		getCategoryCount(cat) {
 			return this.campaigns.filter(c => c.category === cat).length;
 		},
 		getCoordinatorName(id) {
 			const c = this.coordinators.find(x => x.id === id);
-			return c ? c.name : 'Chưa rõ';
+			return c ? c.name : this.$t('campaignList.unknownCreator');
 		},
 		getCoordinatorInitial(id) {
 			const name = this.getCoordinatorName(id);
@@ -327,7 +409,10 @@ export default {
 		clearFilters() {
 			this.filters = { search: '', status: [], category: [], location: '', coordinator: '' };
 		},
-		getCategoryLabel(cat) { return this.$t(`categories.${cat}`) || cat; },
+		getCategoryLabel(cat) {
+			const found = this.categories.find(c => c.value === cat);
+			return found ? found.label : cat;
+		},
 		getPriorityLabel(p) { return this.$t(`priorities.${p}`) || p; },
 		getPriorityClassBadge(p) { return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-dark', low: 'bg-light text-muted' }[p] || 'bg-secondary'; },
 		getStatusLabel(s) { return this.$t(`statuses.${s}`) || s; },
@@ -345,6 +430,11 @@ export default {
 			if (p >= 100) return 'text-secondary';
 			if (p >= 80) return 'text-warning';
 			return 'text-primary';
+		},
+		showToast(type, title, message) {
+			if (this.toast?.showToast) {
+				this.toast.showToast(type, title, message);
+			}
 		}
 	}
 }

@@ -407,7 +407,7 @@ const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', th
 const PRIORITY_MAP_REVERSE = { urgent: 'khan_cap', high: 'cao', medium: 'trung_binh', low: 'thap' };
 
 // Status mapping: DB enum → frontend key
-const STATUS_MAP = { cho_duyet: 'pending', da_duyet: 'active', dang_dien_ra: 'active', hoan_thanh: 'completed', yeu_cau_huy: 'pending_cancel', da_huy: 'cancelled', nhap: 'draft' };
+const STATUS_MAP = { cho_duyet: 'pending', tu_choi: 'rejected', da_duyet: 'approved', dang_dien_ra: 'active', hoan_thanh: 'completed', yeu_cau_huy: 'pending_cancel', da_huy: 'cancelled', nhap: 'draft' };
 
 export default {
 	name: "QuanLyChienDich",
@@ -562,7 +562,7 @@ export default {
 		async loadCampaigns(page) {
 			if (page) this.currentPage = page;
 			try {
-				const STATUS_MAP_REVERSE = { pending: 'cho_duyet', active: 'dang_dien_ra', completed: 'hoan_thanh', pending_cancel: 'yeu_cau_huy', cancelled: 'da_huy' };
+					const STATUS_MAP_REVERSE = { pending: 'cho_duyet', approved: 'da_duyet', active: 'dang_dien_ra', completed: 'hoan_thanh', pending_cancel: 'yeu_cau_huy', cancelled: 'da_huy', rejected: 'tu_choi' };
 				const params = {
 					page: this.currentPage,
 					per_page: this.perPage,
@@ -647,8 +647,8 @@ export default {
 		getPriorityLabel(p) { return this.$t(`priorities.${p}`); },
 		getPriorityClass(p) { return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-white', low: 'bg-light text-muted border' }[p] || 'bg-secondary'; },
 		getStatusLabel(s) { return this.$t(`statuses.${s}`); },
-		getStatusClass(s) { return { active: 'bg-success text-white', pending: 'bg-warning text-dark', completed: 'bg-secondary text-white', pending_cancel: 'bg-orange text-white', cancelled: 'bg-danger bg-opacity-75 text-white' }[s] || 'bg-secondary'; },
-		getStatusIcon(s) { return { active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', pending_cancel: 'fa-solid fa-clock-rotate-left', cancelled: 'fa-solid fa-ban' }[s] || ''; },
+		getStatusClass(s) { return { approved: 'bg-info text-white', active: 'bg-success text-white', pending: 'bg-warning text-dark', completed: 'bg-secondary text-white', pending_cancel: 'bg-orange text-white', cancelled: 'bg-danger bg-opacity-75 text-white', rejected: 'bg-dark text-white', draft: 'bg-light text-dark border' }[s] || 'bg-secondary'; },
+		getStatusIcon(s) { return { approved: 'fa-solid fa-badge-check', active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', pending_cancel: 'fa-solid fa-clock-rotate-left', cancelled: 'fa-solid fa-ban', rejected: 'fa-solid fa-circle-xmark', draft: 'fa-solid fa-file-lines' }[s] || ''; },
 		getProgress(c) { return c.maxVolunteers ? Math.round(c.registered / c.maxVolunteers * 100) : 0; },
 
 		// ===== Form =====

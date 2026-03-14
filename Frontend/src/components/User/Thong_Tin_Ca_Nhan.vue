@@ -104,7 +104,16 @@
 										<label class="form-label small fw-bold">{{ $t('settings.email') }} <span class="text-danger">*</span></label>
 										<div class="input-group">
 											<span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-muted small"></i></span>
-											<input type="email" class="form-control" v-model="form.email" :placeholder="$t('settings.email')">
+											<input
+												type="email"
+												class="form-control bg-light"
+												v-model="form.email"
+												:placeholder="$t('settings.email')"
+												readonly
+												disabled>
+										</div>
+										<div class="form-text small">
+											<i class="fa-solid fa-lock text-muted me-1"></i>{{ $t('settings.emailReadonlyHint') }}
 										</div>
 										<div class="form-text small"><i class="fa-solid fa-circle-check text-success me-1"></i>{{ $t('settings.verified') }}</div>
 									</div>

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             DanhMucSeeder::class,
             NguoiDungSeeder::class,
             ChienDichSeeder::class,
+            ReviewerWorkflowSeeder::class,
         ]);
     }
 }

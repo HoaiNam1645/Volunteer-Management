@@ -150,10 +150,18 @@ router.beforeEach((to, from, next) => {
     const role = currentUser?.vai_tro || null;
     const isAdminRoute = to.path.startsWith('/admin');
 
+    if (role === 'tinh_nguyen_vien' && isAdminRoute) {
+        return next('/');
+    }
+
     if (role === 'kiem_duyet_vien') {
         if (to.path === '/admin' || (isAdminRoute && to.path !== '/admin/chien-dich')) {
             return next('/admin/chien-dich');
         }
+    }
+
+    if (!role && isAdminRoute) {
+        return next('/');
     }
 
     if (role !== 'kiem_duyet_vien' && role !== 'quan_tri_vien' && isAdminRoute) {

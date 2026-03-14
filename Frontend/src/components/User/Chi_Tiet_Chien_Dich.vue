@@ -1,15 +1,11 @@
 <template>
 	<div class="bg-light min-vh-100 pb-5">
-		<!-- Hero Cover Banner -->
-		<div class="campaign-cover position-relative" :style="{ background: campaign.color }">
-			<!-- Overlay for readability -->
-			<div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-25"></div>
-			
-			<div class="container h-100 position-relative z-1 d-flex flex-column justify-content-end pb-5">
-				<nav aria-label="breadcrumb" class="mb-3">
+		<div class="campaign-cover" :style="{ background: campaign.bannerStyle }">
+			<div class="container h-100 d-flex align-items-end pb-4">
+				<nav aria-label="breadcrumb">
 					<ol class="breadcrumb mb-0">
-						<li class="breadcrumb-item"><router-link to="/" class="text-white opacity-75 text-decoration-none">{{ $t('common.home') }}</router-link></li>
-						<li class="breadcrumb-item"><router-link to="/danh-sach-chien-dich" class="text-white opacity-75 text-decoration-none">{{ $t('campaignDetail.explore') }}</router-link></li>
+						<li class="breadcrumb-item"><router-link to="/" class="text-white text-decoration-none opacity-75">{{ $t('common.home') }}</router-link></li>
+						<li class="breadcrumb-item"><router-link to="/danh-sach-chien-dich" class="text-white text-decoration-none opacity-75">{{ $t('campaignDetail.explore') }}</router-link></li>
 						<li class="breadcrumb-item active text-white" aria-current="page">{{ $t('campaignDetail.title') }}</li>
 					</ol>
 				</nav>
@@ -17,141 +13,92 @@
 		</div>
 
 		<div class="container campaign-content">
-			<div class="row g-4">
-				<!-- L E F T : M A I N  C O N T E N T -->
+			<div v-if="loading" class="card border-0 shadow-sm rounded-4 p-5 text-center">
+				<div class="spinner-border text-primary mb-3" role="status"></div>
+				<p class="mb-0 text-muted">{{ $t('common.loading') }}</p>
+			</div>
+
+			<div v-else-if="!campaign.id" class="card border-0 shadow-sm rounded-4 p-5 text-center">
+				<i class="fa-solid fa-circle-exclamation fs-1 text-warning mb-3"></i>
+				<h4 class="fw-bold mb-2">{{ $t('campaignDetail.notFoundTitle') }}</h4>
+				<p class="text-muted mb-3">{{ errorMessage || $t('campaignDetail.notFoundDesc') }}</p>
+				<router-link to="/danh-sach-chien-dich" class="btn btn-primary rounded-pill px-4">{{ $t('campaignDetail.backToList') }}</router-link>
+			</div>
+
+			<div v-else class="row g-4">
 				<div class="col-lg-8">
-					<!-- Title Card (Overlapping cover) -->
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
 							<div class="d-flex flex-wrap gap-2 mb-3">
-								<span class="badge border border-primary text-primary px-3 py-2 rounded-pill">{{ getCategoryLabel(campaign.category) }}</span>
-								<span class="badge px-3 py-2 rounded-pill" :class="getStatusClassBadge(campaign.status)"><i :class="getStatusIconBadge(campaign.status)" class="me-1"></i> {{ getStatusLabel(campaign.status) }}</span>
+								<span class="badge border border-primary text-primary px-3 py-2 rounded-pill">{{ campaign.categoryLabel }}</span>
+								<span class="badge px-3 py-2 rounded-pill" :class="statusBadgeClass(campaign.status)">{{ campaign.statusLabel }}</span>
+								<span v-if="registration.statusLabel" class="badge bg-light text-dark border px-3 py-2 rounded-pill">{{ registration.statusLabel }}</span>
 							</div>
-							
 							<h1 class="fw-bold mb-3 display-6 lh-base">{{ campaign.title }}</h1>
-							
-							<!-- Quick info strip -->
-							<div class="row g-3 text-muted mt-2">
+							<div class="row g-3 text-muted mt-1">
 								<div class="col-sm-6 d-flex align-items-center gap-3">
-									<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:40px; height:40px;">
-										<i class="fa-solid fa-location-dot"></i>
-									</div>
+									<div class="icon-circle bg-danger text-white"><i class="fa-solid fa-location-dot"></i></div>
 									<div>
 										<div class="small fw-semibold text-dark">{{ $t('campaignDetail.locationLabel') }}</div>
 										<div class="small">{{ campaign.location }}</div>
 									</div>
 								</div>
 								<div class="col-sm-6 d-flex align-items-center gap-3">
-									<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:40px; height:40px;">
-										<i class="fa-regular fa-calendar"></i>
-									</div>
+									<div class="icon-circle bg-primary text-white"><i class="fa-regular fa-calendar"></i></div>
 									<div>
 										<div class="small fw-semibold text-dark">{{ $t('campaignDetail.startDateLabel') }}</div>
-										<div class="small">{{ campaign.startDate }}</div>
+										<div class="small">{{ campaign.dateRange }}</div>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					<!-- Description Section -->
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
-							<h4 class="fw-bold mb-4"><i class="fa-solid fa-circle-info me-2 text-info"></i>{{ $t('campaignDetail.aboutTitle') }}</h4>
-							<div class="text-muted lh-lg" style="font-size: 15px;">
-								<p>
-									{{ $t('campaignDetail.aboutDesc1') }}
-								</p>
-								<p>
-									{{ campaign.description }}
-								</p>
-								<p>
-									{{ $t('campaignDetail.aboutDesc2') }}
-								</p>
-							</div>
-
-							<!-- Highlight Box -->
-							<!-- <div class="bg-light rounded-3 p-4 mt-4 border-start border-4 border-primary shadow-sm">
-								<h6 class="fw-bold text-primary mb-2">Quyền lợi tình nguyện viên:</h6>
-								<ul class="text-muted small mb-0 ps-3">
-									<li class="mb-1">Được cấp giấy chứng nhận tham gia chiến dịch tình nguyện hợp lệ.</li>
-									<li class="mb-1">Được hỗ trợ chi phí đi lại và ăn uống (tùy chiến dịch).</li>
-									<li>Giao lưu, kết bạn và trau dồi kỹ năng mềm làm việc nhóm.</li>
-								</ul>
-							</div> -->
+							<h4 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-info me-2"></i>{{ $t('campaignDetail.aboutTitle') }}</h4>
+							<p class="text-muted lh-lg mb-0">{{ campaign.description || $t('common.notAvailable') }}</p>
 						</div>
 					</div>
 
-					<!-- Campaign Gallery -->
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
-							<h4 class="fw-bold mb-4"><i class="fa-regular fa-images me-2 text-success"></i>{{ $t('campaignDetail.imagesTitle') }}</h4>
-							<div class="row g-3" v-if="campaign.images && campaign.images.length > 0">
-								<div v-for="(img, idx) in campaign.images" :key="idx" :class="getImageColClass(campaign.images.length)">
-									<img :src="img" class="img-fluid rounded-3 w-100 object-fit-cover shadow-sm" 
-										:style="{ height: campaign.images.length === 1 ? '400px' : (campaign.images.length === 2 ? '300px' : '200px') }" 
-										style="cursor: pointer; transition: transform 0.2s;" 
-										onmouseover="this.style.transform='scale(1.02)'" 
-										onmouseout="this.style.transform='scale(1)'"
-										@click="openLightbox(idx)"
-										:alt="`${$t('campaignDetail.imagesTitle')} ${idx + 1}`">
-								</div>
+							<h4 class="fw-bold mb-3"><i class="fa-solid fa-screwdriver-wrench text-primary me-2"></i>{{ $t('campaignDetail.skillsTitle') }}</h4>
+							<div v-if="campaign.skills.length > 0" class="d-flex flex-wrap gap-2">
+								<span v-for="skill in campaign.skills" :key="skill.id || skill.ten" class="badge border border-secondary text-secondary px-3 py-2 fw-normal">{{ skill.ten }}</span>
 							</div>
-							<div v-else class="text-center py-4 bg-light rounded-3 text-muted">
-								<i class="fa-regular fa-images fs-3 mb-2 opacity-50"></i>
-								<p class="mb-0 small">{{ $t('campaignDetail.noImages') }}</p>
-							</div>
+							<p v-else class="text-muted mb-0">{{ $t('campaignDetail.noSpecialSkills') }}</p>
 						</div>
 					</div>
 
-					<!-- Skills Requirements -->
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
-							<h4 class="fw-bold mb-4"><i class="fa-solid fa-screwdriver-wrench me-2 text-primary"></i>{{ $t('campaignDetail.skillsTitle') }}</h4>
-							<div class="d-flex flex-wrap gap-2">
-								<span class="badge border border-secondary text-secondary px-3 py-2 fw-normal" style="font-size:14px"><i class="fa-solid fa-users me-2"></i>{{ $t('skills.teamwork') }}</span>
-								<span class="badge border border-secondary text-secondary px-3 py-2 fw-normal" style="font-size:14px"><i class="fa-solid fa-heart me-2"></i>{{ $t('skills.enthusiastic') }}</span>
-								<span class="badge border border-secondary text-secondary px-3 py-2 fw-normal" style="font-size:14px"><i class="fa-regular fa-clock me-2"></i>{{ $t('skills.punctual') }}</span>
-							</div>
-						</div>
-					</div>
-
-					<!-- Địa điểm chiến dịch (Map) -->
-					<div class="card border-0 shadow-sm rounded-4 mb-4">
-						<div class="card-body p-4 p-md-5">
-							<h4 class="fw-bold mb-4"><i class="fa-solid fa-map-location-dot me-2 text-danger"></i>{{ $t('campaignDetail.mapTitle') }}</h4>
-							<div class="d-flex align-items-center gap-2 mb-3">
-								<div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:36px;height:36px">
-									<i class="fa-solid fa-location-dot"></i>
-								</div>
-								<span class="fw-medium text-dark" style="font-size:15px">{{ campaign.location }}</span>
-							</div>
+							<h4 class="fw-bold mb-3"><i class="fa-solid fa-map-location-dot text-danger me-2"></i>{{ $t('campaignDetail.mapTitle') }}</h4>
+							<div class="small text-muted mb-3">{{ campaign.location }}</div>
 							<div id="user-detail-map" class="user-detail-map-wrapper rounded-3 border overflow-hidden mb-3"></div>
-							<div class="d-flex gap-3" v-if="mapLatitude">
-								<span class="badge bg-light text-muted border px-3 py-2" style="font-size:12px"><i class="fa-solid fa-crosshairs me-1"></i>{{ mapLatitude }}, {{ mapLongitude }}</span>
+							<div v-if="mapLatitude && mapLongitude" class="d-flex gap-2 flex-wrap">
+								<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ mapLatitude }}, {{ mapLongitude }}</span>
 							</div>
 						</div>
 					</div>
 
-					<!-- Reviews Section -->
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
 							<div class="d-flex align-items-center justify-content-between mb-4">
-								<h4 class="fw-bold mb-0"><i class="fa-solid fa-comments me-2 text-warning"></i>{{ $t('campaignDetail.feedbackTitle') }}</h4>
-								<span class="badge bg-warning text-dark rounded-pill px-3 py-2" v-if="campaign.avgRating">
-									<i class="fa-solid fa-star me-1"></i>{{ campaign.avgRating }} / 5
+								<h4 class="fw-bold mb-0"><i class="fa-solid fa-comments text-warning me-2"></i>{{ $t('campaignDetail.feedbackTitle') }}</h4>
+								<span class="badge bg-warning text-dark rounded-pill px-3 py-2" v-if="avgRating">
+									<i class="fa-solid fa-star me-1"></i>{{ avgRating }} / 5
 								</span>
 							</div>
 
-							<!-- Rating Summary -->
 							<div class="row g-4 mb-4" v-if="reviews.length > 0">
 								<div class="col-md-4">
 									<div class="text-center p-3 bg-light rounded-3">
-										<div class="fw-bold text-warning" style="font-size: 48px;">{{ campaign.avgRating }}</div>
+										<div class="fw-bold text-warning" style="font-size: 48px;">{{ avgRating }}</div>
 										<div class="d-flex justify-content-center gap-1 mb-2">
-											<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= Math.round(campaign.avgRating) ? 'text-warning' : 'text-muted'" style="font-size:18px"></i>
+											<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= Math.round(avgRating) ? 'text-warning' : 'text-muted'" style="font-size:18px"></i>
 										</div>
-										<div class="text-muted small">{{ campaign.reviewCount }} {{ $t('campaignDetail.reviewsCount') }}</div>
+										<div class="text-muted small">{{ reviews.length }} {{ $t('campaignDetail.reviewsCount') }}</div>
 									</div>
 								</div>
 								<div class="col-md-8">
@@ -166,22 +113,23 @@
 								</div>
 							</div>
 
-							<!-- Review List -->
 							<div class="border-top pt-4" v-if="reviews.length > 0">
-								<div class="review-item mb-4" v-for="r in displayedReviews" :key="r.id">
+								<div class="review-item mb-4" v-for="review in displayedReviews" :key="review.id">
 									<div class="d-flex align-items-start gap-3">
-										<div class="review-avatar rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" :style="{ background: r.color }">{{ r.name.charAt(0) }}</div>
+										<div class="review-avatar rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" :style="{ background: review.color }">
+											{{ review.name.charAt(0).toUpperCase() }}
+										</div>
 										<div class="flex-grow-1 min-w-0">
 											<div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
-												<span class="fw-bold small">{{ r.name }}</span>
-												<span class="text-muted" style="font-size:12px">{{ r.date }}</span>
+												<span class="fw-bold small">{{ review.name }}</span>
+												<span class="text-muted" style="font-size:12px">{{ review.date }}</span>
 											</div>
 											<div class="d-flex gap-0 mb-2">
-												<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= r.rating ? 'text-warning' : 'text-muted'" style="font-size:12px"></i>
+												<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= review.rating ? 'text-warning' : 'text-muted'" style="font-size:12px"></i>
 											</div>
-											<p class="text-muted small mb-2 lh-lg" v-if="r.comment">{{ r.comment }}</p>
-											<div class="d-flex flex-wrap gap-1" v-if="r.tags && r.tags.length > 0">
-												<span v-for="tag in r.tags" :key="tag" class="badge bg-light text-muted border px-2 py-1" style="font-size:11px">{{ tag }}</span>
+											<p class="text-muted small mb-2 lh-lg" v-if="review.comment">{{ review.comment }}</p>
+											<div class="d-flex flex-wrap gap-1" v-if="review.tags && review.tags.length > 0">
+												<span v-for="tag in review.tags" :key="tag" class="badge bg-light text-muted border px-2 py-1" style="font-size:11px">{{ tag }}</span>
 											</div>
 										</div>
 									</div>
@@ -191,375 +139,506 @@
 								</button>
 							</div>
 
-							<!-- Empty -->
-							<div class="text-center py-4" v-if="reviews.length === 0">
-								<i class="fa-regular fa-comment-dots text-muted fs-1 mb-3 d-block opacity-25"></i>
-								<p class="text-muted mb-0">{{ $t('campaignDetail.noReviews') }}</p>
+							<div v-if="reviews.length === 0" class="text-center py-4 text-muted">
+								<i class="fa-regular fa-comment-dots fs-1 mb-3 opacity-25 d-block"></i>
+								<p class="mb-0">{{ $t('campaignDetail.noReviews') }}</p>
 							</div>
 						</div>
 					</div>
 				</div>
 
-				<!-- R I G H T : S I D E B A R -->
 				<div class="col-lg-4">
 					<div class="position-sticky" style="top: 20px;">
-						
-						<!-- Action Card (Registration) -->
 						<div class="card border-0 shadow-sm rounded-4 mb-4 action-card">
 							<div class="card-body p-4">
-								<h5 class="fw-bold mb-4 text-center">{{ $t('campaignDetail.registrationStatus') }}</h5>
-								
-								<!-- Progress Block -->
+								<h5 class="fw-bold text-center mb-4">{{ $t('campaignDetail.registrationStatus') }}</h5>
 								<div class="d-flex justify-content-between align-items-end mb-2">
 									<div>
-										<span class="fs-4 fw-bold text-primary">{{ campaign.registered }}</span><span class="text-muted"> / {{ campaign.maxVolunteers }}</span>
+										<span class="fs-4 fw-bold text-primary">{{ campaign.registered }}</span>
+										<span class="text-muted"> / {{ campaign.capacity }}</span>
 										<div class="small text-muted">{{ $t('campaignDetail.volunteerLabel') }}</div>
 									</div>
-									<div class="fs-5 fw-bold" :class="getProgressColor(campaign)">
-										{{ getProgress(campaign) }}%
-									</div>
+									<div class="fs-5 fw-bold text-primary">{{ campaign.progress }}%</div>
 								</div>
-								
-								<div class="progress mb-4" style="height: 10px; border-radius: 10px;">
-									<div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" :style="{ width: getProgress(campaign) + '%' }"></div>
+								<div class="progress mb-4" style="height: 10px;">
+									<div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" :style="{ width: campaign.progress + '%' }"></div>
+								</div>
+								<div class="bg-light rounded-3 p-3 mb-3 text-center">
+									<div class="small fw-medium text-muted mb-1">{{ $t('campaignDetail.deadlineLabel') }}</div>
+									<div class="fw-bold">{{ campaign.deadline }}</div>
+								</div>
+								<div class="bg-light rounded-3 p-3 mb-4 text-center" v-if="registration.statusLabel">
+									<div class="small text-muted mb-1">{{ $t('campaignRegistration.yourRegistration') }}</div>
+									<div class="fw-bold">{{ registration.statusLabel }}</div>
 								</div>
 
-								<div class="bg-light rounded-3 p-3 mb-4 text-center">
-									<i class="fa-regular fa-clock text-warning fs-4 mb-2"></i>
-									<div class="small fw-medium">{{ $t('campaignDetail.deadlineLabel') }}</div>
-									<div class="fw-bold text-dark">{{ campaign.endDate }}</div>
-								</div>
-
-								<button class="btn btn-primary btn-lg w-100 fw-bold rounded-pill p-3 shadow-sm btn-register" 
-									:disabled="campaign.status !== 'registering'">
-									{{ campaign.status === 'registering' ? $t('campaignDetail.registerNow') : $t('campaignDetail.registrationClosed') }}
-								</button>
-								
-								<div class="text-center mt-3 small text-muted">
-									{{ $t('campaignDetail.agreeText1') }} <a href="#" class="text-decoration-none">{{ $t('campaignDetail.agreeText2') }}</a> {{ $t('campaignDetail.agreeText3') }}
+								<div class="d-grid gap-2">
+									<button v-if="!isLoggedIn" class="btn btn-primary btn-lg fw-bold rounded-pill" @click="goToLogin">
+										{{ $t('campaignRegistration.loginToRegister') }}
+									</button>
+									<button v-else-if="campaign.canRegister" class="btn btn-primary btn-lg fw-bold rounded-pill" @click="openActionModal('register')">
+										{{ $t('campaignDetail.registerNow') }}
+									</button>
+									<button v-else-if="campaign.canConfirm" class="btn btn-success btn-lg fw-bold rounded-pill" @click="openActionModal('confirm')">
+										{{ $t('campaignRegistration.confirmJoin') }}
+									</button>
+									<button v-if="isLoggedIn && campaign.canCancelRegistration" class="btn btn-outline-danger btn-lg fw-bold rounded-pill" @click="openActionModal('cancel')">
+										{{ $t('campaignRegistration.cancelRegistration') }}
+									</button>
+									<button v-if="isLoggedIn && !campaign.canRegister && !campaign.canConfirm && !campaign.canCancelRegistration" class="btn btn-light btn-lg fw-bold rounded-pill" disabled>
+										{{ actionStateLabel }}
+									</button>
 								</div>
 							</div>
 						</div>
 
-						<!-- Coordinator Card -->
 						<div class="card border-0 shadow-sm rounded-4">
 							<div class="card-body p-4">
 								<h6 class="fw-bold mb-4 text-uppercase small text-muted">{{ $t('campaignDetail.coordinatorTitle') }}</h6>
-								<div class="d-flex align-items-center gap-3 mb-3">
-									<div class="avatar-bg bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-4 rounded-circle shadow-sm" style="width: 60px; height: 60px;">
-										{{ getCoordinatorInitial() }}
-									</div>
+								<div class="d-flex align-items-center gap-3">
+									<div class="avatar-bg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4">{{ creatorInitial }}</div>
 									<div>
-										<h6 class="fw-bold mb-1">{{ campaign.coordinatorName }}</h6>
-										<div class="small text-muted mb-1"><i class="fa-regular fa-envelope me-1"></i> coordinator@email.com</div>
-										<div class="small text-primary fw-medium"><i class="fa-solid fa-star text-warning"></i> {{ campaign.avgRating }} ({{ campaign.reviewCount }} {{ $t('campaignDetail.reviewsCount') }})</div>
+										<h6 class="fw-bold mb-1">{{ campaign.creatorName }}</h6>
+										<div class="small text-muted"><i class="fa-regular fa-envelope me-1"></i>{{ campaign.creatorEmail || $t('common.notAvailable') }}</div>
 									</div>
 								</div>
-								<button class="btn btn-outline-secondary w-100 rounded-pill"><i class="fa-regular fa-comment-dots me-2"></i>{{ $t('campaignDetail.sendMessage') }}</button>
 							</div>
 						</div>
-
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<!-- Mobile Sticky Bottom Bar -->
-		<div class="fixed-bottom d-lg-none bg-white border-top p-3 shadow-lg d-flex align-items-center gap-3 z-3">
-			<div class="flex-grow-1">
-				<div class="fw-bold small">{{ campaign.registered }}/{{ campaign.maxVolunteers }} <span class="fw-normal text-muted">{{ $t('campaignDetail.people') }}</span></div>
-				<div class="progress mt-1" style="height: 4px;">
-					<div class="progress-bar bg-primary" :style="{ width: getProgress(campaign) + '%' }"></div>
+		<div v-if="showActionModal" class="modal-overlay" @click.self="closeActionModal">
+			<div class="modal-card shadow-lg">
+				<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+					<div>
+						<h5 class="fw-bold mb-1">{{ actionModalTitle }}</h5>
+						<p class="text-muted mb-0">{{ actionModalMessage }}</p>
+					</div>
+					<button class="btn btn-sm btn-light rounded-circle" @click="closeActionModal"><i class="fa-solid fa-xmark"></i></button>
 				</div>
-			</div>
-			<button class="btn btn-primary flex-shrink-0 fw-bold rounded-pill px-4" :disabled="campaign.status !== 'registering'">
-				{{ campaign.status === 'registering' ? $t('campaignDetail.registerNowShort') : $t('campaignDetail.closedShort') }}
-			</button>
-		</div>
-
-		<!-- Image Lightbox Modal -->
-		<div class="modal fade" id="imageLightboxModal" tabindex="-1" aria-hidden="true">
-			<div class="modal-dialog modal-dialog-centered modal-xl">
-				<div class="modal-content bg-transparent border-0">
-					<div class="modal-header border-0 pb-0 justify-content-end">
-						<button type="button" class="btn-close btn-close-white fs-4" data-bs-dismiss="modal" aria-label="Close"></button>
-					</div>
-					<div class="modal-body text-center position-relative p-0">
-						<!-- Prev Button -->
-						<button v-if="campaign.images && campaign.images.length > 1" @click="prevImage" 
-								class="btn btn-dark position-absolute top-50 start-0 translate-middle-y ms-2 ms-md-4 rounded-circle shadow" 
-								style="width: 48px; height: 48px; border: none; z-index: 10; opacity: 0.8;">
-							<i class="fa-solid fa-chevron-left text-white"></i>
-						</button>
-						
-						<!-- The Image -->
-						<img v-if="campaign.images && campaign.images.length > 0" 
-							 :src="campaign.images[selectedImageIndex]" 
-							 class="img-fluid rounded shadow-lg" 
-							 style="max-height: 85vh; object-fit: contain;">
-						
-						<!-- Next Button -->
-						<button v-if="campaign.images && campaign.images.length > 1" @click="nextImage" 
-								class="btn btn-dark position-absolute top-50 end-0 translate-middle-y me-2 me-md-4 rounded-circle shadow" 
-								style="width: 48px; height: 48px; border: none; z-index: 10; opacity: 0.8;">
-							<i class="fa-solid fa-chevron-right text-white"></i>
-						</button>
-					</div>
+				<div v-if="pendingAction === 'cancel'" class="mb-3">
+					<label class="form-label fw-semibold">{{ $t('campaignRegistration.cancelReason') }}</label>
+					<textarea v-model.trim="cancelReason" rows="4" class="form-control" :placeholder="$t('campaignRegistration.cancelReasonPlaceholder')"></textarea>
+				</div>
+				<div class="d-flex justify-content-end gap-2">
+					<button class="btn btn-light rounded-pill px-4" @click="closeActionModal">{{ $t('common.cancel') }}</button>
+					<button class="btn rounded-pill px-4" :class="actionButtonClass" :disabled="submittingAction" @click="submitAction">
+						{{ submittingAction ? $t('common.processing') : actionConfirmLabel }}
+					</button>
 				</div>
 			</div>
 		</div>
-
 	</div>
 </template>
 
 <script>
+import api from '@/services/api.js';
+
 export default {
 	name: 'ChiTietChienDichPublic',
+	inject: ['toast'],
 	data() {
 		return {
-			selectedImageIndex: 0,
+			loading: false,
+			errorMessage: '',
 			detailMap: null,
 			detailMarker: null,
 			mapLatitude: null,
 			mapLongitude: null,
-			// Mock data cho giao diện
-			campaign: {
-				id: 1, 
-				title: 'Chiến dịch Mùa Hè Xanh Vùng Cao 2026', 
-				description: 'Chiến dịch Mùa Hè Xanh là hoạt động thường niên nhằm mang tri thức, sự giúp đỡ thiết thực đến với đồng bào các dân tộc thiểu số. Năm nay, chúng tôi tập trung vào việc tu sửa điểm trường, dạy học tiếng Anh cơ bản và hướng dẫn vệ sinh phòng dịch cho trẻ em.', 
-				category: 'community', 
-				priority: 'high', 
-				location: 'CQ4Q+MMG, ĐT155, Ngũ Chỉ Sơn, Sa Pa, Lào Cai, Việt Nam', 
-				startDate: '20/06/2026', 
-				endDate: '15/06/2026', // Request deadline
-				maxVolunteers: 120, 
-				registered: 85, 
-				status: 'registering', 
-				color: 'linear-gradient(135deg, #0d6efd, #0dcaf0)',
-				coordinatorName: 'Tổ chức Thanh Niên Tình Nguyện',
-				avgRating: 4.7,
-				reviewCount: 23,
-				images: [
-					'https://picsum.photos/id/119/800/600',
-					'https://picsum.photos/id/120/400/300',
-					'https://picsum.photos/id/122/400/300',
-					'https://picsum.photos/id/124/400/300'
-				]
-			},
+			showActionModal: false,
+			pendingAction: '',
+			submittingAction: false,
+			cancelReason: '',
 			showAllReviews: false,
-			reviews: [
-				{ id: 1, name: 'Nguyễn Minh Tuấn', rating: 5, date: '22/03/2026', color: '#0d6efd', comment: 'Trải nghiệm tuyệt vời! Tổ chức rất bài bản, đồ ăn ngon, leader nhiệt tình. Chắc chắn sẽ tham gia lần sau.', tags: ['Tổ chức tốt', 'Leader nhiệt tình'] },
-				{ id: 2, name: 'Trần Thị Mai', rating: 5, date: '21/03/2026', color: '#6f42c1', comment: 'Mình rất vui khi được góp sức vào chiến dịch ý nghĩa này. Các em nhỏ rất dễ thương và hiếu học.', tags: ['Ý nghĩa', 'Trải nghiệm tốt'] },
-				{ id: 3, name: 'Lê Hoàng Dũng', rating: 4, date: '20/03/2026', color: '#dc3545', comment: 'Chiến dịch rất tốt, chỉ cần cải thiện thêm phần logistics rửi về sớm hơn.', tags: ['Hỗ trợ hậu cần'] },
-				{ id: 4, name: 'Phạm Thị Lan', rating: 5, date: '19/03/2026', color: '#198754', comment: 'Mình thấy đây là 1 trong những chiến dịch tình nguyện hay nhất mình từng tham gia!', tags: [] },
-				{ id: 5, name: 'Hoàng Đức Minh', rating: 4, date: '18/03/2026', color: '#fd7e14', comment: '', tags: ['Tổ chức tốt', 'Thời gian hợp lý'] }
-			]
-		}
+			campaign: {
+				id: null,
+				title: '',
+				description: '',
+				location: '',
+				dateRange: '',
+				deadline: '',
+				status: '',
+				statusLabel: '',
+				priority: '',
+				priorityLabel: '',
+				categoryLabel: '',
+				creatorName: '',
+				creatorEmail: '',
+				capacity: 0,
+				registered: 0,
+				confirmed: 0,
+				progress: 0,
+				bannerStyle: '',
+				latitude: null,
+				longitude: null,
+				skills: [],
+				canRegister: false,
+				canConfirm: false,
+				canCancelRegistration: false,
+			},
+			registration: {
+				status: '',
+				statusLabel: '',
+			},
+			feedbacks: [],
+		};
 	},
 	computed: {
+		currentUser() {
+			try {
+				return JSON.parse(localStorage.getItem('user') || 'null');
+			} catch (_error) {
+				return null;
+			}
+		},
+		isLoggedIn() {
+			return !!localStorage.getItem('token') && !!this.currentUser;
+		},
+		creatorInitial() {
+			return (this.campaign.creatorName || this.$t('campaignDetail.creatorInitialFallback')).charAt(0).toUpperCase();
+		},
+		reviews() {
+			return this.feedbacks.map((feedback, index) => ({
+				id: feedback.id,
+				name: feedback.nguoi_dung?.ho_ten || this.$t('campaignDetail.unknownVolunteer'),
+				rating: Number(feedback.danh_gia_sao || 0),
+				date: this.formatDateTime(feedback.tao_luc),
+				comment: feedback.noi_dung || '',
+				tags: feedback.the_phan_hoi || [],
+				color: this.getReviewColor(index),
+			}));
+		},
 		displayedReviews() {
 			return this.showAllReviews ? this.reviews : this.reviews.slice(0, 3);
+		},
+		avgRating() {
+			if (this.reviews.length === 0) return 0;
+			const total = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+			return Number((total / this.reviews.length).toFixed(1));
+		},
+		actionModalTitle() {
+			return {
+				register: this.$t('campaignRegistration.registerTitle'),
+				confirm: this.$t('campaignRegistration.confirmTitle'),
+				cancel: this.$t('campaignRegistration.cancelTitle'),
+			}[this.pendingAction] || '';
+		},
+		actionModalMessage() {
+			return {
+				register: this.$t('campaignRegistration.registerMessage', { campaign: this.campaign.title }),
+				confirm: this.$t('campaignRegistration.confirmMessage', { campaign: this.campaign.title }),
+				cancel: this.$t('campaignRegistration.cancelMessage', { campaign: this.campaign.title }),
+			}[this.pendingAction] || '';
+		},
+		actionConfirmLabel() {
+			return {
+				register: this.$t('campaignRegistration.registerAction'),
+				confirm: this.$t('campaignRegistration.confirmAction'),
+				cancel: this.$t('campaignRegistration.cancelAction'),
+			}[this.pendingAction] || this.$t('common.confirm');
+		},
+		actionButtonClass() {
+			return {
+				register: 'btn-primary',
+				confirm: 'btn-success',
+				cancel: 'btn-danger',
+			}[this.pendingAction] || 'btn-primary';
+		},
+		actionStateLabel() {
+			if (this.registration.statusLabel) return this.registration.statusLabel;
+			if (this.campaign.status === 'dang_dien_ra') return this.$t('campaignRegistration.campaignInProgress');
+			if (this.campaign.status === 'hoan_thanh') return this.$t('campaignRegistration.campaignCompleted');
+			return this.$t('campaignDetail.registrationClosed');
+		},
+	},
+	async mounted() {
+		await this.loadCampaignDetail();
+		this.ensureLeaflet();
+	},
+	beforeUnmount() {
+		if (this.detailMap) {
+			this.detailMap.remove();
+			this.detailMap = null;
+		}
+		if (this.leafletPoll) {
+			clearTimeout(this.leafletPoll);
 		}
 	},
 	methods: {
-		getCategoryLabel(cat) { return this.$t(`categories.${cat}`) || cat; },
-		getStatusLabel(s) { return this.$t(`statuses.${s}`) || s; },
-		getStatusClassBadge(s) { return { registering: 'bg-success text-white', upcoming: 'bg-primary text-white', completed: 'bg-secondary text-white' }[s] || 'bg-light text-muted'; },
-		getStatusIconBadge(s) { return { registering: 'fa-regular fa-circle-check', upcoming: 'fa-regular fa-clock', completed: 'fa-solid fa-flag-checkered' }[s] || ''; },
-		getProgress(c) { return c.maxVolunteers ? Math.round(c.registered / c.maxVolunteers * 100) : 0; },
-		getProgressColor(c) {
-			const p = this.getProgress(c);
-			if (p >= 100) return 'text-secondary';
-			if (p >= 80) return 'text-warning';
-			return 'text-primary';
+		async loadCampaignDetail() {
+			this.loading = true;
+			this.errorMessage = '';
+			try {
+				const res = await api.get(`/chien-dich/${this.$route.params.id}`);
+				const payload = res.data?.data;
+				this.campaign = this.mapCampaign(payload);
+				this.registration = this.mapRegistration(payload?.dang_ky_hien_tai);
+				this.feedbacks = payload?.feedbacks || [];
+				this.renderMapIfPossible();
+			} catch (error) {
+				this.errorMessage = error.response?.data?.message || this.$t('campaignDetail.loadErrorMessage');
+				this.showToast('error', this.$t('common.error'), this.errorMessage);
+			} finally {
+				this.loading = false;
+			}
 		},
-		getCoordinatorInitial() {
-			return this.campaign.coordinatorName.charAt(0).toUpperCase();
+		mapCampaign(item = {}) {
+			const bannerStyle = item.anh_bia ? `linear-gradient(rgba(15,23,42,.35), rgba(15,23,42,.35)), url(${item.anh_bia}) center/cover` : this.getPriorityGradient(item.muc_do_uu_tien);
+			return {
+				id: item.id,
+				title: item.tieu_de || this.$t('common.notAvailable'),
+				description: item.mo_ta || '',
+				location: item.dia_diem || this.$t('common.notAvailable'),
+				dateRange: `${this.formatDate(item.ngay_bat_dau)} — ${this.formatDate(item.ngay_ket_thuc)}`,
+				deadline: this.formatDate(item.han_dang_ky),
+				status: item.trang_thai,
+				statusLabel: this.getCampaignStatusLabel(item.trang_thai),
+				priority: item.muc_do_uu_tien,
+				priorityLabel: this.getPriorityLabel(item.muc_do_uu_tien),
+				categoryLabel: item.loai_chien_dich?.ten || this.$t('campaignDetail.defaultCategory'),
+				creatorName: item.nguoi_tao?.ho_ten || item.duyet_boi?.ho_ten || this.$t('campaignDetail.unknownCreator'),
+				creatorEmail: item.nguoi_tao?.email || item.duyet_boi?.email || '',
+				capacity: item.so_luong_toi_da || 0,
+				registered: item.so_dang_ky || 0,
+				confirmed: item.so_xac_nhan || 0,
+				progress: item.so_luong_toi_da ? Math.min(100, Math.round(((item.so_dang_ky || 0) / item.so_luong_toi_da) * 100)) : 0,
+				bannerStyle,
+				latitude: item.vi_do,
+				longitude: item.kinh_do,
+				skills: item.ky_nangs || [],
+				canRegister: !!item.co_the_dang_ky,
+				canConfirm: !!item.co_the_xac_nhan,
+				canCancelRegistration: !!item.co_the_huy_dang_ky,
+			};
+		},
+		mapRegistration(registration) {
+			if (!registration) {
+				return { status: '', statusLabel: '' };
+			}
+			return {
+				status: registration.trang_thai,
+				statusLabel: this.getRegistrationStatusLabel(registration.trang_thai),
+			};
+		},
+		getCampaignStatusLabel(status) {
+			const key = {
+				da_duyet: 'approved',
+				dang_dien_ra: 'active',
+				hoan_thanh: 'completed',
+			}[status] || status;
+			return this.$t(`statuses.${key}`) || status;
+		},
+		getRegistrationStatusLabel(status) {
+			if (!status) return '';
+			const translated = this.$t(`campaignRegistration.statuses.${status}`);
+			if (translated !== `campaignRegistration.statuses.${status}`) return translated;
+			const fallback = this.$t(`statuses.${status}`);
+			return fallback !== `statuses.${status}` ? fallback : status;
+		},
+		getPriorityLabel(priority) {
+			const key = { thap: 'low', trung_binh: 'medium', cao: 'high', khan_cap: 'urgent' }[priority] || priority;
+			return this.$t(`priorities.${key}`) || priority;
+		},
+		getPriorityGradient(priority) {
+			return {
+				thap: 'linear-gradient(135deg, #94a3b8, #64748b)',
+				trung_binh: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+				cao: 'linear-gradient(135deg, #f59e0b, #f97316)',
+				khan_cap: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+			}[priority] || 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+		},
+		statusBadgeClass(status) {
+			return {
+				da_duyet: 'bg-success text-white',
+				dang_dien_ra: 'bg-primary text-white',
+				hoan_thanh: 'bg-secondary text-white',
+			}[status] || 'bg-light text-dark';
+		},
+		formatDate(date) {
+			if (!date) return this.$t('common.notAvailable');
+			const d = new Date(date);
+			if (Number.isNaN(d.getTime())) return date;
+			return d.toLocaleDateString('vi-VN');
+		},
+		formatDateTime(date) {
+			if (!date) return this.$t('common.notAvailable');
+			const d = new Date(date);
+			if (Number.isNaN(d.getTime())) return date;
+			return d.toLocaleString('vi-VN');
+		},
+		getReviewColor(index) {
+			return ['#0d6efd', '#6f42c1', '#dc3545', '#198754', '#fd7e14'][index % 5];
 		},
 		getStarCount(star) {
-			return this.reviews.filter(r => r.rating === star).length;
+			return this.reviews.filter(review => review.rating === star).length;
 		},
 		getStarPercent(star) {
 			if (this.reviews.length === 0) return 0;
-			return Math.round(this.getStarCount(star) / this.reviews.length * 100);
+			return Math.round((this.getStarCount(star) / this.reviews.length) * 100);
 		},
-		getImageColClass(total) {
-			if (total === 1) return 'col-12';
-			if (total === 2) return 'col-sm-6';
-			if (total === 3) return 'col-sm-4';
-			if (total === 4) return 'col-sm-6 col-md-3';
-			return 'col-sm-6 col-md-4 col-lg-3'; // Default for 5+ images
+		goToLogin() {
+			this.$router.push({ path: '/dang-nhap', query: { redirect: this.$route.fullPath } });
 		},
-		openLightbox(index) {
-			this.selectedImageIndex = index;
-			const modal = new window.bootstrap.Modal(document.getElementById('imageLightboxModal'));
-			modal.show();
+		openActionModal(action) {
+			this.pendingAction = action;
+			this.showActionModal = true;
+			this.cancelReason = '';
 		},
-		nextImage() {
-			if (!this.campaign.images) return;
-			this.selectedImageIndex = (this.selectedImageIndex + 1) % this.campaign.images.length;
+		closeActionModal() {
+			this.showActionModal = false;
+			this.pendingAction = '';
+			this.cancelReason = '';
 		},
-		prevImage() {
-			if (!this.campaign.images) return;
-			this.selectedImageIndex = (this.selectedImageIndex - 1 + this.campaign.images.length) % this.campaign.images.length;
+		async submitAction() {
+			if (!this.pendingAction) return;
+			if (this.pendingAction === 'cancel' && !this.cancelReason) {
+				this.showToast('warning', this.$t('common.warning'), this.$t('campaignRegistration.cancelReasonRequired'));
+				return;
+			}
+
+			this.submittingAction = true;
+			try {
+				if (this.pendingAction === 'register') {
+					await api.post(`/chien-dich/${this.campaign.id}/dang-ky`);
+				} else if (this.pendingAction === 'confirm') {
+					await api.put(`/chien-dich/${this.campaign.id}/xac-nhan-tham-gia`);
+				} else if (this.pendingAction === 'cancel') {
+					await api.put(`/chien-dich/${this.campaign.id}/huy-dang-ky`, { ly_do_huy: this.cancelReason });
+				}
+				this.showToast('success', this.$t('common.success'), this.successMessageByAction(this.pendingAction));
+				this.closeActionModal();
+				await this.loadCampaignDetail();
+			} catch (error) {
+				this.showToast('error', this.$t('common.error'), error.response?.data?.message || this.$t('campaignRegistration.actionError'));
+			} finally {
+				this.submittingAction = false;
+			}
 		},
-		initDetailMap(lat, lng) {
+		successMessageByAction(action) {
+			return {
+				register: this.$t('campaignRegistration.registeredSuccess'),
+				confirm: this.$t('campaignRegistration.confirmedSuccess'),
+				cancel: this.$t('campaignRegistration.cancelledSuccess'),
+			}[action] || this.$t('campaignRegistration.defaultSuccessMessage');
+		},
+		showToast(type, title, message) {
+			if (this.toast?.showToast) {
+				this.toast.showToast(type, title, message);
+			}
+		},
+		ensureLeaflet() {
+			if (!document.getElementById('leaflet-css')) {
+				const link = document.createElement('link');
+				link.id = 'leaflet-css';
+				link.rel = 'stylesheet';
+				link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+				document.head.appendChild(link);
+			}
+
+			if (!window.L) {
+				const script = document.createElement('script');
+				script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+				script.onload = () => this.renderMapIfPossible();
+				document.head.appendChild(script);
+			} else {
+				this.renderMapIfPossible();
+			}
+		},
+		renderMapIfPossible() {
+			if (!this.campaign.id) return;
+			if (!window.L) {
+				this.leafletPoll = setTimeout(() => this.renderMapIfPossible(), 300);
+				return;
+			}
 			this.$nextTick(() => {
 				const container = document.getElementById('user-detail-map');
-				if (!container || !window.L) return;
-				if (this.detailMap) { this.detailMap.remove(); this.detailMap = null; }
-
+				if (!container) return;
+				let lat = parseFloat(this.campaign.latitude);
+				let lng = parseFloat(this.campaign.longitude);
+				if (Number.isNaN(lat) || Number.isNaN(lng)) {
+					lat = 16.0544;
+					lng = 108.2022;
+				}
+				if (this.detailMap) {
+					this.detailMap.remove();
+					this.detailMap = null;
+				}
 				this.detailMap = window.L.map(container, {
 					center: [lat, lng],
 					zoom: 15,
 					zoomControl: true,
 					attributionControl: false,
-					scrollWheelZoom: false
+					scrollWheelZoom: false,
 				});
-
-				window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom: 19
-				}).addTo(this.detailMap);
-
+				window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this.detailMap);
 				const pinIcon = window.L.divIcon({
 					html: '<div class="custom-pin"><i class="fa-solid fa-location-dot"></i></div>',
 					iconSize: [36, 36],
 					iconAnchor: [18, 36],
 					className: 'custom-pin-wrapper'
 				});
-
-				this.detailMarker = window.L.marker([lat, lng], {
-					draggable: false,
-					icon: pinIcon
-				}).addTo(this.detailMap);
-
+				this.detailMarker = window.L.marker([lat, lng], { draggable: false, icon: pinIcon }).addTo(this.detailMap);
 				this.mapLatitude = lat.toFixed(7);
 				this.mapLongitude = lng.toFixed(7);
 			});
 		},
-		async geocodeAndShowMap() {
-			if (!this.campaign) return;
-
-			// Ưu tiên sử dụng Kinh độ & Vĩ độ đã được lưu sẵn (nếu có)
-			if (this.campaign.latitude && this.campaign.longitude) {
-				this.initDetailMap(parseFloat(this.campaign.latitude), parseFloat(this.campaign.longitude));
-				return;
-			}
-
-			if (!this.campaign.location) return;
-			try {
-				let address = this.campaign.location;
-				// Loại bỏ Google Plus Code (VD: "CQ4Q+MMG, ") do Nominatim không hỗ trợ
-				address = address.replace(/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,}\s*,?\s*/g, '');
-				
-				let query = encodeURIComponent(address);
-				let url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=vn&limit=1`;
-				let res = await fetch(url, { headers: { 'Accept-Language': 'vi' } });
-				let data = await res.json();
-
-				// Fallback: Nếu không tìm thấy, thử bỏ đi phần đầu tiên của địa chỉ (VD: số nhà/tên đường cụ thể)
-				if ((!data || data.length === 0) && address.includes(',')) {
-					const fallbackAddress = address.substring(address.indexOf(',') + 1).trim();
-					const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fallbackAddress)}&countrycodes=vn&limit=1`;
-					res = await fetch(fallbackUrl, { headers: { 'Accept-Language': 'vi' } });
-					data = await res.json();
-				}
-
-				if (data && data.length > 0) {
-					this.initDetailMap(parseFloat(data[0].lat), parseFloat(data[0].lon));
-				} else {
-					this.initDetailMap(16.0544, 108.2022);
-				}
-			} catch {
-				this.initDetailMap(16.0544, 108.2022);
-			}
-		}
 	},
-	mounted() {
-		if (!document.getElementById('leaflet-css')) {
-			const link = document.createElement('link');
-			link.id = 'leaflet-css';
-			link.rel = 'stylesheet';
-			link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-			document.head.appendChild(link);
-		}
-		if (!window.L) {
-			const script = document.createElement('script');
-			script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-			script.onload = () => this.geocodeAndShowMap();
-			document.head.appendChild(script);
-		} else {
-			this.geocodeAndShowMap();
-		}
-	},
-	beforeUnmount() {
-		if (this.detailMap) { this.detailMap.remove(); this.detailMap = null; }
-	}
-}
+};
 </script>
 
 <style scoped>
 .campaign-cover {
-	height: 350px;
+	height: 320px;
+	background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+.campaign-content {
+	margin-top: -72px;
+}
+.icon-circle {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 0.5rem 1rem rgba(15, 23, 42, 0.12);
+}
+.action-card {
+	border-top: 5px solid #2563eb !important;
+}
+.user-detail-map-wrapper {
+	height: 300px;
 	width: 100%;
 }
-
-.campaign-content {
-	margin-top: -80px;
+.avatar-bg {
+	width: 56px;
+	height: 56px;
+	min-width: 56px;
 }
-
-.action-card {
-	border-top: 5px solid #0d6efd !important;
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.55);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	z-index: 2000;
 }
-
-.btn-register {
-	transition: transform 0.2s ease, box-shadow 0.2s ease;
+.modal-card {
+	width: 100%;
+	max-width: 540px;
+	background: #fff;
+	border-radius: 1rem;
+	padding: 1.5rem;
 }
-
-.btn-register:hover:not(:disabled) {
-	transform: translateY(-2px);
-	box-shadow: 0 .5rem 1rem rgba(13, 110, 253, .25) !important;
-}
-
 @media (max-width: 991px) {
 	.campaign-content {
 		margin-top: -40px;
 	}
 }
-
-.more-images-overlay {
-	background: rgba(0, 0, 0, 0.4);
-	cursor: pointer;
-	transition: background 0.3s ease;
-}
-
-.more-images-overlay:hover {
-	background: rgba(0, 0, 0, 0.6);
-}
-
-.user-detail-map-wrapper {
-	height: 300px;
-	width: 100%;
-	z-index: 0;
-}
-
-/* Reviews */
-.review-avatar {
-	width: 40px;
-	height: 40px;
-	min-width: 40px;
-	font-size: 15px;
-}
-.review-item {
-	padding-bottom: 16px;
-	border-bottom: 1px solid #f0f0f0;
-}
-.review-item:last-child {
-	border-bottom: none;
-	padding-bottom: 0;
-	margin-bottom: 0 !important;
-}
-.min-w-0 { min-width: 0; }
 </style>
 
 <style>
@@ -571,11 +650,5 @@ export default {
 	font-size: 36px;
 	color: #dc3545;
 	filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-	animation: user-pin-bounce 0.4s ease;
-}
-@keyframes user-pin-bounce {
-	0% { transform: translateY(-20px); opacity: 0; }
-	60% { transform: translateY(4px); }
-	100% { transform: translateY(0); opacity: 1; }
 }
 </style>

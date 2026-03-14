@@ -383,7 +383,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import api from '../../services/api'
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
-const STATUS_MAP = { cho_duyet: 'pending', da_duyet: 'active', dang_dien_ra: 'active', hoan_thanh: 'completed', da_huy: 'cancelled', nhap: 'draft' };
+const STATUS_MAP = { cho_duyet: 'pending', tu_choi: 'rejected', da_duyet: 'approved', dang_dien_ra: 'active', hoan_thanh: 'completed', da_huy: 'cancelled', yeu_cau_huy: 'pending_cancel', nhap: 'draft' };
 
 export default {
 	name: 'ChiTietChienDich',
@@ -434,10 +434,10 @@ export default {
 		},
 		progressPercent() { return this.campaign.maxVolunteers ? Math.round(this.campaign.registered / this.campaign.maxVolunteers * 100) : 0; },
 		ratedCount() { return this.volunteers.filter(v => v.rating > 0).length; },
-		statusAlertClass() {
-			const m = { active: 'alert-success', pending: 'alert-warning', completed: 'alert-secondary', cancelled: 'alert-danger' };
-			return m[this.campaign.status] || 'alert-info';
-		}
+			statusAlertClass() {
+				const m = { approved: 'alert-info', active: 'alert-success', pending: 'alert-warning', pending_cancel: 'alert-danger', completed: 'alert-secondary', cancelled: 'alert-danger', rejected: 'alert-dark', draft: 'alert-light' };
+				return m[this.campaign.status] || 'alert-info';
+			}
 	},
 	methods: {
 		getCategoryLabel(cat) {
@@ -447,7 +447,7 @@ export default {
 		getPriorityLabel(p) { return this.$t(`priorities.${p}`); },
 		getPriorityClass(p) { return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-white', low: 'bg-light text-muted border' }[p] || 'bg-secondary'; },
 		getStatusLabel(s) { return this.$t(`statuses.${s}`); },
-		getStatusIcon(s) { return { active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', cancelled: 'fa-solid fa-ban' }[s] || ''; },
+			getStatusIcon(s) { return { approved: 'fa-solid fa-badge-check', active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', cancelled: 'fa-solid fa-ban', rejected: 'fa-solid fa-circle-xmark', pending_cancel: 'fa-solid fa-clock-rotate-left', draft: 'fa-solid fa-file-lines' }[s] || ''; },
 		getSkillName(id) { const s = this.availableSkills.find(s => s.id === id); return s ? s.name : ''; },
 		getSkillIcon(id) { const s = this.availableSkills.find(s => s.id === id); return s ? s.icon : ''; },
 		getRatingLabel(r) { return { 1: this.$t('ratings.1'), 2: this.$t('ratings.2'), 3: this.$t('ratings.3'), 4: this.$t('ratings.4'), 5: this.$t('ratings.5') }[r] || ''; },
