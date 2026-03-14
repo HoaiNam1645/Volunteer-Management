@@ -485,7 +485,7 @@ export default {
 		async loadCampaignDetail() {
 			this.isLoading = true;
 			try {
-				const res = await api.get(`/kiem-duyet/chien-dich/${this.campaignId}`);
+				const res = await api.get(`/tinh-nguyen-vien/chien-dich/${this.campaignId}`);
 				if (res.data.status === 1) {
 					const cd = res.data.data;
 					const loai = cd.loai_chien_dich;
@@ -510,6 +510,20 @@ export default {
 						coordinatorName: cd.kiem_duyet_vien?.ho_ten || '',
 						coordinatorEmail: cd.kiem_duyet_vien?.email || '',
 					};
+					this.volunteers = (cd.danh_sach_dang_ky || []).map((item) => {
+						const nguoiDung = item.nguoi_dung || {};
+						return {
+							id: item.nguoi_dung_id || item.id,
+							name: nguoiDung.ho_ten || '—',
+							email: nguoiDung.email || '—',
+							skills: (nguoiDung.ky_nangs || []).map((kyNang) => kyNang.ten),
+							area: (nguoiDung.khu_vucs || []).map((khuVuc) => khuVuc.ten).join(', ') || '—',
+							confirmed: ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'].includes(item.trang_thai),
+							status: item.trang_thai,
+							rating: 0,
+							ratingComment: ''
+						};
+					});
 					this.$nextTick(() => this.geocodeAndShowMap());
 				}
 			} catch (err) {

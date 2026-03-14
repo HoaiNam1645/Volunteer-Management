@@ -21,7 +21,7 @@
 				<div class="nav-section">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.overview') }}</span>
 					<ul class="nav flex-column">
-						<li class="nav-item">
+						<li class="nav-item" v-if="!isReviewer">
 							<router-link to="/admin" class="nav-link" :class="{ active: $route.path === '/admin' }">
 								<i class="fa-solid fa-gauge-high"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.dashboard') }}</span>
@@ -33,7 +33,7 @@
 				<div class="nav-section">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.management') }}</span>
 					<ul class="nav flex-column">
-						<li class="nav-item">
+						<li class="nav-item" v-if="!isReviewer">
 							<router-link to="/admin/nguoi-dung" class="nav-link" :class="{ active: $route.path.startsWith('/admin/nguoi-dung') }">
 								<i class="fa-solid fa-users"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.users') }}</span>
@@ -47,13 +47,13 @@
 								<span class="nav-badge bg-warning text-dark" v-show="!sidebarCollapsed">3</span>
 							</router-link>
 						</li>
-						<li class="nav-item">
+						<li class="nav-item" v-if="!isReviewer">
 							<router-link to="/admin/danh-muc" class="nav-link" :class="{ active: $route.path.startsWith('/admin/danh-muc') }">
 								<i class="fa-solid fa-layer-group"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.categories') }}</span>
 							</router-link>
 						</li>
-						<li class="nav-item">
+						<li class="nav-item" v-if="!isReviewer">
 							<router-link to="/admin/bai-viet" class="nav-link" :class="{ active: $route.path.startsWith('/admin/bai-viet') }">
 								<i class="fa-solid fa-newspaper"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.articles') }}</span>
@@ -62,7 +62,7 @@
 					</ul>
 				</div>
 
-				<div class="nav-section">
+				<div class="nav-section" v-if="!isReviewer">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.aiSystem') }}</span>
 					<ul class="nav flex-column">
 						<li class="nav-item">
@@ -75,7 +75,7 @@
 					</ul>
 				</div>
 
-				<div class="nav-section">
+				<div class="nav-section" v-if="!isReviewer">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.reports') }}</span>
 					<ul class="nav flex-column">
 						<li class="nav-item">
@@ -94,8 +94,8 @@
 						<i class="fa-solid fa-user-shield"></i>
 					</div>
 					<div>
-						<p class="mb-0 small fw-bold text-white">{{ $t('admin.layout.admin') }}</p>
-						<p class="mb-0 text-white-50" style="font-size: 11px;">{{ $t('admin.layout.adminRole') }}</p>
+						<p class="mb-0 small fw-bold text-white">{{ profileName }}</p>
+						<p class="mb-0 text-white-50" style="font-size: 11px;">{{ profileRole }}</p>
 					</div>
 				</div>
 			</div>
@@ -204,7 +204,19 @@ export default {
 	data() {
 		return {
 			sidebarCollapsed: false,
-			toastRef: null
+			toastRef: null,
+			currentUser: null
+		}
+	},
+	computed: {
+		isReviewer() {
+			return this.currentUser?.vai_tro === 'kiem_duyet_vien';
+		},
+		profileName() {
+			return this.currentUser?.ho_ten || this.$t('admin.layout.admin');
+		},
+		profileRole() {
+			return this.isReviewer ? 'Kiểm duyệt viên' : this.$t('admin.layout.adminRole');
 		}
 	},
 	provide() {
@@ -218,12 +230,27 @@ export default {
 			}
 		}
 	},
+	created() {
+		this.loadCurrentUser();
+	},
 	mounted() {
 		// keeping mounted just in case, though toastRef is not needed anymore
 	},
 	methods: {
+		loadCurrentUser() {
+			try {
+				this.currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+			} catch (_error) {
+				this.currentUser = null;
+			}
+		},
 		toggleSidebar() {
 			this.sidebarCollapsed = !this.sidebarCollapsed;
+		}
+	},
+	watch: {
+		'$route'() {
+			this.loadCurrentUser();
 		}
 	}
 }

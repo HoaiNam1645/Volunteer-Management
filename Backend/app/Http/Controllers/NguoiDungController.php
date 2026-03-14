@@ -46,59 +46,6 @@ class NguoiDungController extends Controller
         ]);
     }
 
-    // ======================== CẬP NHẬT VAI TRÒ (ADMIN) ========================
-    public function capNhatVaiTro(Request $request, $id)
-    {
-        $request->validate([
-            'vai_tro' => 'required|in:tinh_nguyen_vien,kiem_duyet_vien,quan_tri_vien',
-        ]);
-
-        $admin = auth('api')->user();
-        $nguoiDung = NguoiDung::where('id', $id)->whereNull('xoa_luc')->first();
-
-        if (!$nguoiDung) {
-            return response()->json([
-                'status'  => 0,
-                'message' => 'Không tìm thấy người dùng.',
-            ], 404);
-        }
-
-        if ((int) $admin->id === (int) $nguoiDung->id) {
-            return response()->json([
-                'status'  => 0,
-                'message' => 'Bạn không thể tự thay đổi vai trò của chính mình.',
-            ], 422);
-        }
-
-        if ($nguoiDung->vai_tro === $request->vai_tro) {
-            return response()->json([
-                'status'  => 1,
-                'message' => 'Vai trò người dùng đã ở trạng thái mong muốn.',
-                'data'    => [
-                    'id'      => $nguoiDung->id,
-                    'ho_ten'  => $nguoiDung->ho_ten,
-                    'email'   => $nguoiDung->email,
-                    'vai_tro' => $nguoiDung->vai_tro,
-                ],
-            ]);
-        }
-
-        $nguoiDung->update([
-            'vai_tro' => $request->vai_tro,
-        ]);
-
-        return response()->json([
-            'status'  => 1,
-            'message' => 'Cập nhật vai trò thành công.',
-            'data'    => [
-                'id'      => $nguoiDung->id,
-                'ho_ten'  => $nguoiDung->ho_ten,
-                'email'   => $nguoiDung->email,
-                'vai_tro' => $nguoiDung->vai_tro,
-            ],
-        ]);
-    }
-
     // ======================== LẤY THÔNG TIN CÁ NHÂN ========================
     public function layThongTin(Request $request)
     {

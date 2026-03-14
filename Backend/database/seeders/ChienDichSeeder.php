@@ -14,15 +14,15 @@ class ChienDichSeeder extends Seeder
 {
     public function run(): void
     {
-        // Lấy dữ liệu cần thiết
-        $dpvIds = NguoiDung::where('vai_tro', 'kiem_duyet_vien')->pluck('id')->toArray();
+        // Theo nghiệp vụ mới: TNV là người tạo chiến dịch, KDV là người duyệt.
+        $nguoiTaoIds = NguoiDung::where('vai_tro', 'tinh_nguyen_vien')->pluck('id')->toArray();
+        $kiemDuyetVienIds = NguoiDung::where('vai_tro', 'kiem_duyet_vien')->pluck('id')->toArray();
         $tnvIds = NguoiDung::where('vai_tro', 'tinh_nguyen_vien')->pluck('id')->toArray();
         $loaiIds = LoaiChienDich::pluck('id')->toArray();
         $kyNangIds = KyNang::pluck('id')->toArray();
-        $adminId = NguoiDung::where('vai_tro', 'quan_tri_vien')->value('id');
 
-        if (empty($dpvIds) || empty($loaiIds)) {
-            $this->command->warn('Cần có KDV và Loại chiến dịch trước. Bỏ qua ChienDichSeeder.');
+        if (empty($nguoiTaoIds) || empty($kiemDuyetVienIds) || empty($loaiIds)) {
+            $this->command->warn('Cần có TNV, KDV và Loại chiến dịch trước. Bỏ qua ChienDichSeeder.');
             return;
         }
 
@@ -150,12 +150,12 @@ class ChienDichSeeder extends Seeder
         ];
 
         foreach ($chienDichs as $index => $cdData) {
-            // Gán KDV luân phiên
-            $cdData['kiem_duyet_vien_id'] = $dpvIds[$index % count($dpvIds)];
+            // Người tạo chiến dịch là TNV, luân phiên theo dữ liệu seed.
+            $cdData['nguoi_tao_id'] = $nguoiTaoIds[$index % count($nguoiTaoIds)];
 
-            // Nếu đã duyệt / hoàn thành → gán admin duyệt
+            // Nếu đã duyệt / hoàn thành → gán KDV duyệt.
             if (in_array($cdData['trang_thai'], ['da_duyet', 'dang_dien_ra', 'hoan_thanh'])) {
-                $cdData['duyet_boi'] = $adminId;
+                $cdData['duyet_boi'] = $kiemDuyetVienIds[$index % count($kiemDuyetVienIds)];
                 $cdData['duyet_luc'] = $now->copy()->subDays(rand(1, 5));
             }
 

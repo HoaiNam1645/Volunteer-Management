@@ -53,12 +53,12 @@ const routes = [
     },
     {
         path: '/quan-ly-chien-dich',
-        component: () => import('../components/Dieu_Phoi_Vien/Quan_Ly_Chien_Dich.vue'),
+        component: () => import('../components/User/Quan_Ly_Chien_Dich.vue'),
         meta: { layout: 'default' }
     },
     {
         path: '/quan-ly-chien-dich/chi-tiet/:id',
-        component: () => import('../components/Dieu_Phoi_Vien/Chi_Tiet_Chien_Dich.vue'),
+        component: () => import('../components/User/Chi_Tiet_Quan_Ly_Chien_Dich.vue'),
         meta: { layout: 'default' }
     },
     {
@@ -87,16 +87,15 @@ const routes = [
         meta: { layout: 'default' }
     },
     {
-        path: '/kiem-duyet-nhan-su',
-        component: () => import('../components/Dieu_Phoi_Vien/Dieu_Phoi_Nhan_Su.vue'),
+        path: '/dieu-phoi-nhan-su',
+        component: () => import('../components/User/Dieu_Phoi_Nhan_Su.vue'),
         meta: { layout: 'default' }
     },
     {
         path: '/giam-sat-bao-cao',
-        component: () => import('../components/Dieu_Phoi_Vien/Giam_Sat_Bao_Cao.vue'),
+        component: () => import('../components/User/Giam_Sat_Bao_Cao.vue'),
         meta: { layout: 'default' }
     },
-
     // ===== Admin Routes =====
     {
         path: '/admin',
@@ -110,7 +109,7 @@ const routes = [
     },
     {
         path: '/admin/chien-dich',
-        component: () => import('../components/Admin/Quan_Ly_Chien_Dich.vue'),
+        component: () => import('../components/Kiem_Duyet_Vien/Quan_Ly_Chien_Dich.vue'),
         meta: { layout: 'admin' }
     },
     {
@@ -139,5 +138,29 @@ const router = createRouter({
     history: createWebHistory(),
     routes: routes
 })
+
+router.beforeEach((to, from, next) => {
+    let currentUser = null;
+    try {
+        currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+    } catch (_error) {
+        currentUser = null;
+    }
+
+    const role = currentUser?.vai_tro || null;
+    const isAdminRoute = to.path.startsWith('/admin');
+
+    if (role === 'kiem_duyet_vien') {
+        if (to.path === '/admin' || (isAdminRoute && to.path !== '/admin/chien-dich')) {
+            return next('/admin/chien-dich');
+        }
+    }
+
+    if (role !== 'kiem_duyet_vien' && role !== 'quan_tri_vien' && isAdminRoute) {
+        return next('/');
+    }
+
+    next();
+});
 
 export default router

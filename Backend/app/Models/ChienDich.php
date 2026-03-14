@@ -12,7 +12,7 @@ class ChienDich extends Model
     const UPDATED_AT = 'cap_nhat_luc';
 
     protected $fillable = [
-        'kiem_duyet_vien_id',
+        'nguoi_tao_id',
         'loai_chien_dich_id',
         'tieu_de',
         'mo_ta',
@@ -52,9 +52,15 @@ class ChienDich extends Model
 
     // ======================== RELATIONSHIPS ========================
 
+    public function nguoiTao()
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_tao_id');
+    }
+
+    // Alias tam thoi de tranh vo code cu trong giai doan chuyen nghiep vu.
     public function kiemDuyetVien()
     {
-        return $this->belongsTo(NguoiDung::class, 'kiem_duyet_vien_id');
+        return $this->nguoiTao();
     }
 
     public function loaiChienDich()

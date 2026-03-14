@@ -9,15 +9,20 @@ use Illuminate\Support\Facades\DB;
 
 class ChienDichController extends Controller
 {
-    // ======================== DANH SÁCH CHIẾN DỊCH CỦA KDV ========================
+    // ======================== DANH SÁCH CHIẾN DỊCH CỦA NGƯỜI TẠO ========================
     public function danhSach(Request $request)
     {
         $user = auth('api')->user();
         $perPage = (int) $request->input('per_page', 10);
 
-        $query = ChienDich::where('kiem_duyet_vien_id', $user->id)
+        $query = ChienDich::where('nguoi_tao_id', $user->id)
             ->whereNull('xoa_luc')
-            ->with(['loaiChienDich:id,ten,bieu_tuong,mau_sac', 'kyNangs:ky_nangs.id,ten']);
+            ->with([
+                'loaiChienDich:id,ten,bieu_tuong,mau_sac',
+                'kyNangs:ky_nangs.id,ten',
+                'nguoiTao:id,ho_ten,email',
+                'duyetBoi:id,ho_ten,email,vai_tro',
+            ]);
 
         // Filter by status
         if ($request->filled('trang_thai') && $request->trang_thai !== 'all') {
@@ -65,6 +70,13 @@ class ChienDichController extends Controller
                 'so_xac_nhan'         => $cd->so_xac_nhan,
                 'loai_chien_dich_id'  => $cd->loai_chien_dich_id,
                 'loai_chien_dich'     => $cd->loaiChienDich,
+                'nguoi_tao_id'        => $cd->nguoi_tao_id,
+                'nguoi_tao'           => $cd->nguoiTao,
+                'duyet_boi'           => $cd->duyetBoi,
+                // Alias tạm để FE cũ chưa cần sửa ngay.
+                'kiem_duyet_vien'     => $cd->duyetBoi,
+                'duyet_luc'           => $cd->duyet_luc?->format('Y-m-d H:i:s'),
+                'ly_do_tu_choi'       => $cd->ly_do_tu_choi,
                 'ky_nang_ids'         => $cd->kyNangs->pluck('id')->toArray(),
                 'tao_luc'             => $cd->tao_luc?->format('Y-m-d H:i:s'),
             ];
@@ -81,18 +93,22 @@ class ChienDichController extends Controller
         ]);
     }
 
-    // ======================== CHI TIẾT CHIẾN DỊCH ========================
+    // ======================== CHI TIẾT CHIẾN DỊCH CỦA NGƯỜI TẠO ========================
     public function chiTiet(Request $request, $id)
     {
         $user = auth('api')->user();
 
         $cd = ChienDich::where('id', $id)
-            ->where('kiem_duyet_vien_id', $user->id)
+            ->where('nguoi_tao_id', $user->id)
             ->whereNull('xoa_luc')
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
-                'kiemDuyetVien:id,ho_ten,email'
+                'nguoiTao:id,ho_ten,email',
+                'duyetBoi:id,ho_ten,email,vai_tro',
+                'dangKyThamGias.nguoiDung:id,ho_ten,email',
+                'dangKyThamGias.nguoiDung.kyNangs:ky_nangs.id,ten',
+                'dangKyThamGias.nguoiDung.khuVucs:khu_vucs.id,ten',
             ])
             ->first();
 
@@ -125,8 +141,38 @@ class ChienDichController extends Controller
                 'so_xac_nhan'         => $cd->so_xac_nhan,
                 'loai_chien_dich_id'  => $cd->loai_chien_dich_id,
                 'loai_chien_dich'     => $cd->loaiChienDich,
-                'kiem_duyet_vien'      => $cd->kiemDuyetVien,
+                'nguoi_tao_id'        => $cd->nguoi_tao_id,
+                'nguoi_tao'           => $cd->nguoiTao,
+                'duyet_boi'           => $cd->duyetBoi,
+                // Alias tạm để FE cũ chưa cần sửa ngay.
+                'kiem_duyet_vien'     => $cd->duyetBoi,
+                'duyet_luc'           => $cd->duyet_luc?->format('Y-m-d H:i:s'),
+                'ly_do_tu_choi'       => $cd->ly_do_tu_choi,
                 'ky_nang_ids'         => $cd->kyNangs->pluck('id')->toArray(),
+                'danh_sach_dang_ky'   => $cd->dangKyThamGias->map(function ($dangKy) {
+                    $nguoiDung = $dangKy->nguoiDung;
+
+                    return [
+                        'id'            => $dangKy->id,
+                        'nguoi_dung_id' => $dangKy->nguoi_dung_id,
+                        'trang_thai'    => $dangKy->trang_thai,
+                        'dang_ky_luc'   => $dangKy->dang_ky_luc?->format('Y-m-d H:i:s'),
+                        'xac_nhan_luc'  => $dangKy->xac_nhan_luc?->format('Y-m-d H:i:s'),
+                        'nguoi_dung'    => $nguoiDung ? [
+                            'id'        => $nguoiDung->id,
+                            'ho_ten'    => $nguoiDung->ho_ten,
+                            'email'     => $nguoiDung->email,
+                            'ky_nangs'  => $nguoiDung->kyNangs->map(fn($kyNang) => [
+                                'id'  => $kyNang->id,
+                                'ten' => $kyNang->ten,
+                            ])->values(),
+                            'khu_vucs'  => $nguoiDung->khuVucs->map(fn($khuVuc) => [
+                                'id'  => $khuVuc->id,
+                                'ten' => $khuVuc->ten,
+                            ])->values(),
+                        ] : null,
+                    ];
+                })->values(),
                 'tao_luc'             => $cd->tao_luc?->format('Y-m-d H:i:s'),
             ],
         ]);
@@ -156,7 +202,7 @@ class ChienDichController extends Controller
 
         $cd = DB::transaction(function () use ($request, $user) {
             $cd = ChienDich::create([
-                'kiem_duyet_vien_id'  => $user->id,
+                'nguoi_tao_id'        => $user->id,
                 'loai_chien_dich_id' => $request->loai_chien_dich_id,
                 'tieu_de'            => $request->tieu_de,
                 'mo_ta'              => $request->mo_ta,
@@ -182,7 +228,7 @@ class ChienDichController extends Controller
 
         return response()->json([
             'status'  => 1,
-            'message' => 'Tạo chiến dịch thành công. Đang chờ Admin phê duyệt.',
+            'message' => 'Tạo chiến dịch thành công. Đang chờ Kiểm duyệt viên phê duyệt.',
             'data'    => ['id' => $cd->id],
         ], 201);
     }
@@ -210,7 +256,7 @@ class ChienDichController extends Controller
         $user = auth('api')->user();
 
         $cd = ChienDich::where('id', $id)
-            ->where('kiem_duyet_vien_id', $user->id)
+            ->where('nguoi_tao_id', $user->id)
             ->whereNull('xoa_luc')
             ->first();
 
@@ -255,13 +301,13 @@ class ChienDichController extends Controller
         ]);
     }
 
-    // ======================== YÊU CẦU HỦY CHIẾN DỊCH (KDV gửi yêu cầu → Admin duyệt) ========================
+    // ======================== YÊU CẦU HỦY CHIẾN DỊCH (NGƯỜI TẠO GỬI YÊU CẦU -> KDV DUYỆT) ========================
     public function huyChienDich(Request $request, $id)
     {
         $user = auth('api')->user();
 
         $cd = ChienDich::where('id', $id)
-            ->where('kiem_duyet_vien_id', $user->id)
+            ->where('nguoi_tao_id', $user->id)
             ->whereNull('xoa_luc')
             ->first();
 
@@ -282,7 +328,7 @@ class ChienDichController extends Controller
         if ($cd->trang_thai === 'yeu_cau_huy') {
             return response()->json([
                 'status'  => 0,
-                'message' => 'Chiến dịch này đang chờ Admin duyệt hủy.',
+                'message' => 'Chiến dịch này đang chờ Kiểm duyệt viên duyệt hủy.',
             ], 422);
         }
 
@@ -293,14 +339,14 @@ class ChienDichController extends Controller
             ], 422);
         }
 
-        $lyDo = $request->ly_do ?? 'Kiểm duyệt viên yêu cầu hủy chiến dịch.';
+        $lyDo = $request->ly_do ?? 'Người tạo chiến dịch yêu cầu hủy chiến dịch.';
 
         $cd->update([
             'trang_thai'    => 'yeu_cau_huy',
             'ly_do_tu_choi' => $lyDo,
         ]);
 
-        // Gửi email thông báo cho tất cả TNV đã đăng ký (chưa hủy) rằng chiến dịch đang chờ hủy
+        // Gửi email thông báo cho tất cả TNV đã đăng ký (chưa hủy) rằng chiến dịch đang chờ xét duyệt hủy.
         $danhSachDangKy = $cd->dangKyThamGias()
             ->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])
             ->with('nguoiDung:id,ho_ten,email')
@@ -329,7 +375,7 @@ class ChienDichController extends Controller
 
         return response()->json([
             'status'  => 1,
-            'message' => 'Đã gửi yêu cầu hủy chiến dịch. Vui lòng chờ Admin phê duyệt.'
+            'message' => 'Đã gửi yêu cầu hủy chiến dịch. Vui lòng chờ Kiểm duyệt viên phê duyệt.'
                 . ($danhSachDangKy->count() > 0 ? ' Đã thông báo đến ' . $danhSachDangKy->count() . ' tình nguyện viên.' : ''),
         ]);
     }

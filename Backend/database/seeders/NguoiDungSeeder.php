@@ -131,7 +131,7 @@ class NguoiDungSeeder extends Seeder
                     'tieu_de' => "Dự án Tình nguyện $k năm 2023",
                     'to_chuc' => "Tổ chức Thanh Niên $k",
                     'thoi_gian' => "Tháng $k/2023 - Tháng " . ($k + 2) . "/2023",
-                    'mo_ta' => "Tham gia hỗ trợ điều phối và tổ chức các sự kiện cho dự án.",
+                    'mo_ta' => "Tham gia hỗ trợ triển khai hoạt động và phối hợp với nhóm trong chiến dịch.",
                 ]);
             }
 

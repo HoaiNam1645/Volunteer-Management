@@ -131,7 +131,14 @@ export default {
 					// Lưu token & user vào localStorage
 					localStorage.setItem('token', res.data.token);
 					localStorage.setItem('user', JSON.stringify(res.data.data));
-					this.$router.push('/');
+					const role = res.data.data?.vai_tro;
+					if (role === 'kiem_duyet_vien') {
+						this.$router.push('/admin/chien-dich');
+					} else if (role === 'quan_tri_vien') {
+						this.$router.push('/admin');
+					} else {
+						this.$router.push('/');
+					}
 				} else {
 					this.alertMessage = res.data.message;
 					this.alertSuccess = false;

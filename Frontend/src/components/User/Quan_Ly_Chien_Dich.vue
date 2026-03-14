@@ -572,7 +572,7 @@ export default {
 				if (this.filterCategory) params.loai_chien_dich_id = this.filterCategory;
 				if (this.filterPriority) params.muc_do_uu_tien = PRIORITY_MAP_REVERSE[this.filterPriority] || this.filterPriority;
 
-				const res = await api.get('/kiem-duyet/chien-dich', { params });
+				const res = await api.get('/tinh-nguyen-vien/chien-dich', { params });
 				if (res.data.status === 1) {
 					this.campaigns = res.data.data.map(cd => this.mapCampaignFromApi(cd));
 					this.currentPage = res.data.current_page;
@@ -683,7 +683,7 @@ export default {
 
 		async saveCampaign() {
 			if (!this.formData.title || !this.formData.category || !this.formData.location) {
-				if (this.toast) this.toast.error('Lỗi', this.$t('coordinator.fillAllFields'));
+				if (this.toast) this.toast.showToast('error', 'Lỗi', this.$t('coordinator.fillAllFields'));
 				else alert(this.$t('coordinator.fillAllFields'));
 				return;
 			}
@@ -706,21 +706,21 @@ export default {
 
 			try {
 				if (this.isEditing) {
-					const res = await api.put(`/kiem-duyet/chien-dich/${this.formData.id}`, payload);
+					const res = await api.put(`/tinh-nguyen-vien/chien-dich/${this.formData.id}`, payload);
 					if (res.data.status === 1) {
-						if (this.toast) this.toast.success('Thành công!', res.data.message);
+						if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
 					}
 				} else {
-					const res = await api.post('/kiem-duyet/chien-dich', payload);
+					const res = await api.post('/tinh-nguyen-vien/chien-dich', payload);
 					if (res.data.status === 1) {
-						if (this.toast) this.toast.success('Thành công!', res.data.message);
+						if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
 					}
 				}
 				bootstrap.Modal.getInstance(this.$refs.campaignModal)?.hide();
 				await this.loadCampaigns();
 			} catch (err) {
 				const msg = err.response?.data?.message || 'Có lỗi xảy ra.';
-				if (this.toast) this.toast.error('Lỗi', msg);
+					if (this.toast) this.toast.showToast('error', 'Lỗi', msg);
 				else alert(msg);
 			} finally {
 				this.isSaving = false;
@@ -732,20 +732,20 @@ export default {
 		async cancelCampaign() {
 			if (!this.cancelTarget) return;
 			if (!this.cancelReason.trim()) {
-				if (this.toast) this.toast.warning('Cảnh báo', 'Vui lòng nhập lý do hủy chiến dịch!');
+					if (this.toast) this.toast.showToast('warning', 'Cảnh báo', 'Vui lòng nhập lý do hủy chiến dịch!');
 				else alert('Vui lòng nhập lý do hủy chiến dịch!');
 				return;
 			}
 			try {
-				const res = await api.put(`/kiem-duyet/chien-dich/${this.cancelTarget.id}/huy`, { ly_do: this.cancelReason });
+				const res = await api.put(`/tinh-nguyen-vien/chien-dich/${this.cancelTarget.id}/huy`, { ly_do: this.cancelReason });
 				if (res.data.status === 1) {
-					if (this.toast) this.toast.success('Thành công!', res.data.message);
+					if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
 					await this.loadCampaigns();
 					this.$refs.cancelModal.hide();
 				}
 			} catch (err) {
 				const msg = err.response?.data?.message || 'Có lỗi xảy ra.';
-				if (this.toast) this.toast.error('Lỗi', msg);
+				if (this.toast) this.toast.showToast('error', 'Lỗi', msg);
 			}
 		},
 
