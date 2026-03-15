@@ -360,9 +360,11 @@ export default {
 
 <style scoped>
 .auth-wrapper {
-	height: 100vh;
+	min-height: 100vh;
+	min-height: 100dvh;
 	width: 100%;
-	overflow: hidden;
+	overflow-x: hidden;
+	overflow-y: auto;
 }
 
 .banner-section {
@@ -370,6 +372,13 @@ export default {
 	background-position: center;
 	background-repeat: no-repeat;
 	position: relative;
+	min-height: 100vh;
+	min-height: 100dvh;
+}
+
+.container-fluid,
+.row {
+	min-height: inherit;
 }
 
 .banner-overlay {
@@ -442,5 +451,16 @@ a.transition-hover:hover {
 @keyframes fadeIn {
 	from { opacity: 0; transform: translateY(10px); }
 	to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 991.98px) {
+	.auth-wrapper {
+		min-height: auto;
+	}
+
+	.container-fluid,
+	.row {
+		min-height: auto;
+	}
 }
 </style>
