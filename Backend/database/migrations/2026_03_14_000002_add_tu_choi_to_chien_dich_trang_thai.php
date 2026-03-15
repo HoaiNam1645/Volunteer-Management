@@ -21,6 +21,12 @@ return new class extends Migration
             return;
         }
 
+        DB::table('chien_dichs')
+            ->where('trang_thai', 'tu_choi')
+            ->update([
+                'trang_thai' => 'cho_duyet',
+            ]);
+
         DB::statement("ALTER TABLE `chien_dichs` MODIFY COLUMN `trang_thai` ENUM('nhap','cho_duyet','da_duyet','dang_dien_ra','hoan_thanh','yeu_cau_huy','da_huy') NOT NULL DEFAULT 'nhap'");
     }
 };
