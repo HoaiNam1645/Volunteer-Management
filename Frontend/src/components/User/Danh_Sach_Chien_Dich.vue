@@ -1,6 +1,26 @@
 <template>
 	<div class="bg-light min-vh-100 pb-5">
 		<div class="container pt-4">
+			<div v-if="searchKeyword" class="card border-0 shadow-sm mb-4 search-result-banner overflow-hidden">
+				<div class="card-body p-4 p-lg-5 position-relative">
+					<div class="search-banner-shape search-banner-shape-1"></div>
+					<div class="search-banner-shape search-banner-shape-2"></div>
+					<div class="position-relative d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+						<div>
+							<div class="d-inline-flex align-items-center gap-2 badge rounded-pill text-bg-primary px-3 py-2 mb-3">
+								<i class="fa-solid fa-magnifying-glass"></i>
+								<span>{{ $t('campaignList.searchResultBadge') }}</span>
+							</div>
+							<h3 class="fw-bold mb-2">{{ $t('campaignList.searchResultTitle', { keyword: searchKeyword }) }}</h3>
+							<p class="text-muted mb-0">{{ $t('campaignList.searchResultDesc', { count: sortedCampaigns.length }) }}</p>
+						</div>
+						<button class="btn btn-outline-secondary rounded-pill px-4 align-self-start align-self-lg-center" @click="clearSearchQuery">
+							<i class="fa-solid fa-xmark me-2"></i>{{ $t('campaignList.clearSearchQuery') }}
+						</button>
+					</div>
+				</div>
+			</div>
+
 			<!-- Mobile Filter Toggle -->
 			<div class="d-lg-none mb-3">
 				<button class="btn btn-primary w-100 fw-medium d-flex align-items-center justify-content-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas">
@@ -28,28 +48,23 @@
 							<!-- Trạng thái -->
 							<div class="p-3 border-bottom">
 								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.status') }}</h6>
-								<div class="form-check mb-2">
-									<input class="form-check-input" type="checkbox" id="status-registering" value="registering" v-model="filters.status">
-									<label class="form-check-label small" for="status-registering">{{ $t('campaignList.registering') }}</label>
-								</div>
-								<div class="form-check mb-2">
-									<input class="form-check-input" type="checkbox" id="status-upcoming" value="upcoming" v-model="filters.status">
-									<label class="form-check-label small" for="status-upcoming">{{ $t('campaignList.upcoming') }}</label>
-								</div>
-								<div class="form-check">
-									<input class="form-check-input" type="checkbox" id="status-completed" value="completed" v-model="filters.status">
-									<label class="form-check-label small" for="status-completed">{{ $t('campaignList.ended') }}</label>
+								<div class="form-check mb-2" v-for="status in filterMeta.statuses" :key="status.value">
+									<input class="form-check-input" type="checkbox" :id="'status-' + status.value" :value="status.value" v-model="filters.status">
+									<label class="form-check-label small d-flex justify-content-between align-items-center w-100" :for="'status-' + status.value">
+										<span>{{ getFilterStatusLabel(status.value) }}</span>
+										<span class="badge bg-light text-muted fw-normal rounded-pill">{{ status.count }}</span>
+									</label>
 								</div>
 							</div>
 
 							<!-- Loại chiến dịch -->
 							<div class="p-3 border-bottom">
 								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.field') }}</h6>
-								<div class="form-check mb-2" v-for="cat in categories" :key="cat.value">
+								<div class="form-check mb-2" v-for="cat in filterMeta.categories" :key="cat.value">
 									<input class="form-check-input" type="checkbox" :id="'cat-'+cat.value" :value="cat.value" v-model="filters.category">
 									<label class="form-check-label small d-flex justify-content-between align-items-center w-100" :for="'cat-'+cat.value">
 										<span>{{ cat.label }}</span>
-										<span class="badge bg-light text-muted fw-normal rounded-pill">{{ getCategoryCount(cat.value) }}</span>
+										<span class="badge bg-light text-muted fw-normal rounded-pill">{{ cat.count }}</span>
 									</label>
 								</div>
 							</div>
@@ -59,8 +74,7 @@
 								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.location') }}</h6>
 								<select class="form-select form-select-sm" v-model="filters.location">
 									<option value="">{{ $t('campaignList.allAreas') }}</option>
-									<option v-for="location in locations" :key="location" :value="location">{{ location }}</option>
-									<option v-if="!locations.includes('Khác')" value="Khác">{{ $t('campaignList.otherArea') }}</option>
+									<option v-for="location in filterMeta.locations" :key="location.value" :value="location.value">{{ location.value }}</option>
 								</select>
 							</div>
 
@@ -69,8 +83,8 @@
 								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.creatorLabel') }}</h6>
 								<select class="form-select form-select-sm" v-model="filters.coordinator">
 									<option value="">{{ $t('common.all') }}</option>
-									<option v-for="coord in coordinators" :key="coord.id" :value="coord.id">
-										{{ coord.name }}
+									<option v-for="coord in filterMeta.creators" :key="coord.value" :value="coord.value">
+										{{ coord.label }}
 									</option>
 								</select>
 							</div>
@@ -84,7 +98,7 @@
 					<div class="card border-0 shadow-sm mb-4">
 						<div class="card-body p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
 							<div class="text-muted small">
-								{{ $t('campaignList.showingResults') }} <strong>{{ filteredCampaigns.length }}</strong> {{ $t('campaignList.resultsLabel') }}
+								{{ $t('campaignList.showingResults') }} <strong>{{ sortedCampaigns.length }}</strong> {{ $t('campaignList.resultsLabel') }}
 							</div>
 							<div class="d-flex align-items-center gap-2">
 								<span class="text-muted small fw-medium text-nowrap">{{ $t('campaignList.sortBy') }}</span>
@@ -116,9 +130,9 @@
 						<div class="col-md-6 col-xl-4" v-for="campaign in sortedCampaigns" :key="campaign.id">
 							<div class="card h-100 border-0 shadow-sm campaign-card">
 								<!-- Image/Banner Placeholder -->
-								<div class="campaign-banner-img position-relative" :style="{ background: campaign.color }">
+								<div class="campaign-banner-img position-relative" :style="getCampaignBannerStyle(campaign)">
 									<div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
-										<span class="badge bg-white text-dark shadow-sm">{{ getCategoryLabel(campaign.category) }}</span>
+										<span class="badge bg-white text-dark shadow-sm">{{ campaign.categoryLabel }}</span>
 										<span class="badge" :class="getPriorityClassBadge(campaign.priority)">{{ getPriorityLabel(campaign.priority) }}</span>
 									</div>
 									<div class="position-absolute bottom-0 end-0 m-3 d-flex flex-column align-items-end gap-2">
@@ -132,9 +146,9 @@
 								<div class="card-body p-4 d-flex flex-column">
 									<div class="d-flex align-items-center gap-2 mb-3">
 										<div class="avatar-sm bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold small">
-											{{ getCoordinatorInitial(campaign.coordinatorId) }}
+											{{ getCoordinatorInitial(campaign.coordinatorName) }}
 										</div>
-										<span class="small text-muted text-truncate">{{ getCoordinatorName(campaign.coordinatorId) }}</span>
+										<span class="small text-muted text-truncate">{{ campaign.coordinatorName }}</span>
 									</div>
 
 									<!-- Title & Desc -->
@@ -168,7 +182,7 @@
 						</div>
 
 						<!-- Empty State -->
-						<div class="col-12" v-if="filteredCampaigns.length === 0">
+						<div class="col-12" v-if="sortedCampaigns.length === 0">
 							<div class="card border-0 shadow-sm text-center py-5">
 								<div class="card-body">
 									<i class="fa-solid fa-search fs-1 text-muted opacity-25 mb-3"></i>
@@ -181,7 +195,7 @@
 					</div>
 
 					<!-- Pagination -->
-					<nav class="mt-5" v-if="filteredCampaigns.length > 0">
+					<nav class="mt-5" v-if="sortedCampaigns.length > 0">
 						<ul class="pagination justify-content-center border-0">
 							<li class="page-item disabled"><a class="page-link border-0 shadow-sm rounded-start-pill px-3" href="#">{{ $t('campaignList.prev') }}</a></li>
 							<li class="page-item active"><a class="page-link border-0 shadow-sm" href="#">1</a></li>
@@ -212,14 +226,10 @@
 				<div class="mb-4">
 					<label class="form-label fw-bold small text-muted text-uppercase">{{ $t('campaignList.status') }}</label>
 					<div class="d-flex flex-wrap gap-2">
-						<input type="checkbox" class="btn-check" id="mob-st-registering" value="registering" v-model="filters.status">
-						<label class="btn btn-outline-secondary btn-sm rounded-pill" for="mob-st-registering">{{ $t('campaignList.registeringShort') }}</label>
-						
-						<input type="checkbox" class="btn-check" id="mob-st-upcoming" value="upcoming" v-model="filters.status">
-						<label class="btn btn-outline-secondary btn-sm rounded-pill" for="mob-st-upcoming">{{ $t('campaignList.upcoming') }}</label>
-						
-						<input type="checkbox" class="btn-check" id="mob-st-completed" value="completed" v-model="filters.status">
-						<label class="btn btn-outline-secondary btn-sm rounded-pill" for="mob-st-completed">{{ $t('campaignList.ended') }}</label>
+						<div v-for="status in filterMeta.statuses" :key="'mob-' + status.value">
+							<input type="checkbox" class="btn-check" :id="'mob-st-' + status.value" :value="status.value" v-model="filters.status">
+							<label class="btn btn-outline-secondary btn-sm rounded-pill" :for="'mob-st-' + status.value">{{ getFilterStatusLabel(status.value) }}</label>
+						</div>
 					</div>
 				</div>
 
@@ -227,7 +237,7 @@
 				<div class="mb-4">
 					<label class="form-label fw-bold small text-muted text-uppercase">{{ $t('campaignList.field') }}</label>
 					<div class="d-flex flex-wrap gap-2">
-						<div v-for="cat in categories" :key="'mob-'+cat.value">
+						<div v-for="cat in filterMeta.categories" :key="'mob-'+cat.value">
 							<input type="checkbox" class="btn-check" :id="'mob-cat-'+cat.value" :value="cat.value" v-model="filters.category">
 							<label class="btn btn-outline-secondary btn-sm rounded-pill" :for="'mob-cat-'+cat.value">{{ cat.label }}</label>
 						</div>
@@ -237,7 +247,7 @@
 				<!-- Footer Buttons -->
 				<div class="d-flex gap-2 mt-5">
 					<button class="btn btn-light w-50" @click="clearFilters">{{ $t('campaignList.clearFilter') }}</button>
-					<button class="btn btn-primary w-50" data-bs-dismiss="offcanvas">{{ $t('common.apply') }} ({{ filteredCampaigns.length }})</button>
+					<button class="btn btn-primary w-50" data-bs-dismiss="offcanvas">{{ $t('common.apply') }} ({{ sortedCampaigns.length }})</button>
 				</div>
 			</div>
 		</div>
@@ -255,6 +265,13 @@ export default {
 		return {
 			loading: false,
 			sortBy: 'newest',
+			searchKeyword: '',
+			filterMeta: {
+				statuses: [],
+				categories: [],
+				locations: [],
+				creators: [],
+			},
 			filters: {
 				search: '',
 				status: [],
@@ -262,46 +279,15 @@ export default {
 				location: '',
 				coordinator: ''
 			},
-			campaigns: []
+			campaigns: [],
+			searchDebounceTimer: null,
+			suspendFilterReload: false,
+			suspendRouteWatcher: false,
 		}
 	},
 	computed: {
-		categories() {
-			const map = new Map();
-			this.campaigns.forEach(c => {
-				if (!map.has(c.category)) {
-					map.set(c.category, { label: c.categoryLabel, value: c.category });
-				}
-			});
-			return Array.from(map.values());
-		},
-		coordinators() {
-			const map = new Map();
-			this.campaigns.forEach(c => {
-				if (c.coordinatorId && !map.has(c.coordinatorId)) {
-					map.set(c.coordinatorId, { id: c.coordinatorId, name: c.coordinatorName });
-				}
-			});
-			return Array.from(map.values());
-		},
-		locations() {
-			return Array.from(new Set(this.campaigns.map(c => c.location).filter(Boolean))).slice(0, 10);
-		},
-		filteredCampaigns() {
-			return this.campaigns.filter(c => {
-				if (this.filters.search) {
-					const q = this.filters.search.toLowerCase();
-					if (!`${c.title} ${c.description} ${c.location}`.toLowerCase().includes(q)) return false;
-				}
-				if (this.filters.status.length > 0 && !this.filters.status.includes(c.status)) return false;
-				if (this.filters.category.length > 0 && !this.filters.category.includes(c.category)) return false;
-				if (this.filters.location && c.location !== this.filters.location) return false;
-				if (this.filters.coordinator && c.coordinatorId !== this.filters.coordinator) return false;
-				return true;
-			});
-		},
 		sortedCampaigns() {
-			const arr = [...this.filteredCampaigns];
+			const arr = [...this.campaigns];
 			if (this.sortBy === 'urgent') {
 				const priorityVal = { urgent: 3, high: 2, medium: 1, low: 0 };
 				arr.sort((a, b) => priorityVal[b.priority] - priorityVal[a.priority]);
@@ -314,13 +300,148 @@ export default {
 		}
 	},
 	async mounted() {
-		await this.loadCampaigns();
+		this.syncFiltersFromRoute();
+		await Promise.all([this.loadFilterMeta(), this.loadCampaigns()]);
+	},
+	beforeUnmount() {
+		if (this.searchDebounceTimer) {
+			clearTimeout(this.searchDebounceTimer);
+		}
+	},
+	watch: {
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.suspendRouteWatcher) return;
+				this.syncFiltersFromRoute();
+				this.loadCampaigns();
+			},
+		},
+		'filters.status': {
+			deep: true,
+			handler() {
+				if (this.suspendFilterReload) return;
+				this.loadCampaigns();
+			},
+		},
+		'filters.category': {
+			deep: true,
+			handler() {
+				if (this.suspendFilterReload) return;
+				this.loadCampaigns();
+			},
+		},
+		'filters.location'() {
+			if (this.suspendFilterReload) return;
+			this.loadCampaigns();
+		},
+		'filters.coordinator'() {
+			if (this.suspendFilterReload) return;
+			this.loadCampaigns();
+		},
+		'filters.search'(value, oldValue) {
+			if (this.suspendFilterReload) return;
+			if (value === this.searchKeyword && oldValue === undefined) {
+				return;
+			}
+			if (this.searchDebounceTimer) {
+				clearTimeout(this.searchDebounceTimer);
+			}
+			this.searchDebounceTimer = setTimeout(() => {
+				this.loadCampaigns();
+			}, 300);
+		},
+		sortBy() {
+			this.syncRouteQuery();
+		},
 	},
 	methods: {
+		async loadFilterMeta() {
+			try {
+				const res = await api.get('/chien-dich/bo-loc');
+				if (res.data?.status === 1) {
+					this.filterMeta = {
+						statuses: res.data.data?.statuses || [],
+						categories: res.data.data?.categories || [],
+						locations: res.data.data?.locations || [],
+						creators: res.data.data?.creators || [],
+					};
+				}
+			} catch (error) {
+				this.showToast(
+					'error',
+					this.$t('common.error'),
+					error.response?.data?.message || this.$t('campaignList.loadErrorMessage')
+				);
+			}
+		},
+		syncFiltersFromRoute() {
+			const query = this.$route.query || {};
+			const keyword = typeof query.name === 'string' ? query.name.trim() : '';
+			const statuses = typeof query.status === 'string' && query.status.trim()
+				? query.status.split(',').map(item => item.trim()).filter(Boolean)
+				: [];
+			const categories = typeof query.category === 'string' && query.category.trim()
+				? query.category.split(',').map(item => item.trim()).filter(Boolean)
+				: [];
+
+			this.suspendFilterReload = true;
+			this.searchKeyword = keyword;
+			this.sortBy = typeof query.sort === 'string' && query.sort.trim() ? query.sort : 'newest';
+			this.filters = {
+				search: keyword,
+				status: statuses,
+				category: categories,
+				location: typeof query.location === 'string' ? query.location : '',
+				coordinator: typeof query.coordinator === 'string' ? query.coordinator : '',
+			};
+			this.$nextTick(() => {
+				this.suspendFilterReload = false;
+			});
+		},
+		buildRouteQuery() {
+			const query = {};
+			const keyword = this.filters.search.trim() || this.searchKeyword.trim();
+			if (keyword) query.name = keyword;
+			if (this.filters.status.length) query.status = this.filters.status.join(',');
+			if (this.filters.category.length) query.category = this.filters.category.join(',');
+			if (this.filters.location) query.location = this.filters.location;
+			if (this.filters.coordinator) query.coordinator = this.filters.coordinator;
+			if (this.sortBy && this.sortBy !== 'newest') query.sort = this.sortBy;
+			return query;
+		},
+		async syncRouteQuery() {
+			const currentQuery = JSON.stringify(this.$route.query || {});
+			const nextQuery = JSON.stringify(this.buildRouteQuery());
+			if (currentQuery === nextQuery) return;
+			this.suspendRouteWatcher = true;
+			try {
+				await this.$router.replace({ path: this.$route.path, query: JSON.parse(nextQuery) });
+			} finally {
+				this.suspendRouteWatcher = false;
+			}
+		},
 		async loadCampaigns() {
 			this.loading = true;
 			try {
-				const res = await api.get('/chien-dich');
+				await this.syncRouteQuery();
+
+				const params = {};
+				const routeKeyword = this.searchKeyword.trim();
+				const filterKeyword = this.filters.search.trim();
+				const effectiveKeyword = filterKeyword || routeKeyword;
+
+				if (effectiveKeyword) params.tu_khoa = effectiveKeyword;
+				if (this.filters.status.length) {
+					params.trang_thai = this.filters.status.map(this.mapStatusToApi).join(',');
+				}
+				if (this.filters.category.length) {
+					params.loai_chien_dich_ids = this.filters.category.join(',');
+				}
+				if (this.filters.location) params.dia_diem = this.filters.location;
+				if (this.filters.coordinator) params.nguoi_tao_id = this.filters.coordinator;
+
+				const res = await api.get('/chien-dich', { params });
 				this.campaigns = (res.data?.data || []).map(item => this.mapCampaignFromApi(item));
 			} catch (error) {
 				this.showToast(
@@ -356,6 +477,7 @@ export default {
 				confirmed: item.so_xac_nhan || 0,
 				status,
 				color: this.getBannerColor(priority),
+				coverUrl: item.anh_bia || null,
 				personalRegistrationLabel: this.getRegistrationLabel(item.dang_ky_hien_tai?.trang_thai),
 			};
 		},
@@ -365,6 +487,13 @@ export default {
 				dang_dien_ra: 'upcoming',
 				hoan_thanh: 'completed',
 			}[status] || 'registering';
+		},
+		mapStatusToApi(status) {
+			return {
+				registering: 'da_duyet',
+				upcoming: 'dang_dien_ra',
+				completed: 'hoan_thanh',
+			}[status] || status;
 		},
 		mapPriority(priority) {
 			return {
@@ -382,6 +511,14 @@ export default {
 				low: 'linear-gradient(135deg, #6c757d, #adb5bd)',
 			}[priority] || 'linear-gradient(135deg, #0d6efd, #0dcaf0)';
 		},
+		getCampaignBannerStyle(campaign) {
+			if (campaign.coverUrl) {
+				return {
+					background: `linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.28)), url(${campaign.coverUrl}) center/cover`,
+				};
+			}
+			return { background: campaign.color };
+		},
 		formatDate(date) {
 			if (!date) return this.$t('common.notAvailable');
 			const d = new Date(date);
@@ -395,23 +532,26 @@ export default {
 			const fallback = this.$t(`statuses.${status}`);
 			return fallback !== `statuses.${status}` ? fallback : status;
 		},
-		getCategoryCount(cat) {
-			return this.campaigns.filter(c => c.category === cat).length;
-		},
-		getCoordinatorName(id) {
-			const c = this.coordinators.find(x => x.id === id);
-			return c ? c.name : this.$t('campaignList.unknownCreator');
-		},
-		getCoordinatorInitial(id) {
-			const name = this.getCoordinatorName(id);
+		getCoordinatorInitial(name) {
 			return name.charAt(0).toUpperCase();
 		},
-		clearFilters() {
-			this.filters = { search: '', status: [], category: [], location: '', coordinator: '' };
+		clearSearchQuery() {
+			this.$router.push({ path: '/danh-sach-chien-dich' });
 		},
-		getCategoryLabel(cat) {
-			const found = this.categories.find(c => c.value === cat);
-			return found ? found.label : cat;
+		clearFilters() {
+			this.suspendFilterReload = true;
+			this.filters = { search: this.searchKeyword || '', status: [], category: [], location: '', coordinator: '' };
+			this.$nextTick(() => {
+				this.suspendFilterReload = false;
+				this.loadCampaigns();
+			});
+		},
+		getFilterStatusLabel(status) {
+			return {
+				registering: this.$t('campaignList.registering'),
+				upcoming: this.$t('campaignList.upcoming'),
+				completed: this.$t('campaignList.ended'),
+			}[status] || status;
 		},
 		getPriorityLabel(p) { return this.$t(`priorities.${p}`) || p; },
 		getPriorityClassBadge(p) { return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-dark', low: 'bg-light text-muted' }[p] || 'bg-secondary'; },
@@ -497,5 +637,31 @@ export default {
 	background-color: #6c757d;
 	color: white;
 	border-color: #6c757d;
+}
+
+.search-result-banner {
+	background:
+		radial-gradient(circle at top right, rgba(13, 110, 253, 0.12), transparent 35%),
+		linear-gradient(135deg, #ffffff, #f8fbff);
+}
+
+.search-banner-shape {
+	position: absolute;
+	border-radius: 50%;
+	background: rgba(13, 110, 253, 0.08);
+}
+
+.search-banner-shape-1 {
+	width: 220px;
+	height: 220px;
+	top: -120px;
+	right: -60px;
+}
+
+.search-banner-shape-2 {
+	width: 140px;
+	height: 140px;
+	bottom: -80px;
+	left: 18%;
 }
 </style>

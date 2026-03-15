@@ -85,7 +85,7 @@
 							<tr v-for="campaign in filteredCampaigns" :key="campaign.id" class="campaign-row">
 								<td class="ps-3">
 									<div class="d-flex align-items-center gap-2 gap-md-3">
-										<div class="campaign-avatar rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" :style="{ background: campaign.color }">
+										<div class="campaign-avatar rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" :style="getCampaignCoverStyle(campaign, 'avatar')">
 											<i :class="campaign.icon"></i>
 										</div>
 										<div style="min-width: 0;">
@@ -120,6 +120,12 @@
 										<button type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.editMenu')" @click.prevent="editCampaign(campaign)">
 											<i class="fa-regular fa-pen-to-square text-warning fs-6"></i>
 										</button>
+										<button v-if="campaign.status === 'approved'" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.startCampaignMenu')" @click.prevent="confirmStatusChange(campaign, 'dang_dien_ra')">
+											<i class="fa-solid fa-play text-success fs-6"></i>
+										</button>
+										<button v-if="campaign.status === 'active'" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.completeCampaignMenu')" @click.prevent="confirmStatusChange(campaign, 'hoan_thanh')">
+											<i class="fa-solid fa-flag-checkered text-success fs-6"></i>
+										</button>
 										<button type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.cancelCampaignMenu')" @click.prevent="confirmCancel(campaign)">
 											<i class="fa-regular fa-trash-can text-danger fs-6"></i>
 										</button>
@@ -140,7 +146,7 @@
 				<div v-if="viewMode === 'grid'" class="row g-3">
 					<div class="col-12 col-sm-6 col-xl-4" v-for="campaign in filteredCampaigns" :key="campaign.id">
 						<div class="card h-100 border hover-card">
-							<div class="campaign-grid-banner d-flex align-items-end p-3" :style="{ background: campaign.color }">
+							<div class="campaign-grid-banner d-flex align-items-end p-3" :style="getCampaignCoverStyle(campaign, 'banner')">
 								<div class="d-flex justify-content-between align-items-end w-100">
 									<span class="badge bg-white text-dark shadow-sm small fw-semibold">{{ getCategoryLabel(campaign.category) }}</span>
 									<span class="badge rounded-pill" :class="getStatusClass(campaign.status)">{{ getStatusLabel(campaign.status) }}</span>
@@ -170,6 +176,12 @@
 								</button>
 								<button class="btn btn-sm btn-outline-secondary flex-fill d-flex align-items-center justify-content-center gap-1" @click="viewCampaign(campaign)">
 									<i class="fa-regular fa-eye" style="font-size:12px"></i><span>{{ $t('coordinator.detailsBtn') }}</span>
+								</button>
+								<button v-if="campaign.status === 'approved'" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 10px;" :title="$t('coordinator.startCampaignMenu')" @click="confirmStatusChange(campaign, 'dang_dien_ra')">
+									<i class="fa-solid fa-play" style="font-size:12px"></i>
+								</button>
+								<button v-else-if="campaign.status === 'active'" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 10px;" :title="$t('coordinator.completeCampaignMenu')" @click="confirmStatusChange(campaign, 'hoan_thanh')">
+									<i class="fa-solid fa-flag-checkered" style="font-size:12px"></i>
 								</button>
 								<button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 12px;" @click="confirmCancel(campaign)">
 									<i class="fa-regular fa-circle-xmark" style="font-size:12px"></i>
@@ -247,6 +259,13 @@
 								<div class="col-12">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.descriptionLabel') }} <span class="text-danger">*</span></label>
 									<textarea class="form-control" rows="3" v-model="formData.description" :placeholder="$t('coordinator.descriptionPlaceholder')" required></textarea>
+								</div>
+								<div class="col-12">
+									<label class="form-label fw-semibold small">Ảnh bìa chiến dịch</label>
+									<input type="file" class="form-control" accept="image/*" @change="onCoverImageChange">
+									<div v-if="formData.coverPreview" class="mt-3 rounded-3 border overflow-hidden" style="height: 180px;">
+										<img :src="formData.coverPreview" alt="Ảnh bìa chiến dịch" class="w-100 h-100 object-fit-cover">
+									</div>
 								</div>
 								<div class="col-sm-6">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.campaignType') }} <span class="text-danger">*</span></label>
@@ -393,6 +412,19 @@
 				</div>
 			</template>
 		</ConfirmModal>
+
+		<ConfirmModal
+			ref="statusModal"
+			modalId="statusCampaignModal"
+			:title="statusConfirmConfig.title"
+			:message="statusConfirmConfig.message"
+			:detail="statusConfirmConfig.detail"
+			:icon="statusConfirmConfig.icon"
+			:variant="statusConfirmConfig.variant"
+			:confirmText="statusConfirmConfig.confirmText"
+			confirmIcon="fa-solid fa-check"
+			:dismissOnConfirm="false"
+			@confirm="updateCampaignStatus" />
 	</div>
 </template>
 
@@ -424,6 +456,17 @@ export default {
 			isSaving: false,
 			cancelTarget: null,
 			cancelReason: '',
+			statusTarget: null,
+			nextStatusTarget: null,
+			statusForceProceed: false,
+			statusConfirmConfig: {
+				title: '',
+				message: '',
+				detail: '',
+				icon: '',
+				variant: '',
+				confirmText: '',
+			},
 			campaignMap: null,
 			campaignMarker: null,
 			campaignGeocoding: false,
@@ -434,7 +477,8 @@ export default {
 				title: '', description: '', category: '', priority: '',
 				location: '', latitude: null, longitude: null,
 				startDate: '', endDate: '',
-				maxVolunteers: null, minVolunteers: null, requiredSkills: []
+				maxVolunteers: null, minVolunteers: null, requiredSkills: [],
+				coverImage: null, coverPreview: null, coverUrl: null
 			},
 			campaigns: [],
 			campaignTypes: [],
@@ -611,6 +655,7 @@ export default {
 				id: cd.id,
 				title: cd.tieu_de,
 				description: cd.mo_ta || '',
+				coverUrl: cd.anh_bia || null,
 				category: cd.loai_chien_dich_id || '',
 				priority: PRIORITY_MAP[cd.muc_do_uu_tien] || 'medium',
 				location: cd.dia_diem,
@@ -650,10 +695,26 @@ export default {
 		getStatusClass(s) { return { approved: 'bg-info text-white', active: 'bg-success text-white', pending: 'bg-warning text-dark', completed: 'bg-secondary text-white', pending_cancel: 'bg-orange text-white', cancelled: 'bg-danger bg-opacity-75 text-white', rejected: 'bg-dark text-white', draft: 'bg-light text-dark border' }[s] || 'bg-secondary'; },
 		getStatusIcon(s) { return { approved: 'fa-solid fa-badge-check', active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', pending_cancel: 'fa-solid fa-clock-rotate-left', cancelled: 'fa-solid fa-ban', rejected: 'fa-solid fa-circle-xmark', draft: 'fa-solid fa-file-lines' }[s] || ''; },
 		getProgress(c) { return c.maxVolunteers ? Math.round(c.registered / c.maxVolunteers * 100) : 0; },
+		getCampaignCoverStyle(campaign, variant = 'banner') {
+			if (campaign.coverUrl) {
+				const overlay = variant === 'avatar'
+					? 'linear-gradient(rgba(15,23,42,.20), rgba(15,23,42,.20))'
+					: 'linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.28))';
+				return {
+					background: `${overlay}, url(${campaign.coverUrl}) center/cover`,
+				};
+			}
+			return { background: campaign.color };
+		},
 
 		// ===== Form =====
 		resetForm() {
-			this.formData = { title: '', description: '', category: '', priority: '', location: '', latitude: null, longitude: null, startDate: '', endDate: '', maxVolunteers: null, minVolunteers: null, requiredSkills: [] };
+			this.formData = {
+				title: '', description: '', category: '', priority: '',
+				location: '', latitude: null, longitude: null,
+				startDate: '', endDate: '', maxVolunteers: null, minVolunteers: null, requiredSkills: [],
+				coverImage: null, coverPreview: null, coverUrl: null
+			};
 			this.campaignGeocodeStatus = '';
 			this.campaignGeocodeMessage = '';
 			this.destroyCampaignMap();
@@ -662,7 +723,13 @@ export default {
 		editCampaign(c) {
 			this.isEditing = true;
 			this._justOpenedEdit = true;
-			this.formData = { ...c, requiredSkills: [...c.requiredSkills] };
+			this.formData = {
+				...c,
+				requiredSkills: [...c.requiredSkills],
+				coverImage: null,
+				coverPreview: c.coverUrl || null,
+				coverUrl: c.coverUrl || null,
+			};
 			new bootstrap.Modal(this.$refs.campaignModal).show();
 			if (c.latitude && c.longitude) {
 				setTimeout(() => {
@@ -680,6 +747,12 @@ export default {
 				this.loadCampaigns(page);
 			}
 		},
+		onCoverImageChange(e) {
+			const file = e.target.files?.[0];
+			if (!file) return;
+			this.formData.coverImage = file;
+			this.formData.coverPreview = URL.createObjectURL(file);
+		},
 
 		async saveCampaign() {
 			if (!this.formData.title || !this.formData.category || !this.formData.location) {
@@ -689,29 +762,34 @@ export default {
 			}
 			this.isSaving = true;
 
-			const payload = {
-				tieu_de: this.formData.title,
-				mo_ta: this.formData.description,
-				loai_chien_dich_id: this.formData.category || null,
-				dia_diem: this.formData.location,
-				vi_do: this.formData.latitude || null,
-				kinh_do: this.formData.longitude || null,
-				ngay_bat_dau: this.formData.startDate,
-				ngay_ket_thuc: this.formData.endDate,
-				so_luong_toi_da: this.formData.maxVolunteers || 50,
-				so_luong_toi_thieu: this.formData.minVolunteers || 1,
-				muc_do_uu_tien: PRIORITY_MAP_REVERSE[this.formData.priority] || 'trung_binh',
-				ky_nang_ids: this.formData.requiredSkills || [],
-			};
+			const payload = new FormData();
+			payload.append('tieu_de', this.formData.title);
+			payload.append('mo_ta', this.formData.description || '');
+			if (this.formData.category) payload.append('loai_chien_dich_id', this.formData.category);
+			payload.append('dia_diem', this.formData.location);
+			if (this.formData.latitude !== null && this.formData.latitude !== '') payload.append('vi_do', this.formData.latitude);
+			if (this.formData.longitude !== null && this.formData.longitude !== '') payload.append('kinh_do', this.formData.longitude);
+			payload.append('ngay_bat_dau', this.formData.startDate);
+			payload.append('ngay_ket_thuc', this.formData.endDate);
+			payload.append('so_luong_toi_da', this.formData.maxVolunteers || 50);
+			payload.append('so_luong_toi_thieu', this.formData.minVolunteers || 1);
+			payload.append('muc_do_uu_tien', PRIORITY_MAP_REVERSE[this.formData.priority] || 'trung_binh');
+			(this.formData.requiredSkills || []).forEach((id, index) => payload.append(`ky_nang_ids[${index}]`, id));
+			if (this.formData.coverImage) payload.append('anh_bia', this.formData.coverImage);
 
 			try {
 				if (this.isEditing) {
-					const res = await api.put(`/tinh-nguyen-vien/chien-dich/${this.formData.id}`, payload);
+					payload.append('_method', 'PUT');
+					const res = await api.post(`/tinh-nguyen-vien/chien-dich/${this.formData.id}`, payload, {
+						headers: { 'Content-Type': 'multipart/form-data' }
+					});
 					if (res.data.status === 1) {
 						if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
 					}
 				} else {
-					const res = await api.post('/tinh-nguyen-vien/chien-dich', payload);
+					const res = await api.post('/tinh-nguyen-vien/chien-dich', payload, {
+						headers: { 'Content-Type': 'multipart/form-data' }
+					});
 					if (res.data.status === 1) {
 						if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
 					}
@@ -728,6 +806,71 @@ export default {
 		},
 
 		confirmCancel(c) { this.cancelTarget = c; this.cancelReason = ''; this.$refs.cancelModal.show(); },
+
+		confirmStatusChange(c, nextStatus) {
+			this.statusTarget = c;
+			this.nextStatusTarget = nextStatus;
+			this.statusForceProceed = false;
+			this.statusConfirmConfig = {
+				title: nextStatus === 'dang_dien_ra' ? this.$t('coordinator.startCampaignTitle') : this.$t('coordinator.completeCampaignTitle'),
+				message: nextStatus === 'dang_dien_ra'
+					? this.$t('coordinator.startCampaignMsg', { title: c.title })
+					: this.$t('coordinator.completeCampaignMsg', { title: c.title }),
+				detail: nextStatus === 'dang_dien_ra'
+					? this.$t('coordinator.startCampaignDetail')
+					: this.$t('coordinator.completeCampaignDetail'),
+				icon: nextStatus === 'dang_dien_ra' ? 'fa-solid fa-play-circle' : 'fa-solid fa-flag-checkered',
+				variant: nextStatus === 'dang_dien_ra' ? 'warning' : 'success',
+				confirmText: nextStatus === 'dang_dien_ra' ? this.$t('coordinator.startCampaignBtn') : this.$t('coordinator.completeCampaignBtn'),
+			};
+			this.$refs.statusModal.show();
+		},
+
+		async updateCampaignStatus() {
+			if (!this.statusTarget || !this.nextStatusTarget) return;
+			let shouldResetState = true;
+			try {
+				const res = await api.put(`/tinh-nguyen-vien/chien-dich/${this.statusTarget.id}/trang-thai`, {
+					trang_thai: this.nextStatusTarget,
+					bo_qua_canh_bao: this.statusForceProceed,
+				});
+				if (res.data.status === 1) {
+					if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
+					await this.loadCampaigns();
+					this.$refs.statusModal.hide();
+				}
+			} catch (err) {
+				const warning = err.response?.data?.warning;
+				if (warning?.code === 'insufficient_confirmed_volunteers' && this.nextStatusTarget === 'dang_dien_ra') {
+					shouldResetState = false;
+					this.statusForceProceed = true;
+					this.statusConfirmConfig = {
+						title: this.$t('coordinator.startCampaignWarningTitle'),
+						message: this.$t('coordinator.startCampaignWarningMsg', {
+							confirmed: warning.so_xac_nhan ?? 0,
+							minimum: warning.so_luong_toi_thieu ?? 0,
+						}),
+						detail: this.$t('coordinator.startCampaignWarningDetail', {
+							pending: warning.so_chua_xac_nhan ?? 0,
+						}),
+						icon: 'fa-solid fa-triangle-exclamation',
+						variant: 'warning',
+						confirmText: this.$t('coordinator.startCampaignProceedBtn'),
+					};
+					this.$refs.statusModal.show();
+					return;
+				}
+
+				const msg = err.response?.data?.message || 'Có lỗi xảy ra.';
+				if (this.toast) this.toast.showToast('error', 'Lỗi', msg);
+			} finally {
+				if (shouldResetState) {
+					this.statusTarget = null;
+					this.nextStatusTarget = null;
+					this.statusForceProceed = false;
+				}
+			}
+		},
 
 		async cancelCampaign() {
 			if (!this.cancelTarget) return;

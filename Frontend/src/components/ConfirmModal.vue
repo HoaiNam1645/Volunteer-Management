@@ -53,18 +53,43 @@ export default {
 		dismissOnConfirm: { type: Boolean, default: true }
 	},
 	emits: ['confirm'],
+	data() {
+		return {
+			modalInstance: null
+		};
+	},
 	computed: {
 		sizeClass() {
 			return this.size ? `modal-${this.size}` : '';
 		}
 	},
+	mounted() {
+		this.modalInstance = bootstrap.Modal.getOrCreateInstance(this.$refs.modalEl);
+		this.$refs.modalEl.addEventListener('hidden.bs.modal', this.cleanupBackdropState);
+	},
+	beforeUnmount() {
+		this.$refs.modalEl?.removeEventListener('hidden.bs.modal', this.cleanupBackdropState);
+		this.modalInstance?.dispose?.();
+		this.modalInstance = null;
+	},
 	methods: {
 		show() {
-			const modal = new bootstrap.Modal(this.$refs.modalEl);
-			modal.show();
+			this.modalInstance = bootstrap.Modal.getOrCreateInstance(this.$refs.modalEl);
+			this.modalInstance.show();
 		},
 		hide() {
-			bootstrap.Modal.getInstance(this.$refs.modalEl)?.hide();
+			this.modalInstance = bootstrap.Modal.getOrCreateInstance(this.$refs.modalEl);
+			this.modalInstance.hide();
+		},
+		cleanupBackdropState() {
+			if (document.querySelector('.modal.show')) {
+				return;
+			}
+
+			document.body.classList.remove('modal-open');
+			document.body.style.removeProperty('overflow');
+			document.body.style.removeProperty('padding-right');
+			document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
 		}
 	}
 }

@@ -7,25 +7,98 @@ use App\Models\ChienDich;
 use App\Models\DangKyThamGia;
 use App\Models\ThongBao;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ThamGiaChienDichController extends Controller
 {
     private const PUBLIC_STATUSES = ['da_duyet', 'dang_dien_ra', 'hoan_thanh'];
 
+    public function boLoc()
+    {
+        $baseQuery = ChienDich::query()
+            ->whereNull('chien_dichs.xoa_luc')
+            ->whereIn('chien_dichs.trang_thai', self::PUBLIC_STATUSES);
+
+        $categories = (clone $baseQuery)
+            ->join('loai_chien_dichs', 'chien_dichs.loai_chien_dich_id', '=', 'loai_chien_dichs.id')
+            ->select(
+                'loai_chien_dichs.id',
+                'loai_chien_dichs.ten',
+                DB::raw('COUNT(chien_dichs.id) as total')
+            )
+            ->groupBy('loai_chien_dichs.id', 'loai_chien_dichs.ten')
+            ->orderBy('loai_chien_dichs.ten')
+            ->get();
+
+        $creators = (clone $baseQuery)
+            ->join('nguoi_dungs', 'chien_dichs.nguoi_tao_id', '=', 'nguoi_dungs.id')
+            ->select(
+                'nguoi_dungs.id',
+                'nguoi_dungs.ho_ten',
+                DB::raw('COUNT(chien_dichs.id) as total')
+            )
+            ->groupBy('nguoi_dungs.id', 'nguoi_dungs.ho_ten')
+            ->orderBy('nguoi_dungs.ho_ten')
+            ->get();
+
+        $statusCounts = (clone $baseQuery)
+            ->select('chien_dichs.trang_thai', DB::raw('COUNT(chien_dichs.id) as total'))
+            ->groupBy('chien_dichs.trang_thai')
+            ->pluck('total', 'chien_dichs.trang_thai');
+
+        $locations = [
+            [
+                'value' => 'TP.HCM',
+                'count' => (clone $baseQuery)->where('dia_diem', 'like', '%TP.HCM%')->count(),
+            ],
+            [
+                'value' => 'Hà Nội',
+                'count' => (clone $baseQuery)->where('dia_diem', 'like', '%Hà Nội%')->count(),
+            ],
+            [
+                'value' => 'Đà Nẵng',
+                'count' => (clone $baseQuery)->where('dia_diem', 'like', '%Đà Nẵng%')->count(),
+            ],
+            [
+                'value' => 'Khác',
+                'count' => (clone $baseQuery)
+                    ->where('dia_diem', 'not like', '%TP.HCM%')
+                    ->where('dia_diem', 'not like', '%Hà Nội%')
+                    ->where('dia_diem', 'not like', '%Đà Nẵng%')
+                    ->count(),
+            ],
+        ];
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Lấy bộ lọc chiến dịch thành công.',
+            'data' => [
+                'statuses' => [
+                    ['value' => 'registering', 'api_value' => 'da_duyet', 'count' => (int) ($statusCounts['da_duyet'] ?? 0)],
+                    ['value' => 'upcoming', 'api_value' => 'dang_dien_ra', 'count' => (int) ($statusCounts['dang_dien_ra'] ?? 0)],
+                    ['value' => 'completed', 'api_value' => 'hoan_thanh', 'count' => (int) ($statusCounts['hoan_thanh'] ?? 0)],
+                ],
+                'categories' => $categories->map(fn ($item) => [
+                    'value' => (string) $item->id,
+                    'label' => $item->ten,
+                    'count' => (int) $item->total,
+                ])->values(),
+                'locations' => array_values(array_filter($locations, fn ($item) => $item['count'] > 0)),
+                'creators' => $creators->map(fn ($item) => [
+                    'value' => (string) $item->id,
+                    'label' => $item->ho_ten,
+                    'count' => (int) $item->total,
+                ])->values(),
+            ],
+        ]);
+    }
+
     public function danhSach(Request $request)
     {
         $user = auth('api')->user();
 
-        $query = ChienDich::query()
-            ->whereNull('xoa_luc')
-            ->whereIn('trang_thai', self::PUBLIC_STATUSES)
-            ->with([
-                'loaiChienDich:id,ten,bieu_tuong,mau_sac',
-                'kyNangs:ky_nangs.id,ten',
-                'nguoiTao:id,ho_ten,email',
-                'duyetBoi:id,ho_ten,email',
-            ]);
+        $query = $this->buildPublicCampaignQuery();
 
         if ($request->filled('tu_khoa')) {
             $keyword = trim($request->tu_khoa);
@@ -38,6 +111,16 @@ class ThamGiaChienDichController extends Controller
 
         if ($request->filled('loai_chien_dich_id')) {
             $query->where('loai_chien_dich_id', $request->integer('loai_chien_dich_id'));
+        }
+
+        if ($request->filled('loai_chien_dich_ids')) {
+            $loaiIds = array_values(array_filter(
+                array_map('intval', explode(',', (string) $request->loai_chien_dich_ids))
+            ));
+
+            if (!empty($loaiIds)) {
+                $query->whereIn('loai_chien_dich_id', $loaiIds);
+            }
         }
 
         if ($request->filled('muc_do_uu_tien')) {
@@ -65,12 +148,63 @@ class ThamGiaChienDichController extends Controller
             }
         }
 
+        if ($request->filled('nguoi_tao_id')) {
+            $query->where('nguoi_tao_id', $request->integer('nguoi_tao_id'));
+        }
+
         $campaigns = $query->orderByDesc('tao_luc')->get();
 
         return response()->json([
             'status' => 1,
             'message' => 'Lấy danh sách chiến dịch thành công.',
             'data' => $campaigns->map(fn ($campaign) => $this->mapCampaignSummary($campaign, $user))->values(),
+        ]);
+    }
+
+    public function timKiem(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'limit' => 'nullable|integer|min:1|max:12',
+        ]);
+
+        $user = auth('api')->user();
+        $keyword = trim($request->string('name')->value());
+        $limit = $request->integer('limit') > 0 ? $request->integer('limit') : null;
+        $likeKeyword = "%{$keyword}%";
+
+        $query = $this->buildPublicCampaignQuery()
+            ->where(function ($subQuery) use ($likeKeyword) {
+                $subQuery->where('tieu_de', 'like', $likeKeyword)
+                    ->orWhere('dia_diem', 'like', $likeKeyword)
+                    ->orWhereHas('loaiChienDich', function ($loaiQuery) use ($likeKeyword) {
+                        $loaiQuery->where('ten', 'like', $likeKeyword);
+                    });
+            })
+            ->orderByRaw(
+                'CASE
+                    WHEN tieu_de LIKE ? THEN 0
+                    WHEN dia_diem LIKE ? THEN 1
+                    ELSE 2
+                END',
+                ["{$keyword}%", "{$keyword}%"]
+            )
+            ->orderByDesc('tao_luc');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        $campaigns = $query->get();
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Tìm kiếm chiến dịch thành công.',
+            'data' => $campaigns->map(fn ($campaign) => $this->mapCampaignSummary($campaign, $user))->values(),
+            'meta' => [
+                'keyword' => $keyword,
+                'total' => $campaigns->count(),
+            ],
         ]);
     }
 
@@ -117,6 +251,13 @@ class ThamGiaChienDichController extends Controller
             ], 404);
         }
 
+        if ((int) $campaign->nguoi_tao_id === (int) $user->id) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Bạn không thể đăng ký tham gia chiến dịch do chính mình tạo.',
+            ], 422);
+        }
+
         $dangKyHienTai = DangKyThamGia::query()
             ->where('chien_dich_id', $campaign->id)
             ->where('nguoi_dung_id', $user->id)
@@ -137,6 +278,8 @@ class ThamGiaChienDichController extends Controller
                 'trang_thai' => 'da_dang_ky',
                 'dang_ky_luc' => now(),
             ]);
+
+            $this->forgetParticipationReminderCache($dangKy->id);
 
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
@@ -217,6 +360,8 @@ class ThamGiaChienDichController extends Controller
                 'ly_do_huy' => $request->ly_do_huy,
             ]);
 
+            $this->forgetParticipationReminderCache($dangKy->id);
+
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
                 'so_xac_nhan' => $campaign->dangKyThamGias()->where('trang_thai', 'da_xac_nhan')->count(),
@@ -291,6 +436,8 @@ class ThamGiaChienDichController extends Controller
                 'xac_nhan_luc' => now(),
             ]);
 
+            $this->forgetParticipationReminderCache($dangKy->id);
+
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
                 'so_xac_nhan' => $campaign->dangKyThamGias()->where('trang_thai', 'da_xac_nhan')->count(),
@@ -340,6 +487,19 @@ class ThamGiaChienDichController extends Controller
             ->whereNull('xoa_luc')
             ->where('trang_thai', 'da_duyet')
             ->first();
+    }
+
+    private function buildPublicCampaignQuery()
+    {
+        return ChienDich::query()
+            ->whereNull('xoa_luc')
+            ->whereIn('trang_thai', self::PUBLIC_STATUSES)
+            ->with([
+                'loaiChienDich:id,ten,bieu_tuong,mau_sac',
+                'kyNangs:ky_nangs.id,ten',
+                'nguoiTao:id,ho_ten,email',
+                'duyetBoi:id,ho_ten,email',
+            ]);
     }
 
     private function mapCampaignSummary(ChienDich $campaign, $user = null): array
@@ -460,7 +620,7 @@ class ThamGiaChienDichController extends Controller
             return false;
         }
 
-        return in_array($dangKy->trang_thai, ['da_dang_ky', 'da_duyet', 'da_xac_nhan'], true);
+        return in_array($dangKy->trang_thai, ['da_dang_ky', 'da_xac_nhan'], true);
     }
 
     private function coTheXacNhanThamGia(ChienDich $campaign, DangKyThamGia $dangKy): bool
@@ -525,6 +685,11 @@ class ThamGiaChienDichController extends Controller
 
     private function campaignDetailLink(int $campaignId): string
     {
-        return rtrim(config('app.url'), '/') . "/chi-tiet-chien-dich/{$campaignId}";
+        return rtrim(config('app.frontend_url', 'http://localhost:5173'), '/') . "/chi-tiet-chien-dich/{$campaignId}";
+    }
+
+    private function forgetParticipationReminderCache(int $dangKyId): void
+    {
+        Cache::forget("campaigns:participation-reminder-sent:{$dangKyId}");
     }
 }

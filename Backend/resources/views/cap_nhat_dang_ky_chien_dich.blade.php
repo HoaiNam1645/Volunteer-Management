@@ -13,6 +13,8 @@
         'xac_nhan_dang_ky' => ['bg' => '#EFF6FF', 'accent' => '#2563EB', 'title' => 'Đăng ký chiến dịch thành công', 'message' => 'Bạn đã đăng ký thành công. Hãy xác nhận tham gia khi đã sẵn sàng.'],
         'xac_nhan_tham_gia' => ['bg' => '#ECFDF5', 'accent' => '#059669', 'title' => 'Xác nhận tham gia thành công', 'message' => 'Bạn đã xác nhận tham gia chiến dịch. Hệ thống đã ghi nhận thông tin của bạn.'],
         'huy_dang_ky' => ['bg' => '#FEF2F2', 'accent' => '#DC2626', 'title' => 'Hủy đăng ký thành công', 'message' => 'Đăng ký tham gia của bạn đã được hủy thành công.'],
+        'nhac_xac_nhan_tham_gia' => ['bg' => '#FFF7ED', 'accent' => '#EA580C', 'title' => 'Nhắc nhở xác nhận tham gia', 'message' => 'Chiến dịch sắp bắt đầu trong 72 giờ tới. Nếu bạn vẫn tham gia, hãy xác nhận để ban tổ chức chủ động nhân sự.'],
+        'nhac_chu_chien_dich_sap_bat_dau' => ['bg' => '#EEF2FF', 'accent' => '#4F46E5', 'title' => 'Nhắc nhở chiến dịch sắp bắt đầu', 'message' => 'Chiến dịch của bạn sắp bắt đầu trong vòng 72 giờ tới. Hãy kiểm tra lại nhân sự, địa điểm và các đầu việc cần chuẩn bị.'],
     ];
     $theme = $themes[$loai] ?? $themes['xac_nhan_dang_ky'];
 @endphp

@@ -176,6 +176,10 @@ export default {
         notification3Desc: 'You received a 5-star rating from your coordinator',
         loginBtn: 'Log In',
         registerBtn: 'Register',
+        searchSuggestionsTitle: 'Campaign Suggestions',
+        searchingCampaigns: 'Searching campaigns...',
+        noCampaignSuggestions: 'No campaigns match this keyword.',
+        viewAllSearchResults: 'View all results for "{keyword}"',
     },
 
     // === Footer ===
@@ -490,7 +494,8 @@ export default {
         tabs: {
             history: 'Activity History',
             scores: 'Ratings',
-            achievements: 'Achievements'
+            achievements: 'Achievements',
+            reports: 'Campaign Reports'
         },
         searchPlaceholder: 'Search campaigns...',
         allStatuses: 'All Statuses',
@@ -505,12 +510,27 @@ export default {
             viewDetail: 'View Details',
             sendFeedback: 'Send Feedback',
             cancelRegistration: 'Cancel Registration',
-            submit: 'Submit Feedback'
+            submit: 'Submit',
+            reportCampaign: 'Report Campaign'
         },
         noHistory: 'No activity found',
         basedOnReviews: 'Based on {count} reviews',
         ratingDetailTitle: 'Rating Details by Campaign',
         noRatings: 'No ratings yet',
+        noReports: 'No campaign reports submitted yet',
+        reportCategory: 'Report Category',
+        reportCategoryPlaceholder: 'Example: Safety, organization, location...',
+        reportTitle: 'Report Title',
+        reportTitlePlaceholder: 'Enter a short title',
+        reportContent: 'Report Content',
+        reportContentPlaceholder: 'Describe the issue in detail...',
+        reportResponse: 'Handling Response',
+        reportRequiredFields: 'Please fill in category, title, and content.',
+        reportSuccess: 'Campaign report submitted successfully.',
+        reportError: 'Unable to submit campaign report.',
+        submitSuccess: 'Campaign feedback submitted successfully.',
+        submitError: 'Unable to submit campaign feedback.',
+        loadError: 'Unable to load tracking and feedback data.',
         achieved: 'Achieved',
         notAchieved: 'Not Achieved',
         rateExperience: 'Rate Experience',
@@ -521,7 +541,14 @@ export default {
             joined: 'Joined Campaigns',
             attending: 'Currently Attending',
             avgRating: 'Average Rating',
-            achievements: 'Achievements'
+            achievements: 'Achievements',
+            reports: 'Reports In Progress'
+        },
+        reportStatuses: {
+            moi: 'New',
+            dang_xu_ly: 'In Progress',
+            da_xu_ly: 'Resolved',
+            tu_choi: 'Rejected'
         },
         statuses: {
             completed: 'Completed',
@@ -1392,6 +1419,10 @@ export default {
         unknownCreator: 'Unknown',
         defaultCategory: 'Campaign',
         loadErrorMessage: 'Unable to load campaign list.',
+        searchResultBadge: 'Search Results',
+        searchResultTitle: 'Campaigns for "{keyword}"',
+        searchResultDesc: 'Found {count} campaigns matching your search keyword.',
+        clearSearchQuery: 'Clear Search',
     },
 
     campaignRegistration: {
@@ -1449,6 +1480,8 @@ export default {
         viewDetailsMenu: 'View Details',
         editMenu: 'Edit',
         cancelCampaignMenu: 'Cancel Campaign',
+        startCampaignMenu: 'Start Campaign',
+        completeCampaignMenu: 'Complete Campaign',
         approveBtn: 'Approve',
         sendNotifBtn: 'Send Notification',
         showing: 'Showing',
@@ -1507,6 +1540,18 @@ export default {
         cancelCampaignMsg: 'Are you sure you want to cancel this campaign?',
         confirmCancelBtn: 'Confirm Cancel',
         keepBtn: 'No, Keep it',
+        startCampaignTitle: 'Start Campaign?',
+        startCampaignMsg: 'Are you sure you want to start the campaign "{title}"?',
+        startCampaignDetail: 'Once started, the campaign will move to active status.',
+        startCampaignBtn: 'Start Campaign',
+        startCampaignWarningTitle: 'Confirmed volunteers are below the minimum',
+        startCampaignWarningMsg: 'There are currently only {confirmed} confirmed volunteers, below the minimum requirement of {minimum}.',
+        startCampaignWarningDetail: 'There are {pending} volunteers who registered but have not confirmed. If you continue, unconfirmed registrations will be closed automatically when the campaign starts.',
+        startCampaignProceedBtn: 'Start Campaign Anyway',
+        completeCampaignTitle: 'Complete Campaign?',
+        completeCampaignMsg: 'Are you sure you want to mark the campaign "{title}" as completed?',
+        completeCampaignDetail: 'Once completed, the campaign cannot return to active status.',
+        completeCampaignBtn: 'Complete Campaign',
         cancelWarningTitle: 'Note:',
         cancelWarning1: 'All registered volunteers will be notified',
         cancelWarning2: 'The campaign cannot be restored once cancelled',

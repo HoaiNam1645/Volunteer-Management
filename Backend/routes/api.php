@@ -6,6 +6,7 @@ use App\Http\Controllers\NguoiDungController;
 use App\Http\Controllers\ChienDichController;
 use App\Http\Controllers\KiemDuyetChienDichController;
 use App\Http\Controllers\ThamGiaChienDichController;
+use App\Http\Controllers\TheoDoiPhanHoiController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================== DANH MỤC (Public) ========================================
@@ -14,6 +15,8 @@ Route::get('/danh-muc/khu-vuc', [DanhMucController::class, 'getKhuVuc']);
 Route::get('/danh-muc/tinh-thanh', [DanhMucController::class, 'getTinhThanh']);
 Route::get('/danh-muc/phuong-xa', [DanhMucController::class, 'getPhuongXa']);
 Route::get('/danh-muc/loai-chien-dich', [ChienDichController::class, 'danhSachLoai']);
+Route::get('/chien-dich/bo-loc', [ThamGiaChienDichController::class, 'boLoc']);
+Route::get('/chien-dich/tim-kiem', [ThamGiaChienDichController::class, 'timKiem']);
 Route::get('/chien-dich', [ThamGiaChienDichController::class, 'danhSach']);
 Route::get('/chien-dich/{id}', [ThamGiaChienDichController::class, 'chiTiet']);
 
@@ -44,21 +47,25 @@ Route::middleware(['auth:api', 'tinhNguyenVien'])->group(function () {
     Route::post('/tinh-nguyen-vien/chien-dich', [ChienDichController::class, 'taoMoi']);
     Route::get('/tinh-nguyen-vien/chien-dich/{id}', [ChienDichController::class, 'chiTiet']);
     Route::put('/tinh-nguyen-vien/chien-dich/{id}', [ChienDichController::class, 'capNhat']);
+    Route::put('/tinh-nguyen-vien/chien-dich/{id}/trang-thai', [ChienDichController::class, 'capNhatTrangThai']);
     Route::put('/tinh-nguyen-vien/chien-dich/{id}/huy', [ChienDichController::class, 'huyChienDich']);
     Route::post('/chien-dich/{id}/dang-ky', [ThamGiaChienDichController::class, 'dangKy']);
     Route::put('/chien-dich/{id}/huy-dang-ky', [ThamGiaChienDichController::class, 'huyDangKy']);
     Route::put('/chien-dich/{id}/xac-nhan-tham-gia', [ThamGiaChienDichController::class, 'xacNhanThamGia']);
+    Route::get('/tinh-nguyen-vien/theo-doi-phan-hoi', [TheoDoiPhanHoiController::class, 'tongQuan']);
+    Route::post('/tinh-nguyen-vien/theo-doi-phan-hoi/bao-cao', [TheoDoiPhanHoiController::class, 'taoBaoCao']);
+    Route::post('/tinh-nguyen-vien/theo-doi-phan-hoi/danh-gia-chien-dich', [TheoDoiPhanHoiController::class, 'danhGiaChienDich']);
 });
 
 // =========================================== KIỂM DUYỆT VIÊN =========================================
 Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
+    Route::get('/kiem-duyet/chien-dich/bo-loc', [KiemDuyetChienDichController::class, 'boLoc']);
     Route::get('/kiem-duyet/chien-dich', [KiemDuyetChienDichController::class, 'danhSach']);
     Route::get('/kiem-duyet/chien-dich/{id}', [KiemDuyetChienDichController::class, 'chiTiet']);
     Route::put('/kiem-duyet/chien-dich/{id}/duyet', [KiemDuyetChienDichController::class, 'duyet']);
     Route::put('/kiem-duyet/chien-dich/{id}/tu-choi', [KiemDuyetChienDichController::class, 'tuChoi']);
     Route::put('/kiem-duyet/chien-dich/{id}/yeu-cau-huy/duyet', [KiemDuyetChienDichController::class, 'duyetYeuCauHuy']);
     Route::put('/kiem-duyet/chien-dich/{id}/yeu-cau-huy/tu-choi', [KiemDuyetChienDichController::class, 'tuChoiYeuCauHuy']);
-    Route::put('/kiem-duyet/chien-dich/{id}/trang-thai', [KiemDuyetChienDichController::class, 'capNhatTrangThai']);
     Route::get('/kiem-duyet/chien-dich/{id}/feedback', [KiemDuyetChienDichController::class, 'danhSachFeedback']);
     Route::get('/kiem-duyet/chien-dich/{id}/bao-cao', [KiemDuyetChienDichController::class, 'danhSachBaoCao']);
     Route::put('/kiem-duyet/bao-cao/{id}/xu-ly', [KiemDuyetChienDichController::class, 'xuLyBaoCao']);

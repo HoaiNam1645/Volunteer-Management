@@ -196,40 +196,95 @@ class ChienDichSeeder extends Seeder
                 $cd->kyNangs()->sync($skillsData);
             }
 
-            // Tạo đăng ký tham gia cho chiến dịch đã duyệt / đang diễn ra / hoàn thành
+            // Tạo đăng ký tham gia theo đúng logic trạng thái tham gia.
             if (in_array($cd->trang_thai, ['da_duyet', 'dang_dien_ra', 'hoan_thanh', 'yeu_cau_huy']) && !empty($tnvIds)) {
-                $numRegistrations = rand(2, min(4, count($tnvIds)));
-                $selectedTnvIds = array_slice($tnvIds, 0, $numRegistrations);
+                $ungVienIds = array_values(array_filter($tnvIds, fn ($id) => $id !== $cd->nguoi_tao_id));
 
-                $soDangKy = 0;
-                $soXacNhan = 0;
+                if (!empty($ungVienIds)) {
+                    shuffle($ungVienIds);
+                    $numRegistrations = rand(2, min(4, count($ungVienIds)));
+                    $selectedTnvIds = array_slice($ungVienIds, 0, $numRegistrations);
 
-                foreach ($selectedTnvIds as $tnvId) {
-                    $trangThaiDk = $cd->trang_thai === 'hoan_thanh' ? 'hoan_thanh' : 'da_duyet';
-                    DangKyThamGia::updateOrCreate(
-                        [
+                    // Xóa đăng ký cũ để tránh giữ lại dữ liệu seed sai logic từ các lần chạy trước.
+                    DangKyThamGia::where('chien_dich_id', $cd->id)->delete();
+
+                    $soDangKy = 0;
+                    $soXacNhan = 0;
+
+                    foreach ($selectedTnvIds as $indexTnv => $tnvId) {
+                        $dangKyData = $this->buildRegistrationSeedData($cd->trang_thai, $now, $indexTnv);
+
+                        DangKyThamGia::create([
                             'chien_dich_id' => $cd->id,
                             'nguoi_dung_id' => $tnvId,
-                        ],
-                        [
-                            'trang_thai'   => $trangThaiDk,
-                            'dang_ky_luc'  => $now->copy()->subDays(rand(1, 7)),
-                            'duyet_luc'    => $now->copy()->subDays(rand(0, 3)),
-                            'xac_nhan_luc' => $trangThaiDk === 'hoan_thanh' ? $now->copy()->subDays(rand(0, 2)) : null,
-                        ]
-                    );
-                    $soDangKy++;
-                    if ($trangThaiDk === 'hoan_thanh') $soXacNhan++;
-                }
+                            'trang_thai' => $dangKyData['trang_thai'],
+                            'dang_ky_luc' => $dangKyData['dang_ky_luc'],
+                            'duyet_luc' => null,
+                            'xac_nhan_luc' => $dangKyData['xac_nhan_luc'],
+                            'huy_luc' => null,
+                            'ly_do_huy' => null,
+                            'ghi_chu' => $dangKyData['ghi_chu'],
+                        ]);
 
-                // Cập nhật cache
-                $cd->update([
-                    'so_dang_ky'  => $soDangKy,
-                    'so_xac_nhan' => $soXacNhan,
-                ]);
+                        if (!in_array($dangKyData['trang_thai'], ['da_huy', 'tu_choi'], true)) {
+                            $soDangKy++;
+                        }
+
+                        if (in_array($dangKyData['trang_thai'], ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'], true)) {
+                            $soXacNhan++;
+                        }
+                    }
+
+                    $cd->update([
+                        'so_dang_ky'  => $soDangKy,
+                        'so_xac_nhan' => $soXacNhan,
+                    ]);
+                }
             }
         }
 
         $this->command->info('✅ Đã seed ' . count($chienDichs) . ' chiến dịch + đăng ký tham gia.');
+    }
+
+    private function buildRegistrationSeedData(string $trangThaiChienDich, Carbon $now, int $indexTnv): array
+    {
+        $dangKyLuc = $now->copy()->subDays(rand(2, 10));
+
+        return match ($trangThaiChienDich) {
+            'da_duyet' => [
+                // Giữ lẫn cả người mới đăng ký và người đã xác nhận để test đủ flow.
+                'trang_thai' => $indexTnv % 2 === 0 ? 'da_dang_ky' : 'da_xac_nhan',
+                'dang_ky_luc' => $dangKyLuc,
+                'xac_nhan_luc' => $indexTnv % 2 === 0 ? null : $dangKyLuc->copy()->addDay(),
+                'ghi_chu' => $indexTnv % 2 === 0
+                    ? 'Tình nguyện viên đã đăng ký và đang chờ xác nhận tham gia.'
+                    : 'Tình nguyện viên đã xác nhận tham gia chiến dịch.',
+            ],
+            'yeu_cau_huy' => [
+                // Yêu cầu hủy thường xảy ra khi đã có người xác nhận.
+                'trang_thai' => 'da_xac_nhan',
+                'dang_ky_luc' => $dangKyLuc,
+                'xac_nhan_luc' => $dangKyLuc->copy()->addDay(),
+                'ghi_chu' => 'Tình nguyện viên đã xác nhận, chiến dịch đang chờ xử lý yêu cầu hủy.',
+            ],
+            'dang_dien_ra' => [
+                'trang_thai' => 'dang_tham_gia',
+                'dang_ky_luc' => $dangKyLuc,
+                'xac_nhan_luc' => $dangKyLuc->copy()->addDay(),
+                'ghi_chu' => 'Tình nguyện viên đang tham gia chiến dịch.',
+            ],
+            'hoan_thanh' => [
+                'trang_thai' => 'hoan_thanh',
+                'dang_ky_luc' => $dangKyLuc,
+                'xac_nhan_luc' => $dangKyLuc->copy()->addDay(),
+                'ghi_chu' => 'Tình nguyện viên đã hoàn tất tham gia chiến dịch.',
+            ],
+            default => [
+                'trang_thai' => 'da_dang_ky',
+                'dang_ky_luc' => $dangKyLuc,
+                'xac_nhan_luc' => null,
+                'ghi_chu' => 'Tình nguyện viên đã đăng ký tham gia chiến dịch.',
+            ],
+        };
     }
 }

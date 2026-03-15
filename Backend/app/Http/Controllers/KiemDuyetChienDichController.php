@@ -8,10 +8,57 @@ use App\Models\ChienDich;
 use App\Models\LichSuKiemDuyetChienDich;
 use App\Models\ThongBao;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class KiemDuyetChienDichController extends Controller
 {
+    public function boLoc()
+    {
+        $baseQuery = ChienDich::query()->whereNull('chien_dichs.xoa_luc');
+
+        $categories = (clone $baseQuery)
+            ->join('loai_chien_dichs', 'chien_dichs.loai_chien_dich_id', '=', 'loai_chien_dichs.id')
+            ->select(
+                'loai_chien_dichs.id',
+                'loai_chien_dichs.ten',
+                DB::raw('COUNT(chien_dichs.id) as total')
+            )
+            ->groupBy('loai_chien_dichs.id', 'loai_chien_dichs.ten')
+            ->orderBy('loai_chien_dichs.ten')
+            ->get();
+
+        $statusCounts = (clone $baseQuery)
+            ->select('chien_dichs.trang_thai', DB::raw('COUNT(chien_dichs.id) as total'))
+            ->groupBy('chien_dichs.trang_thai')
+            ->pluck('total', 'chien_dichs.trang_thai');
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Lấy bộ lọc kiểm duyệt chiến dịch thành công.',
+            'data' => [
+                'tabs' => [
+                    ['value' => 'pending', 'api_value' => 'cho_duyet', 'count' => (int) ($statusCounts['cho_duyet'] ?? 0)],
+                    ['value' => 'pending_cancel', 'api_value' => 'yeu_cau_huy', 'count' => (int) ($statusCounts['yeu_cau_huy'] ?? 0)],
+                    ['value' => 'all', 'api_value' => 'all', 'count' => (int) ((clone $baseQuery)->count())],
+                    ['value' => 'active', 'api_value' => 'dang_dien_ra', 'count' => (int) ($statusCounts['dang_dien_ra'] ?? 0)],
+                    ['value' => 'completed', 'api_value' => 'hoan_thanh', 'count' => (int) ($statusCounts['hoan_thanh'] ?? 0)],
+                ],
+                'categories' => $categories->map(fn ($item) => [
+                    'value' => (string) $item->id,
+                    'label' => $item->ten,
+                    'count' => (int) $item->total,
+                ])->values(),
+                'priorities' => [
+                    ['value' => 'urgent', 'api_value' => 'khan_cap'],
+                    ['value' => 'high', 'api_value' => 'cao'],
+                    ['value' => 'medium', 'api_value' => 'trung_binh'],
+                    ['value' => 'low', 'api_value' => 'thap'],
+                ],
+            ],
+        ]);
+    }
+
     public function danhSach(Request $request)
     {
         $query = ChienDich::query()
@@ -101,6 +148,8 @@ class KiemDuyetChienDichController extends Controller
             $this->guiThongBaoKetQua($cd, $reviewer->id, 'duyet', 'Chiến dịch của bạn đã được duyệt và sẵn sàng cho các bước tiếp theo.', null, 'Đã duyệt');
         });
 
+        $this->forgetOwnerStartReminderCache($cd->id);
+
         return response()->json(['status' => 1, 'message' => 'Duyệt chiến dịch thành công.']);
     }
 
@@ -131,6 +180,8 @@ class KiemDuyetChienDichController extends Controller
             $this->guiThongBaoKetQua($cd, $reviewer->id, 'tu_choi', 'Chiến dịch của bạn đã bị từ chối sau khi kiểm duyệt.', $request->ly_do, 'Từ chối');
         });
 
+        $this->forgetOwnerStartReminderCache($cd->id);
+
         return response()->json(['status' => 1, 'message' => 'Đã từ chối chiến dịch.']);
     }
 
@@ -153,10 +204,13 @@ class KiemDuyetChienDichController extends Controller
                 'duyet_boi' => $reviewer->id,
                 'duyet_luc' => now(),
             ]);
+            $this->dongBoDangKyKhiHuyChienDich($cd, $lyDo);
             $this->ghiLichSu($cd->id, $reviewer->id, 'duyet_huy_chien_dich', $oldStatus, 'da_huy', $lyDo);
             $this->guiThongBaoKetQua($cd, $reviewer->id, 'duyet_huy', 'Yêu cầu hủy chiến dịch của bạn đã được chấp thuận.', $lyDo, 'Đã hủy');
             $this->guiThongBaoKetQuaHuyChoTnv($cd, $reviewer->id, true, $lyDo, 'da_huy');
         });
+
+        $this->forgetOwnerStartReminderCache($cd->id);
 
         return response()->json(['status' => 1, 'message' => 'Đã duyệt yêu cầu hủy chiến dịch.']);
     }
@@ -190,42 +244,9 @@ class KiemDuyetChienDichController extends Controller
             $this->guiThongBaoKetQuaHuyChoTnv($cd, $reviewer->id, false, $request->ly_do, $restoredStatus);
         });
 
+        $this->forgetOwnerStartReminderCache($cd->id);
+
         return response()->json(['status' => 1, 'message' => 'Đã từ chối yêu cầu hủy chiến dịch.']);
-    }
-
-    public function capNhatTrangThai(Request $request, $id)
-    {
-        $request->validate([
-            'trang_thai' => 'required|in:dang_dien_ra,hoan_thanh',
-            'ghi_chu' => 'nullable|string|max:1000',
-        ]);
-
-        $reviewer = auth('api')->user();
-        $cd = $this->findCampaignForReview($id);
-        if (!$cd) {
-            return response()->json(['status' => 0, 'message' => 'Không tìm thấy chiến dịch.'], 404);
-        }
-
-        $allowedTransitions = [
-            'da_duyet' => ['dang_dien_ra'],
-            'dang_dien_ra' => ['hoan_thanh'],
-        ];
-
-        $nextStatus = $request->trang_thai;
-        if (!in_array($nextStatus, $allowedTransitions[$cd->trang_thai] ?? [], true)) {
-            return response()->json(['status' => 0, 'message' => 'Chuyển trạng thái không hợp lệ.'], 422);
-        }
-
-        DB::transaction(function () use ($cd, $reviewer, $nextStatus, $request) {
-            $oldStatus = $cd->trang_thai;
-            $cd->update([
-                'trang_thai' => $nextStatus,
-            ]);
-            $this->ghiLichSu($cd->id, $reviewer->id, 'cap_nhat_trang_thai', $oldStatus, $nextStatus, $request->ghi_chu);
-            $this->guiThongBaoKetQua($cd, $reviewer->id, 'cap_nhat_trang_thai', 'Trạng thái chiến dịch của bạn vừa được cập nhật.', $request->ghi_chu, $this->humanCampaignStatus($nextStatus));
-        });
-
-        return response()->json(['status' => 1, 'message' => 'Cập nhật trạng thái chiến dịch thành công.']);
     }
 
     public function danhSachFeedback($id)
@@ -452,7 +473,7 @@ class KiemDuyetChienDichController extends Controller
                     'ngay_ket_thuc' => $cd->ngay_ket_thuc?->format('d/m/Y'),
                     'ly_do' => $lyDo,
                     'trang_thai_hien_tai' => $trangThaiHienTai,
-                    'link_chien_dich' => rtrim(config('app.frontend_url', 'http://localhost:5180'), '/') . '/quan-ly-chien-dich/chi-tiet/' . $cd->id,
+                    'link_chien_dich' => rtrim(config('app.frontend_url', 'http://localhost:5173'), '/') . '/quan-ly-chien-dich/chi-tiet/' . $cd->id,
                 ]
             );
         }
@@ -460,10 +481,15 @@ class KiemDuyetChienDichController extends Controller
 
     private function guiThongBaoKetQuaHuyChoTnv(ChienDich $cd, int $nguoiGuiId, bool $daDuyetHuy, ?string $lyDo, string $trangThaiHienTai): void
     {
-        $danhSachDangKy = $cd->dangKyThamGias()
-            ->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])
-            ->with('nguoiDung:id,ho_ten,email')
-            ->get();
+        $query = $cd->dangKyThamGias()->with('nguoiDung:id,ho_ten,email');
+
+        if ($daDuyetHuy) {
+            $query->where('trang_thai', 'da_huy');
+        } else {
+            $query->whereNotIn('trang_thai', ['da_huy', 'tu_choi']);
+        }
+
+        $danhSachDangKy = $query->get();
 
         foreach ($danhSachDangKy as $dangKy) {
             $tnv = $dangKy->nguoiDung;
@@ -500,7 +526,7 @@ class KiemDuyetChienDichController extends Controller
                             'ngay_ket_thuc' => $cd->ngay_ket_thuc?->format('d/m/Y'),
                             'ly_do' => $lyDo,
                             'trang_thai_huy' => 'da_huy',
-                            'link_chien_dich' => rtrim(config('app.frontend_url', 'http://localhost:5180'), '/') . '/danh-sach-chien-dich',
+                            'link_chien_dich' => rtrim(config('app.frontend_url', 'http://localhost:5173'), '/') . '/danh-sach-chien-dich',
                         ]
                     );
                 } else {
@@ -516,7 +542,7 @@ class KiemDuyetChienDichController extends Controller
                             'ngay_ket_thuc' => $cd->ngay_ket_thuc?->format('d/m/Y'),
                             'ly_do' => $lyDo,
                             'trang_thai_hien_tai' => $this->humanCampaignStatus($trangThaiHienTai),
-                            'link_chien_dich' => rtrim(config('app.frontend_url', 'http://localhost:5180'), '/') . '/danh-sach-chien-dich',
+                            'link_chien_dich' => rtrim(config('app.frontend_url', 'http://localhost:5173'), '/') . '/danh-sach-chien-dich',
                         ]
                     );
                 }
@@ -535,6 +561,24 @@ class KiemDuyetChienDichController extends Controller
         return 'da_duyet';
     }
 
+    private function dongBoDangKyKhiHuyChienDich(ChienDich $cd, ?string $lyDo): void
+    {
+        $cd->dangKyThamGias()
+            ->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])
+            ->update([
+                'trang_thai' => 'da_huy',
+                'huy_luc' => now(),
+                'ly_do_huy' => $lyDo ?: 'Chiến dịch đã bị hủy sau khi kiểm duyệt viên chấp thuận yêu cầu hủy.',
+                'ghi_chu' => 'Tự động hủy đăng ký do chiến dịch đã bị hủy.',
+            ]);
+
+        $cd->refresh();
+        $cd->update([
+            'so_dang_ky' => $cd->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
+            'so_xac_nhan' => $cd->dangKyThamGias()->whereIn('trang_thai', ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'])->count(),
+        ]);
+    }
+
     private function humanCampaignStatus(string $status): string
     {
         return [
@@ -547,5 +591,10 @@ class KiemDuyetChienDichController extends Controller
             'da_huy' => 'Đã hủy',
             'nhap' => 'Nháp',
         ][$status] ?? $status;
+    }
+
+    private function forgetOwnerStartReminderCache(int $campaignId): void
+    {
+        Cache::forget("campaigns:owner-start-reminder-sent:{$campaignId}");
     }
 }

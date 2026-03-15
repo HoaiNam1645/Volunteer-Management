@@ -35,7 +35,7 @@
 			<div class="col-lg-8">
 				<!-- Overview Card -->
 				<div class="card border-0 shadow-sm mb-4">
-					<div class="campaign-banner d-flex align-items-end p-4" :style="{ background: campaign.color }">
+					<div class="campaign-banner d-flex align-items-end p-4" :style="getCampaignBannerStyle()">
 						<div class="d-flex align-items-center gap-3">
 							<div class="rounded-3 d-flex align-items-center justify-content-center border border-white border-opacity-25" style="width:56px;height:56px; background-color: rgba(255, 255, 255, 0.25);">
 								<i :class="campaign.icon" class="text-white fs-4"></i>
@@ -317,6 +317,12 @@
 					<div class="card-body p-4">
 						<h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bolt me-2 text-warning"></i>{{ $t('campaignDetail.quickActions') }}</h6>
 						<div class="d-grid gap-2">
+							<button v-if="campaign.status === 'approved'" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('dang_dien_ra')">
+								<i class="fa-solid fa-play" style="width:16px"></i><span>{{ $t('coordinator.startCampaignBtn') }}</span>
+							</button>
+							<button v-if="campaign.status === 'active'" class="btn btn-outline-success btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('hoan_thanh')">
+								<i class="fa-solid fa-flag-checkered" style="width:16px"></i><span>{{ $t('coordinator.completeCampaignBtn') }}</span>
+							</button>
 							<button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push('/quan-ly-chien-dich')">
 								<i class="fa-solid fa-robot" style="width:16px"></i><span>{{ $t('campaignDetail.aiSuggest') }}</span>
 							</button>
@@ -375,11 +381,25 @@
 			</div>
 		</div>
 		<div class="modal-backdrop fade show" v-if="showRateModal" @click="showRateModal = false"></div>
+
+		<ConfirmModal
+			ref="statusModal"
+			modalId="detailStatusCampaignModal"
+			:title="statusConfirmConfig.title"
+			:message="statusConfirmConfig.message"
+			:detail="statusConfirmConfig.detail"
+			:icon="statusConfirmConfig.icon"
+			:variant="statusConfirmConfig.variant"
+			:confirmText="statusConfirmConfig.confirmText"
+			confirmIcon="fa-solid fa-check"
+			:dismissOnConfirm="false"
+			@confirm="updateCampaignStatus" />
 	</div>
 </template>
 
 <script>
 import PageHeader from '../../components/PageHeader.vue'
+import ConfirmModal from '../../components/ConfirmModal.vue'
 import api from '../../services/api'
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
@@ -387,7 +407,7 @@ const STATUS_MAP = { cho_duyet: 'pending', tu_choi: 'rejected', da_duyet: 'appro
 
 export default {
 	name: 'ChiTietChienDich',
-	components: { PageHeader },
+	components: { PageHeader, ConfirmModal },
 	inject: ['toast'],
 	data() {
 		return {
@@ -405,6 +425,7 @@ export default {
 				registered: 0, status: 'pending', requiredSkills: [],
 				icon: 'fa-solid fa-flag',
 				color: 'linear-gradient(135deg, #0d6efd, #6610f2)',
+				coverUrl: null,
 				coordinatorName: '', coordinatorEmail: '',
 			},
 			campaignTypes: [],
@@ -413,7 +434,18 @@ export default {
 			showRateModal: false,
 			rateTarget: null,
 			modalRating: 0,
-			modalComment: ''
+			modalComment: '',
+			statusTarget: null,
+			nextStatusTarget: null,
+			statusForceProceed: false,
+			statusConfirmConfig: {
+				title: '',
+				message: '',
+				detail: '',
+				icon: '',
+				variant: '',
+				confirmText: '',
+			},
 		}
 	},
 	computed: {
@@ -448,10 +480,81 @@ export default {
 		getPriorityClass(p) { return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-white', low: 'bg-light text-muted border' }[p] || 'bg-secondary'; },
 		getStatusLabel(s) { return this.$t(`statuses.${s}`); },
 			getStatusIcon(s) { return { approved: 'fa-solid fa-badge-check', active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', cancelled: 'fa-solid fa-ban', rejected: 'fa-solid fa-circle-xmark', pending_cancel: 'fa-solid fa-clock-rotate-left', draft: 'fa-solid fa-file-lines' }[s] || ''; },
+		getCampaignBannerStyle() {
+			if (this.campaign.coverUrl) {
+				return {
+					background: `linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.28)), url(${this.campaign.coverUrl}) center/cover`,
+				};
+			}
+			return { background: this.campaign.color };
+		},
 		getSkillName(id) { const s = this.availableSkills.find(s => s.id === id); return s ? s.name : ''; },
 		getSkillIcon(id) { const s = this.availableSkills.find(s => s.id === id); return s ? s.icon : ''; },
 		getRatingLabel(r) { return { 1: this.$t('ratings.1'), 2: this.$t('ratings.2'), 3: this.$t('ratings.3'), 4: this.$t('ratings.4'), 5: this.$t('ratings.5') }[r] || ''; },
 		setVolRating(vol, star) { vol.rating = star; },
+		confirmStatusChange(nextStatus) {
+			this.statusTarget = this.campaign;
+			this.nextStatusTarget = nextStatus;
+			this.statusForceProceed = false;
+			this.statusConfirmConfig = {
+				title: nextStatus === 'dang_dien_ra' ? this.$t('coordinator.startCampaignTitle') : this.$t('coordinator.completeCampaignTitle'),
+				message: nextStatus === 'dang_dien_ra'
+					? this.$t('coordinator.startCampaignMsg', { title: this.campaign.title })
+					: this.$t('coordinator.completeCampaignMsg', { title: this.campaign.title }),
+				detail: nextStatus === 'dang_dien_ra'
+					? this.$t('coordinator.startCampaignDetail')
+					: this.$t('coordinator.completeCampaignDetail'),
+				icon: nextStatus === 'dang_dien_ra' ? 'fa-solid fa-play-circle' : 'fa-solid fa-flag-checkered',
+				variant: nextStatus === 'dang_dien_ra' ? 'warning' : 'success',
+				confirmText: nextStatus === 'dang_dien_ra' ? this.$t('coordinator.startCampaignBtn') : this.$t('coordinator.completeCampaignBtn'),
+			};
+			this.$refs.statusModal.show();
+		},
+		async updateCampaignStatus() {
+			if (!this.statusTarget || !this.nextStatusTarget) return;
+			let shouldResetState = true;
+			try {
+				const res = await api.put(`/tinh-nguyen-vien/chien-dich/${this.statusTarget.id}/trang-thai`, {
+					trang_thai: this.nextStatusTarget,
+					bo_qua_canh_bao: this.statusForceProceed,
+				});
+				if (res.data.status === 1) {
+					this.toast?.showToast('success', this.$t('common.success'), res.data.message);
+					this.$refs.statusModal.hide();
+					await this.loadCampaignDetail();
+				}
+			} catch (err) {
+				const warning = err.response?.data?.warning;
+				if (warning?.code === 'insufficient_confirmed_volunteers' && this.nextStatusTarget === 'dang_dien_ra') {
+					shouldResetState = false;
+					this.statusForceProceed = true;
+					this.statusConfirmConfig = {
+						title: this.$t('coordinator.startCampaignWarningTitle'),
+						message: this.$t('coordinator.startCampaignWarningMsg', {
+							confirmed: warning.so_xac_nhan ?? 0,
+							minimum: warning.so_luong_toi_thieu ?? 0,
+						}),
+						detail: this.$t('coordinator.startCampaignWarningDetail', {
+							pending: warning.so_chua_xac_nhan ?? 0,
+						}),
+						icon: 'fa-solid fa-triangle-exclamation',
+						variant: 'warning',
+						confirmText: this.$t('coordinator.startCampaignProceedBtn'),
+					};
+					this.$refs.statusModal.show();
+					return;
+				}
+
+				const msg = err.response?.data?.message || 'Có lỗi xảy ra.';
+				this.toast?.showToast('error', this.$t('common.error'), msg);
+			} finally {
+				if (shouldResetState) {
+					this.statusTarget = null;
+					this.nextStatusTarget = null;
+					this.statusForceProceed = false;
+				}
+			}
+		},
 		openRateModal(vol) {
 			this.rateTarget = vol;
 			this.modalRating = vol.rating || 0;
@@ -505,6 +608,7 @@ export default {
 						registered: cd.so_dang_ky || 0,
 						status: STATUS_MAP[cd.trang_thai] || cd.trang_thai,
 						requiredSkills: cd.ky_nang_ids || [],
+						coverUrl: cd.anh_bia || null,
 						icon: loai ? `fa-solid ${loai.bieu_tuong || 'fa-flag'}` : 'fa-solid fa-flag',
 						color: loai ? `linear-gradient(135deg, ${loai.mau_sac || '#0d6efd'}, ${this.lightenColor(loai.mau_sac || '#0d6efd')})` : 'linear-gradient(135deg, #0d6efd, #6610f2)',
 						coordinatorName: cd.kiem_duyet_vien?.ho_ten || '',

@@ -1,51 +1,54 @@
 <template>
 	<div class="bg-light min-vh-100 pb-5">
 		<div class="container pt-4">
-			<!-- Page Header -->
 			<PageHeader
 				:title="$t('feedback.title')"
 				icon="fa-solid fa-clock-rotate-left"
-				:breadcrumbs="[{ label: $t('common.home'), to: '/'}, { label: $t('feedback.title') }]">
-			</PageHeader>
+				:breadcrumbs="[{ label: $t('common.home'), to: '/' }, { label: $t('feedback.title') }]"
+			/>
 
-			<!-- Stats -->
 			<StatCards :cards="statCards" />
 
-			<!-- Tabs -->
 			<ul class="nav nav-tabs nav-tabs-custom border-bottom-0 flex-nowrap overflow-auto mb-0">
 				<li class="nav-item" v-for="tab in tabs" :key="tab.value">
-					<a class="nav-link px-3 px-md-4 py-2 fw-medium text-nowrap"
+					<a
+						class="nav-link px-3 px-md-4 py-2 fw-medium text-nowrap"
 						:class="{ 'active text-primary': activeTab === tab.value, 'text-muted': activeTab !== tab.value }"
-						href="#" @click.prevent="activeTab = tab.value">
+						href="#"
+						@click.prevent="activeTab = tab.value"
+					>
 						<i :class="tab.icon" class="me-1"></i>{{ tab.label }}
-						<span class="badge ms-1 rounded-pill" :class="activeTab === tab.value ? 'bg-primary' : 'bg-light text-muted'" v-if="tab.count">{{ tab.count }}</span>
+						<span v-if="tab.count !== null" class="badge ms-1 rounded-pill" :class="activeTab === tab.value ? 'bg-primary' : 'bg-light text-muted'">{{ tab.count }}</span>
 					</a>
 				</li>
 			</ul>
 
-			<!-- TAB: Lịch sử hoạt động -->
-			<div class="card border-0 shadow-sm mb-4" v-if="activeTab === 'history'">
+			<div v-if="loading" class="card border-0 shadow-sm mt-3">
+				<div class="card-body p-5 text-center text-muted">
+					<div class="spinner-border text-primary mb-3" role="status"></div>
+					<div>{{ $t('common.loading') }}</div>
+				</div>
+			</div>
+
+			<div class="card border-0 shadow-sm mb-4" v-else-if="activeTab === 'history'">
 				<div class="card-header bg-white py-3">
 					<div class="row g-2 align-items-center">
 						<div class="col-md-5">
 							<div class="input-group input-group-sm">
 								<span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted small"></i></span>
-								<input type="text" class="form-control form-control-sm bg-light border-start-0 ps-0" :placeholder="$t('feedback.searchPlaceholder')" v-model="historySearch">
+								<input type="text" class="form-control form-control-sm bg-light border-start-0 ps-0" :placeholder="$t('feedback.searchPlaceholder')" v-model="historySearch" />
 							</div>
 						</div>
 						<div class="col-md-3">
 							<select class="form-select form-select-sm" v-model="historyFilter">
 								<option value="">{{ $t('feedback.allStatuses') }}</option>
-								<option value="completed">{{ $t('feedback.statuses.completed') }}</option>
-								<option value="attending">{{ $t('feedback.statuses.attending') }}</option>
-								<option value="registered">{{ $t('feedback.statuses.registered') }}</option>
-								<option value="cancelled">{{ $t('feedback.statuses.cancelled') }}</option>
+								<option v-for="opt in registrationStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
 							</select>
 						</div>
 					</div>
 				</div>
 				<div class="card-body p-0">
-					<div class="table-responsive">
+					<div class="table-responsive table-responsive-history">
 						<table class="table table-hover align-middle mb-0">
 							<thead>
 								<tr class="bg-light">
@@ -61,43 +64,36 @@
 								<tr v-for="h in filteredHistory" :key="h.id" class="activity-row">
 									<td class="ps-3">
 										<div class="d-flex align-items-center gap-2 gap-md-3">
-											<div class="activity-icon rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" :style="{ background: h.color }">
-												<i :class="h.icon" style="font-size: 14px;"></i>
+											<div class="activity-icon rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" :style="{ background: getCampaignColor(h.chien_dich_id) }">
+												<i class="fa-solid fa-hand-holding-heart" style="font-size: 14px;"></i>
 											</div>
 											<div class="min-w-0">
-												<div class="fw-bold text-dark small text-truncate">{{ h.title }}</div>
-												<div class="text-muted small text-truncate d-none d-sm-block">{{ h.org }}</div>
+												<div class="fw-bold text-dark small text-truncate">{{ h.chien_dich?.tieu_de }}</div>
+												<div class="text-muted small text-truncate d-none d-sm-block">{{ h.chien_dich?.nguoi_tao?.ho_ten || $t('common.notAvailable') }}</div>
 											</div>
 										</div>
 									</td>
 									<td class="d-none d-md-table-cell">
-										<span class="text-muted small"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ h.location }}</span>
+										<span class="text-muted small"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ h.chien_dich?.dia_diem || $t('common.notAvailable') }}</span>
 									</td>
 									<td class="d-none d-lg-table-cell">
-										<span class="text-muted small"><i class="fa-regular fa-calendar me-1"></i>{{ h.date }}</span>
+										<span class="text-muted small"><i class="fa-regular fa-calendar me-1"></i>{{ formatCampaignDateRange(h.chien_dich) }}</span>
 									</td>
 									<td class="text-center">
-										<span class="badge rounded-pill" :class="getHistoryStatusClass(h.status)">
-											<i :class="getHistoryStatusIcon(h.status)" class="me-1"></i>{{ getHistoryStatusLabel(h.status) }}
+										<span class="badge rounded-pill" :class="getHistoryStatusClass(h.trang_thai_dang_ky)">
+											<i :class="getHistoryStatusIcon(h.trang_thai_dang_ky)" class="me-1"></i>{{ getHistoryStatusLabel(h.trang_thai_dang_ky) }}
 										</span>
 									</td>
 									<td class="text-center d-none d-md-table-cell">
-										<div class="d-flex justify-content-center gap-0" v-if="h.rating">
-											<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= h.rating ? 'text-warning' : 'text-muted'" style="font-size:11px"></i>
+										<div class="d-flex justify-content-center gap-0" v-if="h.danh_gia_tnv?.so_sao">
+											<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= h.danh_gia_tnv.so_sao ? 'text-warning' : 'text-muted'" style="font-size:11px"></i>
 										</div>
 										<span class="text-muted small" v-else>—</span>
 									</td>
 									<td class="text-center">
-										<div class="dropdown">
-											<button class="btn btn-sm btn-light border-0 rounded-circle" data-bs-toggle="dropdown" style="width:30px;height:30px">
-												<i class="fa-solid fa-ellipsis-vertical small"></i>
-											</button>
-											<ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2">
-												<li><a class="dropdown-item small py-2" href="#" @click.prevent="viewCampaign(h)"><i class="fa-regular fa-eye me-2 text-primary"></i>{{ $t('feedback.actions.viewDetail') }}</a></li>
-												<li v-if="h.status === 'completed' && !h.feedback"><a class="dropdown-item small py-2" href="#" @click.prevent="openFeedback(h)"><i class="fa-solid fa-comment me-2 text-success"></i>{{ $t('feedback.actions.sendFeedback') }}</a></li>
-												<li v-if="h.status === 'registered'"><a class="dropdown-item small py-2 text-danger" href="#" @click.prevent="cancelRegistration(h)"><i class="fa-solid fa-xmark me-2"></i>{{ $t('feedback.actions.cancelRegistration') }}</a></li>
-											</ul>
-										</div>
+										<button class="btn btn-sm btn-light border-0 rounded-circle" style="width:30px;height:30px" @click.stop="toggleActionMenu($event, h)">
+											<i class="fa-solid fa-ellipsis-vertical small"></i>
+										</button>
 									</td>
 								</tr>
 								<tr v-if="filteredHistory.length === 0">
@@ -111,19 +107,18 @@
 				</div>
 			</div>
 
-			<!-- TAB: Điểm đánh giá -->
-			<div v-if="activeTab === 'scores'">
+			<div v-if="!loading && activeTab === 'scores'">
 				<div class="row g-4">
 					<div class="col-lg-4">
 						<div class="card border-0 shadow-sm">
 							<div class="card-body text-center p-4">
 								<div class="rating-circle mx-auto mb-3">
-									<span class="rating-number">{{ avgRating }}</span>
+									<span class="rating-number">{{ avgRatingText }}</span>
 								</div>
 								<div class="d-flex justify-content-center gap-1 mb-2">
-									<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= Math.round(parseFloat(avgRating)) ? 'text-warning' : 'text-muted'" style="font-size:18px"></i>
+									<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= Math.round(Number(avgRatingText)) ? 'text-warning' : 'text-muted'" style="font-size:18px"></i>
 								</div>
-								<span class="text-muted small">{{ $t('feedback.basedOnReviews', { count: ratedActivities.length }) }}</span>
+								<span class="text-muted small">{{ $t('feedback.basedOnReviews', { count: diemDanhGia.length }) }}</span>
 							</div>
 						</div>
 					</div>
@@ -133,20 +128,20 @@
 								<h6 class="fw-bold mb-0"><i class="fa-solid fa-star text-warning me-2"></i>{{ $t('feedback.ratingDetailTitle') }}</h6>
 							</div>
 							<div class="card-body p-0">
-								<div class="rating-row p-3 border-bottom d-flex align-items-center gap-3" v-for="h in ratedActivities" :key="h.id">
-									<div class="activity-icon rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" :style="{ background: h.color }" style="width:38px;height:38px">
-										<i :class="h.icon" style="font-size:13px"></i>
+								<div class="rating-row p-3 border-bottom d-flex align-items-center gap-3" v-for="rating in diemDanhGia" :key="rating.id">
+									<div class="activity-icon rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" :style="{ background: getCampaignColor(rating.chien_dich_id) }" style="width:38px;height:38px">
+										<i class="fa-solid fa-star" style="font-size:13px"></i>
 									</div>
 									<div class="flex-grow-1 min-w-0">
-										<div class="fw-bold small text-truncate">{{ h.title }}</div>
-										<span class="text-muted" style="font-size:12px">{{ h.date }}</span>
+										<div class="fw-bold small text-truncate">{{ rating.ten_chien_dich || $t('common.notAvailable') }}</div>
+										<span class="text-muted" style="font-size:12px">{{ formatDateTime(rating.tao_luc) }}</span>
 									</div>
 									<div class="d-flex gap-0 flex-shrink-0">
-										<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= h.rating ? 'text-warning' : 'text-muted'" style="font-size:13px"></i>
+										<i v-for="i in 5" :key="i" class="fa-solid fa-star" :class="i <= rating.so_sao ? 'text-warning' : 'text-muted'" style="font-size:13px"></i>
 									</div>
-									<span class="fw-bold small" style="min-width:30px">{{ h.rating }}/5</span>
+									<span class="fw-bold small" style="min-width:30px">{{ rating.so_sao }}/5</span>
 								</div>
-								<div class="text-center py-4 text-muted small" v-if="ratedActivities.length === 0">
+								<div class="text-center py-4 text-muted small" v-if="diemDanhGia.length === 0">
 									{{ $t('feedback.noRatings') }}
 								</div>
 							</div>
@@ -155,51 +150,81 @@
 				</div>
 			</div>
 
-			<!-- TAB: Thành tích -->
-			<div v-if="activeTab === 'achievements'">
+			<div v-if="!loading && activeTab === 'reports'">
 				<div class="row g-3">
-					<div class="col-sm-6 col-lg-4" v-for="a in achievements" :key="a.id">
-						<div class="card border-0 shadow-sm h-100 achievement-card" :class="{ 'unlocked': a.unlocked }">
-							<div class="card-body p-4 text-center">
-								<div class="achievement-badge mx-auto mb-3" :class="a.unlocked ? '' : 'locked'" :style="a.unlocked ? { background: a.color } : {}">
-									<i :class="a.icon" style="font-size: 28px;"></i>
+					<div class="col-12" v-if="baoCaoChienDich.length === 0">
+						<div class="card border-0 shadow-sm">
+							<div class="card-body text-center py-5 text-muted">
+								<i class="fa-regular fa-flag fs-2 d-block mb-2 opacity-50"></i>
+								{{ $t('feedback.noReports') }}
+							</div>
+						</div>
+					</div>
+					<div class="col-12" v-for="report in baoCaoChienDich" :key="report.id">
+						<div class="card border-0 shadow-sm">
+							<div class="card-body p-4">
+								<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+									<div>
+										<div class="fw-bold">{{ report.tieu_de }}</div>
+										<div class="small text-muted">{{ report.ten_chien_dich || $t('common.notAvailable') }} - {{ formatDateTime(report.tao_luc) }}</div>
+									</div>
+									<span class="badge rounded-pill" :class="getReportStatusClass(report.trang_thai)">{{ getReportStatusLabel(report.trang_thai) }}</span>
 								</div>
-								<h6 class="fw-bold mb-1">{{ a.title }}</h6>
-								<p class="text-muted small mb-2">{{ a.description }}</p>
-								<span class="badge rounded-pill px-3 py-2" :class="a.unlocked ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-									<i :class="a.unlocked ? 'fa-solid fa-check-circle' : 'fa-solid fa-lock'" class="me-1"></i>
-									{{ a.unlocked ? $t('feedback.achieved') : $t('feedback.notAchieved') }}
-								</span>
-								<div class="progress mt-3" style="height:4px" v-if="!a.unlocked && a.progress !== undefined">
-									<div class="progress-bar bg-primary" :style="{ width: a.progress + '%' }"></div>
+								<div class="small mb-2"><span class="fw-semibold">{{ $t('feedback.reportCategory') }}:</span> {{ report.phan_loai }}</div>
+								<div class="text-muted mb-3">{{ report.noi_dung }}</div>
+								<div v-if="report.phan_hoi_xu_ly" class="bg-light rounded-3 p-3 small">
+									<div class="fw-semibold mb-1">{{ $t('feedback.reportResponse') }}</div>
+									<div>{{ report.phan_hoi_xu_ly }}</div>
 								</div>
-								<span class="text-muted small d-block mt-1" v-if="!a.unlocked && a.progress !== undefined">{{ a.progressText }}</span>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
+
 		</div>
 
-		<!-- Feedback Modal -->
+		<div
+			v-if="actionMenu.visible"
+			class="action-menu-backdrop"
+			@click="closeActionMenu"
+		></div>
+
+		<div
+			v-if="actionMenu.visible && actionMenu.item"
+			class="action-menu card border-0 shadow"
+			:style="{ top: `${actionMenu.top}px`, left: `${actionMenu.left}px` }"
+			@click.stop
+		>
+			<div class="list-group list-group-flush">
+				<button type="button" class="list-group-item list-group-item-action small py-2 text-start" @click="handleViewDetailFromMenu">
+					<i class="fa-regular fa-eye me-2 text-primary"></i>{{ $t('feedback.actions.viewDetail') }}
+				</button>
+				<button v-if="actionMenu.item.co_the_danh_gia_chien_dich" type="button" class="list-group-item list-group-item-action small py-2 text-start" @click="handleFeedbackFromMenu">
+					<i class="fa-solid fa-comment me-2 text-success"></i>{{ $t('feedback.actions.sendFeedback') }}
+				</button>
+				<button v-if="actionMenu.item.co_the_report" type="button" class="list-group-item list-group-item-action small py-2 text-start text-danger" @click="handleReportFromMenu">
+					<i class="fa-solid fa-flag me-2"></i>{{ $t('feedback.actions.reportCampaign') }}
+				</button>
+			</div>
+		</div>
+
 		<div class="modal fade" :class="{ show: showFeedbackModal }" :style="showFeedbackModal ? 'display: block;' : ''" tabindex="-1">
 			<div class="modal-dialog modal-dialog-centered">
 				<div class="modal-content border-0 shadow">
 					<div class="modal-header border-0 pb-0">
 						<h5 class="modal-title fw-bold"><i class="fa-solid fa-comment text-success me-2"></i>{{ $t('feedback.actions.sendFeedback') }}</h5>
-						<button type="button" class="btn-close" @click="showFeedbackModal = false"></button>
+						<button type="button" class="btn-close" @click="closeFeedbackModal"></button>
 					</div>
 					<div class="modal-body" v-if="feedbackTarget">
 						<div class="bg-light rounded-3 p-3 mb-3">
-							<span class="fw-bold small">{{ feedbackTarget.title }}</span>
-							<span class="text-muted small d-block">{{ feedbackTarget.date }}</span>
+							<span class="fw-bold small">{{ feedbackTarget.chien_dich?.tieu_de }}</span>
+							<span class="text-muted small d-block">{{ formatCampaignDateRange(feedbackTarget.chien_dich) }}</span>
 						</div>
 						<div class="text-center mb-3">
 							<label class="form-label small fw-bold d-block">{{ $t('feedback.rateExperience') }}</label>
 							<div class="d-flex justify-content-center gap-2">
-								<i v-for="i in 5" :key="i" class="star-feedback"
-									:class="i <= feedbackRating ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star text-muted'"
-									@click="feedbackRating = i"></i>
+								<i v-for="i in 5" :key="i" class="star-feedback" :class="i <= feedbackRating ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star text-muted'" @click="feedbackRating = i"></i>
 							</div>
 							<span class="text-muted small mt-1 d-block">{{ getRatingLabel(feedbackRating) }}</span>
 						</div>
@@ -210,149 +235,361 @@
 						<div class="mb-3">
 							<label class="form-label small fw-bold">{{ $t('feedback.whatToImproveTitle') }}</label>
 							<div class="d-flex flex-wrap gap-2">
-								<span v-for="tag in feedbackTags" :key="tag"
-									class="badge rounded-pill px-3 py-2 skill-tag"
-									:class="selectedFeedbackTags.includes(tag) ? 'bg-primary text-white' : 'bg-light text-dark border'"
-									style="font-size: 12px; cursor: pointer;"
-									@click="toggleFeedbackTag(tag)">{{ tag }}</span>
+								<span v-for="tag in feedbackTags" :key="tag.id" class="badge rounded-pill px-3 py-2 skill-tag" :class="selectedFeedbackTags.includes(tag.id) ? 'bg-primary text-white' : 'bg-light text-dark border'" style="font-size: 12px; cursor: pointer;" @click="toggleFeedbackTag(tag.id)">{{ tag.ten }}</span>
 							</div>
 						</div>
 					</div>
 					<div class="modal-footer border-0 pt-0">
-						<button type="button" class="btn btn-light rounded-pill px-4" @click="showFeedbackModal = false">{{ $t('common.cancel') }}</button>
-						<button type="button" class="btn btn-primary rounded-pill px-4" @click="submitFeedback" :disabled="!feedbackRating">
-							<i class="fa-solid fa-paper-plane me-1"></i>{{ $t('feedback.actions.submit') }}
+						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeFeedbackModal">{{ $t('common.cancel') }}</button>
+						<button type="button" class="btn btn-primary rounded-pill px-4" @click="submitFeedback" :disabled="submittingFeedback || !feedbackRating">
+							<i class="fa-solid fa-paper-plane me-1"></i>{{ submittingFeedback ? $t('common.processing') : $t('feedback.actions.submit') }}
 						</button>
 					</div>
 				</div>
 			</div>
 		</div>
-		<div class="modal-backdrop fade show" v-if="showFeedbackModal" @click="showFeedbackModal = false"></div>
+		<div class="modal-backdrop fade show" v-if="showFeedbackModal" @click="closeFeedbackModal"></div>
+
+		<div class="modal fade" :class="{ show: showReportModal }" :style="showReportModal ? 'display: block;' : ''" tabindex="-1">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content border-0 shadow">
+					<div class="modal-header border-0 pb-0">
+						<h5 class="modal-title fw-bold"><i class="fa-solid fa-flag text-danger me-2"></i>{{ $t('feedback.actions.reportCampaign') }}</h5>
+						<button type="button" class="btn-close" @click="closeReportModal"></button>
+					</div>
+					<div class="modal-body" v-if="reportTarget">
+						<div class="bg-light rounded-3 p-3 mb-3">
+							<span class="fw-bold small">{{ reportTarget.chien_dich?.tieu_de }}</span>
+							<span class="text-muted small d-block">{{ reportTarget.chien_dich?.dia_diem }}</span>
+						</div>
+						<div class="mb-3">
+							<label class="form-label small fw-bold">{{ $t('feedback.reportCategory') }}</label>
+							<input type="text" class="form-control" v-model.trim="reportCategory" :placeholder="$t('feedback.reportCategoryPlaceholder')" />
+						</div>
+						<div class="mb-3">
+							<label class="form-label small fw-bold">{{ $t('feedback.reportTitle') }}</label>
+							<input type="text" class="form-control" v-model.trim="reportTitle" :placeholder="$t('feedback.reportTitlePlaceholder')" />
+						</div>
+						<div class="mb-0">
+							<label class="form-label small fw-bold">{{ $t('feedback.reportContent') }}</label>
+							<textarea class="form-control" rows="4" v-model.trim="reportContent" :placeholder="$t('feedback.reportContentPlaceholder')"></textarea>
+						</div>
+					</div>
+					<div class="modal-footer border-0 pt-0">
+						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeReportModal">{{ $t('common.cancel') }}</button>
+						<button type="button" class="btn btn-danger rounded-pill px-4" @click="submitReport" :disabled="submittingReport">
+							<i class="fa-solid fa-paper-plane me-1"></i>{{ submittingReport ? $t('common.processing') : $t('feedback.actions.submit') }}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal-backdrop fade show" v-if="showReportModal" @click="closeReportModal"></div>
 	</div>
 </template>
 
 <script>
-import PageHeader from '../../components/PageHeader.vue'
-import StatCards from '../../components/StatCards.vue'
+import api from '@/services/api.js';
+import PageHeader from '../../components/PageHeader.vue';
+import StatCards from '../../components/StatCards.vue';
 
 export default {
 	name: 'TheoDoiPhanHoi',
 	components: { PageHeader, StatCards },
+	inject: ['toast'],
 	data() {
 		return {
+			loading: false,
 			activeTab: 'history',
 			historySearch: '',
 			historyFilter: '',
+			thongKe: {
+				so_chien_dich_hoan_thanh: 0,
+				so_chien_dich_dang_tham_gia: 0,
+				diem_danh_gia_trung_binh: 0,
+				tong_luot_danh_gia: 0,
+				tong_bao_cao: 0,
+				bao_cao_dang_xu_ly: 0,
+			},
+			lichSuHoatDong: [],
+			diemDanhGia: [],
+			baoCaoChienDich: [],
+			feedbackTags: [],
+
 			showFeedbackModal: false,
 			feedbackTarget: null,
 			feedbackRating: 0,
 			feedbackText: '',
 			selectedFeedbackTags: [],
-			activities: [
-				{ id: 1, title: 'Trồng cây xanh TP.HCM', org: 'VMS-AI', location: 'TP.HCM', date: '15/03/2026 — 20/03/2026', status: 'completed', rating: 5, feedback: true, icon: 'fa-solid fa-tree', color: '#198754' },
-				{ id: 2, title: 'Dạy học miễn phí Sa Pa', org: 'Tình nguyện Vùng Cao', location: 'Lào Cai', date: '01/02/2026 — 15/02/2026', status: 'completed', rating: 4, feedback: true, icon: 'fa-solid fa-book-open', color: '#0d6efd' },
-				{ id: 3, title: 'Khám bệnh cộng đồng', org: 'Quỹ Bảo Trợ', location: 'Quảng Nam', date: '25/03/2026 — 27/03/2026', status: 'attending', rating: null, feedback: false, icon: 'fa-solid fa-hand-holding-medical', color: '#dc3545' },
-				{ id: 4, title: 'Mùa hè xanh 2026', org: 'Đoàn Thanh niên', location: 'Bến Tre', date: '01/06/2026 — 30/06/2026', status: 'registered', rating: null, feedback: false, icon: 'fa-solid fa-sun', color: '#fd7e14' },
-				{ id: 5, title: 'Hỗ trợ sau bão Yagi', org: 'Hội Chữ thập đỏ', location: 'Quảng Ngãi', date: '01/10/2025 — 15/10/2025', status: 'completed', rating: 5, feedback: false, icon: 'fa-solid fa-house-flood-water', color: '#6c757d' },
-				{ id: 6, title: 'Nấu ăn cho người vô gia cư', org: 'VMS-AI', location: 'TP.HCM', date: '10/01/2026', status: 'completed', rating: 4, feedback: true, icon: 'fa-solid fa-utensils', color: '#e83e8c' },
-				{ id: 7, title: 'Tập huấn CNTT cho giáo viên', org: 'Microsoft Vietnam', location: 'Đắk Lắk', date: '05/04/2026 — 12/04/2026', status: 'cancelled', rating: null, feedback: false, icon: 'fa-solid fa-laptop-code', color: '#adb5bd' }
-			],
-			achievements: [
-				{ id: 1, title: 'Người bạn mới', description: 'Tham gia chiến dịch đầu tiên', icon: 'fa-solid fa-seedling', color: '#198754', unlocked: true },
-				{ id: 2, title: 'Tình nguyện viên tích cực', description: 'Tham gia 5 chiến dịch', icon: 'fa-solid fa-fire', color: '#fd7e14', unlocked: true },
-				{ id: 3, title: 'Ngôi sao cộng đồng', description: 'Đạt đánh giá trung bình 4.5+', icon: 'fa-solid fa-star', color: '#ffc107', unlocked: true },
-				{ id: 4, title: 'Bền bỉ', description: 'Tham gia liên tục 3 tháng', icon: 'fa-solid fa-shield-halved', color: '#0d6efd', unlocked: true },
-				{ id: 5, title: 'Nhà lãnh đạo', description: 'Tham gia 10 chiến dịch', icon: 'fa-solid fa-crown', color: '#6f42c1', unlocked: false, progress: 60, progressText: '6/10 chiến dịch' },
-				{ id: 6, title: 'Đa năng', description: 'Tham gia 3 lĩnh vực khác nhau', icon: 'fa-solid fa-puzzle-piece', color: '#20c997', unlocked: false, progress: 66, progressText: '2/3 lĩnh vực' },
-				{ id: 7, title: 'Người truyền cảm hứng', description: 'Gửi 10 phản hồi tích cực', icon: 'fa-solid fa-heart', color: '#dc3545', unlocked: false, progress: 30, progressText: '3/10 phản hồi' },
-				{ id: 8, title: 'Chuyên gia', description: 'Đạt 5 sao ở 5 chiến dịch', icon: 'fa-solid fa-gem', color: '#0dcaf0', unlocked: false, progress: 40, progressText: '2/5 chiến dịch 5 sao' }
-			]
-		}
+			submittingFeedback: false,
+
+			showReportModal: false,
+			reportTarget: null,
+			reportCategory: '',
+			reportTitle: '',
+			reportContent: '',
+			submittingReport: false,
+			actionMenu: {
+				visible: false,
+				item: null,
+				top: 0,
+				left: 0,
+			},
+		};
 	},
 	computed: {
 		tabs() {
 			return [
-				{ label: this.$t('feedback.tabs.history'), value: 'history', icon: 'fa-solid fa-clock-rotate-left' },
-				{ label: this.$t('feedback.tabs.scores'), value: 'scores', icon: 'fa-solid fa-star' },
-				{ label: this.$t('feedback.tabs.achievements'), value: 'achievements', icon: 'fa-solid fa-trophy' }
-			];
-		},
-		feedbackTags() {
-			return [
-				this.$t('feedback.tags.organize'),
-				this.$t('feedback.tags.logistics'),
-				this.$t('feedback.tags.communication'),
-				this.$t('feedback.tags.safety'),
-				this.$t('feedback.tags.time'),
-				this.$t('feedback.tags.other')
+				{ label: this.$t('feedback.tabs.history'), value: 'history', icon: 'fa-solid fa-clock-rotate-left', count: this.lichSuHoatDong.length },
+				{ label: this.$t('feedback.tabs.scores'), value: 'scores', icon: 'fa-solid fa-star', count: this.diemDanhGia.length },
+				{ label: this.$t('feedback.tabs.reports'), value: 'reports', icon: 'fa-solid fa-flag', count: this.baoCaoChienDich.length },
 			];
 		},
 		statCards() {
 			return [
-				{ label: this.$t('feedback.stats.joined'), value: this.activities.filter(a => a.status === 'completed').length, icon: 'fa-solid fa-circle-check', color: 'success' },
-				{ label: this.$t('feedback.stats.attending'), value: this.activities.filter(a => a.status === 'attending').length, icon: 'fa-solid fa-play', color: 'primary' },
-				{ label: this.$t('feedback.stats.avgRating'), value: this.avgRating, icon: 'fa-solid fa-star', color: 'warning' },
-				{ label: this.$t('feedback.stats.achievements'), value: this.achievements.filter(a => a.unlocked).length + '/' + this.achievements.length, icon: 'fa-solid fa-trophy', color: 'info' }
+				{ label: this.$t('feedback.stats.joined'), value: this.thongKe.so_chien_dich_hoan_thanh, icon: 'fa-solid fa-circle-check', color: 'success' },
+				{ label: this.$t('feedback.stats.attending'), value: this.thongKe.so_chien_dich_dang_tham_gia, icon: 'fa-solid fa-play', color: 'primary' },
+				{ label: this.$t('feedback.stats.avgRating'), value: this.avgRatingText, icon: 'fa-solid fa-star', color: 'warning' },
+				{ label: this.$t('feedback.stats.reports'), value: `${this.thongKe.bao_cao_dang_xu_ly}/${this.thongKe.tong_bao_cao}`, icon: 'fa-solid fa-flag', color: 'danger' },
 			];
 		},
+		avgRatingText() {
+			const value = Number(this.thongKe.diem_danh_gia_trung_binh || 0);
+			return value.toFixed(1);
+		},
+		registrationStatusOptions() {
+			return [
+				'da_dang_ky',
+				'da_xac_nhan',
+				'dang_tham_gia',
+				'hoan_thanh',
+				'da_huy',
+				'tu_choi',
+			].map((value) => ({ value, label: this.getHistoryStatusLabel(value) }));
+		},
 		filteredHistory() {
-			let list = this.activities;
+			let list = this.lichSuHoatDong;
 			if (this.historySearch) {
 				const q = this.historySearch.toLowerCase();
-				list = list.filter(h => h.title.toLowerCase().includes(q));
+				list = list.filter((h) => (h.chien_dich?.tieu_de || '').toLowerCase().includes(q));
 			}
-			if (this.historyFilter) list = list.filter(h => h.status === this.historyFilter);
+			if (this.historyFilter) {
+				list = list.filter((h) => h.trang_thai_dang_ky === this.historyFilter);
+			}
 			return list;
 		},
-		ratedActivities() {
-			return this.activities.filter(a => a.rating);
-		},
-		avgRating() {
-			const rated = this.ratedActivities;
-			if (rated.length === 0) return '0.0';
-			return (rated.reduce((s, a) => s + a.rating, 0) / rated.length).toFixed(1);
-		}
+	},
+	async mounted() {
+		await this.loadData();
 	},
 	methods: {
-		getHistoryStatusLabel(s) {
-			return this.$t('feedback.statuses.' + s) || s;
+		async loadData() {
+			this.loading = true;
+			try {
+				const res = await api.get('/tinh-nguyen-vien/theo-doi-phan-hoi');
+				const data = res?.data?.data || {};
+				this.thongKe = data.thong_ke || this.thongKe;
+				this.lichSuHoatDong = Array.isArray(data.lich_su_hoat_dong) ? data.lich_su_hoat_dong : [];
+				this.diemDanhGia = Array.isArray(data.diem_danh_gia) ? data.diem_danh_gia : [];
+				this.baoCaoChienDich = Array.isArray(data.bao_cao_chien_dich) ? data.bao_cao_chien_dich : [];
+				this.feedbackTags = Array.isArray(data.the_phan_hoi) ? data.the_phan_hoi : [];
+			} catch (error) {
+				this.showToast('error', this.$t('common.error'), error.response?.data?.message || this.$t('feedback.loadError'));
+			} finally {
+				this.loading = false;
+			}
 		},
-		getHistoryStatusClass(s) {
-			return { completed: 'bg-success-subtle text-success', attending: 'bg-primary-subtle text-primary', registered: 'bg-info-subtle text-info', cancelled: 'bg-secondary-subtle text-secondary' }[s];
+		getHistoryStatusLabel(status) {
+			return this.$t(`campaignRegistration.statuses.${status}`);
 		},
-		getHistoryStatusIcon(s) {
-			return { completed: 'fa-solid fa-circle-check', attending: 'fa-solid fa-play', registered: 'fa-solid fa-clipboard-check', cancelled: 'fa-solid fa-ban' }[s];
+		getHistoryStatusClass(status) {
+			return {
+				da_dang_ky: 'bg-info-subtle text-info',
+				da_xac_nhan: 'bg-primary-subtle text-primary',
+				dang_tham_gia: 'bg-warning-subtle text-warning',
+				hoan_thanh: 'bg-success-subtle text-success',
+				da_huy: 'bg-secondary-subtle text-secondary',
+				tu_choi: 'bg-danger-subtle text-danger',
+			}[status] || 'bg-light text-muted';
 		},
-		getRatingLabel(r) {
-			if (!r) return '';
-			return this.$t(`feedback.ratingLabels.${r}`);
+		getHistoryStatusIcon(status) {
+			return {
+				da_dang_ky: 'fa-solid fa-clipboard-check',
+				da_xac_nhan: 'fa-solid fa-circle-check',
+				dang_tham_gia: 'fa-solid fa-person-running',
+				hoan_thanh: 'fa-solid fa-check-double',
+				da_huy: 'fa-solid fa-ban',
+				tu_choi: 'fa-solid fa-xmark',
+			}[status] || 'fa-solid fa-circle';
 		},
-		viewCampaign(h) {
-			this.$router.push('/chi-tiet-chien-dich/' + h.id);
+		getReportStatusLabel(status) {
+			return this.$t(`feedback.reportStatuses.${status}`);
 		},
-		cancelRegistration(h) {
-			h.status = 'cancelled';
+		getReportStatusClass(status) {
+			return {
+				moi: 'bg-warning-subtle text-warning',
+				dang_xu_ly: 'bg-info-subtle text-info',
+				da_xu_ly: 'bg-success-subtle text-success',
+				tu_choi: 'bg-danger-subtle text-danger',
+			}[status] || 'bg-light text-muted';
 		},
-		openFeedback(h) {
-			this.feedbackTarget = h;
+		formatDate(input) {
+			if (!input) return this.$t('common.notAvailable');
+			const d = new Date(input);
+			if (Number.isNaN(d.getTime())) return input;
+			return d.toLocaleDateString('vi-VN');
+		},
+		formatDateTime(input) {
+			if (!input) return this.$t('common.notAvailable');
+			const d = new Date(input.replace(' ', 'T'));
+			if (Number.isNaN(d.getTime())) return input;
+			return d.toLocaleString('vi-VN');
+		},
+		formatCampaignDateRange(chienDich) {
+			if (!chienDich) return this.$t('common.notAvailable');
+			const from = this.formatDate(chienDich.ngay_bat_dau);
+			const to = this.formatDate(chienDich.ngay_ket_thuc);
+			if (from === to) return from;
+			return `${from} - ${to}`;
+		},
+		getCampaignColor(campaignId) {
+			const palette = ['#198754', '#0d6efd', '#fd7e14', '#dc3545', '#6f42c1', '#20c997'];
+			return palette[(campaignId || 0) % palette.length];
+		},
+		getRatingLabel(value) {
+			if (!value) return '';
+			return this.$t(`feedback.ratingLabels.${value}`);
+		},
+		viewCampaign(item) {
+			if (!item?.chien_dich_id) return;
+			this.$router.push(`/chi-tiet-chien-dich/${item.chien_dich_id}`);
+		},
+		toggleActionMenu(event, item) {
+			if (!item) return;
+			if (this.actionMenu.visible && this.actionMenu.item?.id === item.id) {
+				this.closeActionMenu();
+				return;
+			}
+			const rect = event.currentTarget.getBoundingClientRect();
+			const menuWidth = 240;
+			const menuHeight = 180;
+			const margin = 8;
+			let left = rect.right - menuWidth;
+			let top = rect.bottom + margin;
+			if (left < margin) left = margin;
+			if (top + menuHeight > window.innerHeight - margin) {
+				top = Math.max(margin, rect.top - menuHeight - margin);
+			}
+			this.actionMenu = {
+				visible: true,
+				item,
+				top,
+				left,
+			};
+		},
+		closeActionMenu() {
+			this.actionMenu.visible = false;
+			this.actionMenu.item = null;
+		},
+		handleViewDetailFromMenu() {
+			this.viewCampaign(this.actionMenu.item);
+			this.closeActionMenu();
+		},
+		handleFeedbackFromMenu() {
+			this.openFeedback(this.actionMenu.item);
+			this.closeActionMenu();
+		},
+		handleReportFromMenu() {
+			this.openReport(this.actionMenu.item);
+			this.closeActionMenu();
+		},
+		openFeedback(item) {
+			this.feedbackTarget = item;
+			this.feedbackRating = Number(item?.phan_hoi_chien_dich?.so_sao || 0);
+			this.feedbackText = item?.phan_hoi_chien_dich?.nhan_xet || '';
+			this.selectedFeedbackTags = Array.isArray(item?.phan_hoi_chien_dich?.the_ids)
+				? [...item.phan_hoi_chien_dich.the_ids]
+				: [];
+			this.showFeedbackModal = true;
+		},
+		closeFeedbackModal() {
+			this.showFeedbackModal = false;
+			this.feedbackTarget = null;
 			this.feedbackRating = 0;
 			this.feedbackText = '';
 			this.selectedFeedbackTags = [];
-			this.showFeedbackModal = true;
 		},
-		toggleFeedbackTag(tag) {
-			const idx = this.selectedFeedbackTags.indexOf(tag);
+		toggleFeedbackTag(tagId) {
+			const idx = this.selectedFeedbackTags.indexOf(tagId);
 			if (idx > -1) this.selectedFeedbackTags.splice(idx, 1);
-			else this.selectedFeedbackTags.push(tag);
+			else this.selectedFeedbackTags.push(tagId);
 		},
-		submitFeedback() {
-			if (this.feedbackTarget) {
-				this.feedbackTarget.feedback = true;
+		async submitFeedback() {
+			if (!this.feedbackTarget?.chien_dich_id || !this.feedbackRating) {
+				return;
 			}
-			this.showFeedbackModal = false;
-		}
-	}
-}
+			this.submittingFeedback = true;
+			try {
+				await api.post('/tinh-nguyen-vien/theo-doi-phan-hoi/danh-gia-chien-dich', {
+					chien_dich_id: this.feedbackTarget.chien_dich_id,
+					so_sao: this.feedbackRating,
+					nhan_xet: this.feedbackText,
+					the_ids: this.selectedFeedbackTags,
+				});
+				this.showToast('success', this.$t('common.success'), this.$t('feedback.submitSuccess'));
+				this.closeFeedbackModal();
+				await this.loadData();
+			} catch (error) {
+				this.showToast('error', this.$t('common.error'), error.response?.data?.message || this.$t('feedback.submitError'));
+			} finally {
+				this.submittingFeedback = false;
+			}
+		},
+		openReport(item) {
+			this.reportTarget = item;
+			this.reportCategory = '';
+			this.reportTitle = '';
+			this.reportContent = '';
+			this.showReportModal = true;
+		},
+		closeReportModal() {
+			this.showReportModal = false;
+			this.reportTarget = null;
+			this.reportCategory = '';
+			this.reportTitle = '';
+			this.reportContent = '';
+		},
+		async submitReport() {
+			if (!this.reportTarget?.chien_dich_id || !this.reportCategory || !this.reportTitle || !this.reportContent) {
+				this.showToast('warning', this.$t('common.warning'), this.$t('feedback.reportRequiredFields'));
+				return;
+			}
+
+			this.submittingReport = true;
+			try {
+				await api.post('/tinh-nguyen-vien/theo-doi-phan-hoi/bao-cao', {
+					chien_dich_id: this.reportTarget.chien_dich_id,
+					phan_loai: this.reportCategory,
+					tieu_de: this.reportTitle,
+					noi_dung: this.reportContent,
+				});
+				this.showToast('success', this.$t('common.success'), this.$t('feedback.reportSuccess'));
+				this.closeReportModal();
+				this.activeTab = 'reports';
+				await this.loadData();
+			} catch (error) {
+				this.showToast('error', this.$t('common.error'), error.response?.data?.message || this.$t('feedback.reportError'));
+			} finally {
+				this.submittingReport = false;
+			}
+		},
+		showToast(type, title, message) {
+			if (this.toast && typeof this.toast.showToast === 'function') {
+				this.toast.showToast(type, title, message);
+			}
+		},
+	},
+};
 </script>
 
 <style scoped>
@@ -365,9 +602,19 @@ export default {
 }
 
 .activity-row { transition: background 0.15s; }
-.activity-row:hover { background-color: rgba(13,110,253,0.03) !important; }
+.activity-row:hover { background-color: rgba(13, 110, 253, 0.03) !important; }
+.action-menu {
+	position: fixed;
+	z-index: 2000;
+	width: 240px;
+}
+.action-menu-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 1999;
+	background: transparent;
+}
 
-/* Rating */
 .rating-circle {
 	width: 100px;
 	height: 100px;
@@ -388,30 +635,6 @@ export default {
 .rating-row:hover { background: #f8f9fa; }
 .rating-row:last-child { border-bottom: none !important; }
 
-/* Achievement */
-.achievement-card {
-	border-radius: 16px !important;
-	transition: transform 0.2s ease;
-}
-.achievement-card:hover { transform: translateY(-3px); }
-.achievement-card.unlocked { border-left: 4px solid #198754 !important; }
-
-.achievement-badge {
-	width: 64px;
-	height: 64px;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: white;
-}
-
-.achievement-badge.locked {
-	background: #e9ecef;
-	color: #adb5bd;
-}
-
-/* Feedback Stars */
 .star-feedback {
 	font-size: 28px;
 	cursor: pointer;
@@ -419,13 +642,19 @@ export default {
 }
 .star-feedback:hover { transform: scale(1.2); }
 
-/* Tags */
 .skill-tag { transition: all 0.15s ease; user-select: none; }
 .skill-tag:hover { opacity: 0.85; }
 
-/* Tabs */
-.nav-tabs-custom .nav-link { border: none; border-bottom: 3px solid transparent; border-radius: 0; font-size: 13px; }
-.nav-tabs-custom .nav-link.active { border-bottom-color: #0d6efd; background: transparent; }
+.nav-tabs-custom .nav-link {
+	border: none;
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	font-size: 13px;
+}
+.nav-tabs-custom .nav-link.active {
+	border-bottom-color: #0d6efd;
+	background: transparent;
+}
 .nav-tabs-custom .nav-link:hover:not(.active) { border-bottom-color: #dee2e6; }
 
 @media (max-width: 575.98px) {

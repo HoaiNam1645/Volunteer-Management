@@ -31,10 +31,10 @@
 		</div>
 
 		<ul class="nav nav-tabs admin-tabs mb-4">
-			<li class="nav-item" v-for="tab in tabs" :key="tab.value">
+			<li class="nav-item" v-for="tab in filterMeta.tabs" :key="tab.value">
 				<a class="nav-link" :class="{ active: activeTab === tab.value }" href="#" @click.prevent="activeTab = tab.value">
-					<i :class="tab.icon" class="me-1"></i>{{ tab.label }}
-					<span class="badge ms-1" :class="tab.badgeClass">{{ tab.count }}</span>
+					<i :class="getTabIcon(tab.value)" class="me-1"></i>{{ getTabLabel(tab.value) }}
+					<span class="badge ms-1" :class="getTabBadgeClass(tab.value)">{{ tab.count }}</span>
 				</a>
 			</li>
 		</ul>
@@ -51,16 +51,13 @@
 					<div class="col-md-3">
 						<select class="form-select" v-model="filterCategory">
 							<option value="">{{ $t('admin.campaignManagement.filter.allCategories') }}</option>
-							<option v-for="item in campaignTypes" :key="item.id" :value="String(item.id)">{{ item.ten }}</option>
+							<option v-for="item in filterMeta.categories" :key="item.value" :value="item.value">{{ item.label }}</option>
 						</select>
 					</div>
 					<div class="col-md-3">
 						<select class="form-select" v-model="filterPriority">
 							<option value="">{{ $t('admin.campaignManagement.filter.allPriorities') }}</option>
-							<option value="urgent">{{ $t('admin.campaignManagement.priorities.urgent') }}</option>
-							<option value="high">{{ $t('admin.campaignManagement.priorities.high') }}</option>
-							<option value="medium">{{ $t('admin.campaignManagement.priorities.medium') }}</option>
-							<option value="low">{{ $t('admin.campaignManagement.priorities.low') }}</option>
+							<option v-for="priority in filterMeta.priorities" :key="priority.value" :value="priority.value">{{ getPriorityLabel(priority.value) }}</option>
 						</select>
 					</div>
 					<div class="col-md-2 text-end">
@@ -159,12 +156,6 @@
 										</button>
 										<button v-if="c.rawStatus === 'yeu_cau_huy'" class="btn btn-sm btn-outline-secondary" :title="$t('admin.campaignManagement.actions.rejectCancel')" @click="openRejectModal(c, 'cancel_request')">
 											<i class="fa-solid fa-rotate-left"></i>
-										</button>
-										<button v-if="c.rawStatus === 'da_duyet'" class="btn btn-sm btn-outline-warning" :title="$t('admin.campaignManagement.actions.start')" @click="confirmStatusChange(c, 'dang_dien_ra')">
-											<i class="fa-solid fa-play"></i>
-										</button>
-										<button v-if="c.rawStatus === 'dang_dien_ra'" class="btn btn-sm btn-outline-success" :title="$t('admin.campaignManagement.actions.complete')" @click="confirmStatusChange(c, 'hoan_thanh')">
-											<i class="fa-solid fa-flag-checkered"></i>
 										</button>
 									</div>
 								</td>
@@ -454,8 +445,15 @@ export default {
 			searchQuery: '',
 			filterCategory: '',
 			filterPriority: '',
-			campaignTypes: [],
+			filterMeta: {
+				tabs: [],
+				categories: [],
+				priorities: [],
+			},
 			campaigns: [],
+			searchDebounceTimer: null,
+			suspendFilterReload: false,
+			suspendRouteWatcher: false,
 			stats: {
 				tong: 0,
 				cho_duyet: 0,
@@ -483,61 +481,108 @@ export default {
 		};
 	},
 	computed: {
-		tabs() {
-			return [
-				{ value: 'pending', label: this.$t('admin.campaignManagement.tabs.pending'), icon: 'fa-solid fa-hourglass-half', count: this.pendingCampaigns.length, badgeClass: 'bg-warning text-dark' },
-				{ value: 'pending_cancel', label: this.$t('admin.campaignManagement.tabs.pendingCancel'), icon: 'fa-solid fa-ban', count: this.pendingCancelCampaigns.length, badgeClass: 'bg-danger' },
-				{ value: 'all', label: this.$t('admin.campaignManagement.tabs.all'), icon: 'fa-solid fa-list', count: this.allCampaigns.length, badgeClass: 'bg-primary' },
-				{ value: 'active', label: this.$t('admin.campaignManagement.tabs.active'), icon: 'fa-solid fa-circle-play', count: this.activeCampaigns.length, badgeClass: 'bg-success' },
-				{ value: 'completed', label: this.$t('admin.campaignManagement.tabs.completed'), icon: 'fa-solid fa-circle-check', count: this.completedCampaigns.length, badgeClass: 'bg-secondary' },
-			];
-		},
-		allCampaigns() { return this.campaigns; },
-		pendingCampaigns() { return this.campaigns.filter(c => c.status === 'pending'); },
-		pendingCancelCampaigns() { return this.campaigns.filter(c => c.status === 'pending_cancel'); },
-		activeCampaigns() { return this.campaigns.filter(c => c.status === 'approved' || c.status === 'active'); },
-		completedCampaigns() { return this.campaigns.filter(c => c.status === 'completed'); },
 		statsCards() {
 			return [
-				{ label: this.$t('admin.campaignManagement.stats.total'), value: this.stats.tong || this.campaigns.length, icon: 'fa-solid fa-flag', bgClass: 'bg-primary bg-opacity-10 text-primary' },
-				{ label: this.$t('admin.campaignManagement.stats.pending'), value: this.stats.cho_duyet || this.pendingCampaigns.length, icon: 'fa-solid fa-hourglass-half', bgClass: 'bg-warning bg-opacity-10 text-warning' },
-				{ label: this.$t('admin.campaignManagement.stats.pendingCancel'), value: this.stats.yeu_cau_huy || this.pendingCancelCampaigns.length, icon: 'fa-solid fa-ban', bgClass: 'bg-danger bg-opacity-10 text-danger' },
-				{ label: this.$t('admin.campaignManagement.stats.active'), value: this.stats.dang_dien_ra || this.activeCampaigns.length, icon: 'fa-solid fa-circle-play', bgClass: 'bg-success bg-opacity-10 text-success' },
+				{ label: this.$t('admin.campaignManagement.stats.total'), value: this.stats.tong || 0, icon: 'fa-solid fa-flag', bgClass: 'bg-primary bg-opacity-10 text-primary' },
+				{ label: this.$t('admin.campaignManagement.stats.pending'), value: this.stats.cho_duyet || 0, icon: 'fa-solid fa-hourglass-half', bgClass: 'bg-warning bg-opacity-10 text-warning' },
+				{ label: this.$t('admin.campaignManagement.stats.pendingCancel'), value: this.stats.yeu_cau_huy || 0, icon: 'fa-solid fa-ban', bgClass: 'bg-danger bg-opacity-10 text-danger' },
+				{ label: this.$t('admin.campaignManagement.stats.active'), value: this.stats.dang_dien_ra || 0, icon: 'fa-solid fa-circle-play', bgClass: 'bg-success bg-opacity-10 text-success' },
 			];
 		},
 		filteredCampaigns() {
-			let list = [];
-			if (this.activeTab === 'pending') list = this.pendingCampaigns;
-			else if (this.activeTab === 'pending_cancel') list = this.pendingCancelCampaigns;
-			else if (this.activeTab === 'active') list = this.activeCampaigns;
-			else if (this.activeTab === 'completed') list = this.completedCampaigns;
-			else list = this.allCampaigns;
-
-			if (this.searchQuery.trim()) {
-				const q = this.searchQuery.trim().toLowerCase();
-				list = list.filter(c =>
-					c.title.toLowerCase().includes(q) ||
-					c.location.toLowerCase().includes(q) ||
-					c.creator.toLowerCase().includes(q) ||
-					c.creatorEmail.toLowerCase().includes(q)
-				);
-			}
-			if (this.filterCategory) list = list.filter(c => String(c.categoryId) === String(this.filterCategory));
-			if (this.filterPriority) list = list.filter(c => c.priority === this.filterPriority);
-			return list;
+			return this.campaigns;
 		},
 	},
 	async mounted() {
 		this.ensureLeaflet();
-		await Promise.all([this.loadCampaignTypes(), this.loadCampaigns()]);
+		this.syncFiltersFromRoute();
+		await Promise.all([this.loadFilterMeta(), this.loadCampaigns()]);
 	},
 	beforeUnmount() {
+		if (this.searchDebounceTimer) {
+			clearTimeout(this.searchDebounceTimer);
+		}
 		if (this.adminMap) {
 			this.adminMap.remove();
 			this.adminMap = null;
 		}
 	},
+	watch: {
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.suspendRouteWatcher) return;
+				this.syncFiltersFromRoute();
+				this.loadCampaigns();
+			},
+		},
+		activeTab() {
+			if (this.suspendFilterReload) return;
+			this.loadCampaigns();
+		},
+		filterCategory() {
+			if (this.suspendFilterReload) return;
+			this.loadCampaigns();
+		},
+		filterPriority() {
+			if (this.suspendFilterReload) return;
+			this.loadCampaigns();
+		},
+		searchQuery() {
+			if (this.suspendFilterReload) return;
+			if (this.searchDebounceTimer) {
+				clearTimeout(this.searchDebounceTimer);
+			}
+			this.searchDebounceTimer = setTimeout(() => {
+				this.loadCampaigns();
+			}, 300);
+		},
+	},
 	methods: {
+		async loadFilterMeta() {
+			try {
+				const res = await api.get('/kiem-duyet/chien-dich/bo-loc');
+				if (res.data?.status === 1) {
+					this.filterMeta = {
+						tabs: res.data.data?.tabs || [],
+						categories: res.data.data?.categories || [],
+						priorities: res.data.data?.priorities || [],
+					};
+				}
+			} catch (error) {
+				this.showError(error.response?.data?.message || 'Không tải được bộ lọc chiến dịch.');
+			}
+		},
+		syncFiltersFromRoute() {
+			const query = this.$route.query || {};
+			this.suspendFilterReload = true;
+			this.activeTab = typeof query.tab === 'string' && query.tab.trim() ? query.tab : 'pending';
+			this.searchQuery = typeof query.search === 'string' ? query.search : '';
+			this.filterCategory = typeof query.category === 'string' ? query.category : '';
+			this.filterPriority = typeof query.priority === 'string' ? query.priority : '';
+			this.$nextTick(() => {
+				this.suspendFilterReload = false;
+			});
+		},
+		buildRouteQuery() {
+			const query = {};
+			if (this.activeTab && this.activeTab !== 'pending') query.tab = this.activeTab;
+			if (this.searchQuery.trim()) query.search = this.searchQuery.trim();
+			if (this.filterCategory) query.category = this.filterCategory;
+			if (this.filterPriority) query.priority = this.filterPriority;
+			return query;
+		},
+		async syncRouteQuery() {
+			const currentQuery = JSON.stringify(this.$route.query || {});
+			const nextQuery = JSON.stringify(this.buildRouteQuery());
+			if (currentQuery === nextQuery) return;
+			this.suspendRouteWatcher = true;
+			try {
+				await this.$router.replace({ path: this.$route.path, query: JSON.parse(nextQuery) });
+			} finally {
+				this.suspendRouteWatcher = false;
+			}
+		},
 		ensureLeaflet() {
 			if (!document.getElementById('leaflet-css')) {
 				const link = document.createElement('link');
@@ -552,16 +597,32 @@ export default {
 				document.head.appendChild(script);
 			}
 		},
-		async loadCampaignTypes() {
-			const res = await api.get('/danh-muc/loai-chien-dich');
-			if (res.data.status === 1) {
-				this.campaignTypes = res.data.data || [];
-			}
-		},
 		async loadCampaigns() {
 			this.isLoading = true;
 			try {
-				const res = await api.get('/kiem-duyet/chien-dich');
+				await this.syncRouteQuery();
+
+				const params = {};
+				if (this.activeTab && this.activeTab !== 'all') {
+					params.trang_thai = {
+						pending: 'cho_duyet',
+						pending_cancel: 'yeu_cau_huy',
+						active: 'dang_dien_ra',
+						completed: 'hoan_thanh',
+					}[this.activeTab] || this.activeTab;
+				}
+				if (this.searchQuery.trim()) params.tu_khoa = this.searchQuery.trim();
+				if (this.filterCategory) params.loai_chien_dich_id = this.filterCategory;
+				if (this.filterPriority) {
+					params.muc_do_uu_tien = {
+						urgent: 'khan_cap',
+						high: 'cao',
+						medium: 'trung_binh',
+						low: 'thap',
+					}[this.filterPriority] || this.filterPriority;
+				}
+
+				const res = await api.get('/kiem-duyet/chien-dich', { params });
 				if (res.data.status === 1) {
 					this.campaigns = (res.data.data || []).map(this.mapCampaignFromApi);
 					this.stats = res.data.thong_ke || this.stats;
@@ -707,24 +768,6 @@ export default {
 			};
 			this.$refs.confirmModal.show();
 		},
-		confirmStatusChange(c, nextStatus) {
-			this.actionTarget = c;
-			this.pendingAction = nextStatus === 'dang_dien_ra' ? 'start' : 'complete';
-			this.confirmConfig = {
-				title: nextStatus === 'dang_dien_ra' ? this.$t('admin.campaignManagement.confirm.startTitle') : this.$t('admin.campaignManagement.confirm.completeTitle'),
-				message: nextStatus === 'dang_dien_ra'
-					? this.$t('admin.campaignManagement.confirm.startMessage', { title: c.title })
-					: this.$t('admin.campaignManagement.confirm.completeMessage', { title: c.title }),
-				detail: nextStatus === 'dang_dien_ra'
-					? this.$t('admin.campaignManagement.confirm.startDetail')
-					: this.$t('admin.campaignManagement.confirm.completeDetail'),
-				icon: nextStatus === 'dang_dien_ra' ? 'fa-solid fa-play-circle' : 'fa-solid fa-flag-checkered',
-				variant: nextStatus === 'dang_dien_ra' ? 'warning' : 'success',
-				confirmText: nextStatus === 'dang_dien_ra' ? this.$t('admin.campaignManagement.confirm.startBtn') : this.$t('admin.campaignManagement.confirm.completeBtn'),
-				confirmIcon: nextStatus === 'dang_dien_ra' ? 'fa-solid fa-play' : 'fa-solid fa-flag-checkered'
-			};
-			this.$refs.confirmModal.show();
-		},
 		async onConfirmAction() {
 			if (!this.actionTarget) return;
 			this.actionLoading = true;
@@ -735,12 +778,6 @@ export default {
 				} else if (this.pendingAction === 'approve_cancel') {
 					await api.put(`/kiem-duyet/chien-dich/${this.actionTarget.id}/yeu-cau-huy/duyet`);
 					this.showSuccess(this.$t('admin.campaignManagement.toast.approveCancelSuccessMessage', { title: this.actionTarget.title }));
-				} else if (this.pendingAction === 'start') {
-					await api.put(`/kiem-duyet/chien-dich/${this.actionTarget.id}/trang-thai`, { trang_thai: 'dang_dien_ra' });
-					this.showSuccess(this.$t('admin.campaignManagement.toast.startSuccessMessage', { title: this.actionTarget.title }));
-				} else if (this.pendingAction === 'complete') {
-					await api.put(`/kiem-duyet/chien-dich/${this.actionTarget.id}/trang-thai`, { trang_thai: 'hoan_thanh' });
-					this.showSuccess(this.$t('admin.campaignManagement.toast.completeSuccessMessage', { title: this.actionTarget.title }));
 				}
 				this.$refs.confirmModal.hide();
 				await this.refreshAfterAction(this.actionTarget.id);
@@ -772,6 +809,27 @@ export default {
 		},
 		getPriorityLabel(priority) {
 			return this.$t(`admin.campaignManagement.priorities.${priority}`);
+		},
+		getTabLabel(tab) {
+			return this.$t(`admin.campaignManagement.tabs.${tab}`);
+		},
+		getTabIcon(tab) {
+			return {
+				pending: 'fa-solid fa-hourglass-half',
+				pending_cancel: 'fa-solid fa-ban',
+				all: 'fa-solid fa-list',
+				active: 'fa-solid fa-circle-play',
+				completed: 'fa-solid fa-circle-check',
+			}[tab] || 'fa-solid fa-list';
+		},
+		getTabBadgeClass(tab) {
+			return {
+				pending: 'bg-warning text-dark',
+				pending_cancel: 'bg-danger',
+				all: 'bg-primary',
+				active: 'bg-success',
+				completed: 'bg-secondary',
+			}[tab] || 'bg-primary';
 		},
 		getPriorityClass(priority) {
 			return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-white', low: 'bg-light text-muted border' }[priority] || 'bg-secondary';
@@ -835,9 +893,15 @@ export default {
 			return Number.isNaN(date.getTime()) ? value : `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
 		},
 		resetFilters() {
+			this.suspendFilterReload = true;
+			this.activeTab = 'pending';
 			this.searchQuery = '';
 			this.filterCategory = '';
 			this.filterPriority = '';
+			this.$nextTick(() => {
+				this.suspendFilterReload = false;
+				this.loadCampaigns();
+			});
 		},
 		showSuccess(message) {
 			this.toast?.showToast('success', this.$t('admin.campaignManagement.toast.successTitle'), message);

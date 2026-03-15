@@ -176,6 +176,10 @@ export default {
         notification3Desc: 'Bạn nhận được đánh giá 5 sao từ kiểm duyệt viên',
         loginBtn: 'Đăng nhập',
         registerBtn: 'Đăng ký',
+        searchSuggestionsTitle: 'Gợi ý chiến dịch',
+        searchingCampaigns: 'Đang tìm chiến dịch...',
+        noCampaignSuggestions: 'Không có chiến dịch phù hợp với từ khóa này.',
+        viewAllSearchResults: 'Xem tất cả kết quả cho "{keyword}"',
     },
 
     // === Footer ===
@@ -490,7 +494,8 @@ export default {
         tabs: {
             history: 'Lịch sử hoạt động',
             scores: 'Điểm đánh giá',
-            achievements: 'Thành tích'
+            achievements: 'Thành tích',
+            reports: 'Báo cáo chiến dịch'
         },
         searchPlaceholder: 'Tìm chiến dịch...',
         allStatuses: 'Tất cả trạng thái',
@@ -505,12 +510,27 @@ export default {
             viewDetail: 'Xem chi tiết',
             sendFeedback: 'Gửi phản hồi',
             cancelRegistration: 'Hủy đăng ký',
-            submit: 'Gửi phản hồi'
+            submit: 'Gửi',
+            reportCampaign: 'Báo cáo chiến dịch'
         },
         noHistory: 'Không tìm thấy hoạt động',
         basedOnReviews: 'Dựa trên {count} đánh giá',
         ratingDetailTitle: 'Chi tiết đánh giá theo chiến dịch',
         noRatings: 'Chưa có đánh giá nào',
+        noReports: 'Bạn chưa gửi báo cáo nào',
+        reportCategory: 'Phân loại báo cáo',
+        reportCategoryPlaceholder: 'Ví dụ: An toàn, tổ chức, địa điểm...',
+        reportTitle: 'Tiêu đề báo cáo',
+        reportTitlePlaceholder: 'Nhập tiêu đề ngắn gọn',
+        reportContent: 'Nội dung báo cáo',
+        reportContentPlaceholder: 'Mô tả chi tiết vấn đề cần báo cáo...',
+        reportResponse: 'Phản hồi xử lý',
+        reportRequiredFields: 'Vui lòng nhập đầy đủ phân loại, tiêu đề và nội dung báo cáo.',
+        reportSuccess: 'Gửi báo cáo chiến dịch thành công.',
+        reportError: 'Không thể gửi báo cáo chiến dịch.',
+        submitSuccess: 'Gửi đánh giá chiến dịch thành công.',
+        submitError: 'Không thể gửi đánh giá chiến dịch.',
+        loadError: 'Không tải được dữ liệu theo dõi và phản hồi.',
         achieved: 'Đã đạt',
         notAchieved: 'Chưa đạt',
         rateExperience: 'Đánh giá trải nghiệm',
@@ -521,7 +541,14 @@ export default {
             joined: 'Chiến dịch đã tham gia',
             attending: 'Đang tham gia',
             avgRating: 'Đánh giá TB',
-            achievements: 'Thành tích'
+            achievements: 'Thành tích',
+            reports: 'Báo cáo đang xử lý'
+        },
+        reportStatuses: {
+            moi: 'Mới',
+            dang_xu_ly: 'Đang xử lý',
+            da_xu_ly: 'Đã xử lý',
+            tu_choi: 'Từ chối'
         },
         statuses: {
             completed: 'Đã hoàn thành',
@@ -1392,6 +1419,10 @@ export default {
         unknownCreator: 'Chưa rõ',
         defaultCategory: 'Chiến dịch',
         loadErrorMessage: 'Không thể tải danh sách chiến dịch.',
+        searchResultBadge: 'Kết quả tìm kiếm',
+        searchResultTitle: 'Chiến dịch cho từ khóa "{keyword}"',
+        searchResultDesc: 'Tìm thấy {count} chiến dịch phù hợp với từ khóa bạn vừa nhập.',
+        clearSearchQuery: 'Xóa tìm kiếm',
     },
 
     campaignRegistration: {
@@ -1449,6 +1480,8 @@ export default {
         viewDetailsMenu: 'Xem chi tiết',
         editMenu: 'Chỉnh sửa',
         cancelCampaignMenu: 'Hủy chiến dịch',
+        startCampaignMenu: 'Bắt đầu chiến dịch',
+        completeCampaignMenu: 'Hoàn thành chiến dịch',
         approveBtn: 'Phê duyệt',
         sendNotifBtn: 'Gửi thông báo',
         showing: 'Hiển thị',
@@ -1507,6 +1540,18 @@ export default {
         cancelCampaignMsg: 'Bạn có chắc muốn hủy chiến dịch này không?',
         confirmCancelBtn: 'Xác nhận hủy',
         keepBtn: 'Không, giữ lại',
+        startCampaignTitle: 'Bắt đầu chiến dịch?',
+        startCampaignMsg: 'Bạn có chắc muốn bắt đầu chiến dịch "{title}" không?',
+        startCampaignDetail: 'Sau khi bắt đầu, chiến dịch sẽ chuyển sang trạng thái đang diễn ra.',
+        startCampaignBtn: 'Bắt đầu chiến dịch',
+        startCampaignWarningTitle: 'Số lượng xác nhận chưa đạt mức tối thiểu',
+        startCampaignWarningMsg: 'Hiện chỉ có {confirmed} tình nguyện viên xác nhận, thấp hơn mức tối thiểu là {minimum}.',
+        startCampaignWarningDetail: 'Có {pending} tình nguyện viên đã đăng ký nhưng chưa xác nhận. Nếu tiếp tục, các đăng ký chưa xác nhận sẽ tự động đóng lại khi chiến dịch bắt đầu.',
+        startCampaignProceedBtn: 'Vẫn bắt đầu chiến dịch',
+        completeCampaignTitle: 'Hoàn thành chiến dịch?',
+        completeCampaignMsg: 'Bạn có chắc muốn đánh dấu chiến dịch "{title}" là đã hoàn thành không?',
+        completeCampaignDetail: 'Sau khi hoàn thành, chiến dịch sẽ không thể quay lại trạng thái đang diễn ra.',
+        completeCampaignBtn: 'Hoàn thành chiến dịch',
         cancelWarningTitle: 'Lưu ý:',
         cancelWarning1: 'Tất cả TNV đã đăng ký sẽ được thông báo',
         cancelWarning2: 'Chiến dịch không thể khôi phục sau khi hủy',
