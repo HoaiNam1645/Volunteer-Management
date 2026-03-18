@@ -98,6 +98,8 @@
 <script>
 import api from '@/services/api.js';
 
+const RESET_EMAIL_KEY = 'reset_password_email';
+
 export default {
 	name: "TrangQuenMatKhau",
 	data() {
@@ -115,6 +117,7 @@ export default {
 			try {
 				const res = await api.post('/xac-thuc/quen-mat-khau', { email: this.email });
 				if (res.data.status === 1) {
+					localStorage.setItem(RESET_EMAIL_KEY, this.email.trim());
 					this.emailSent = true;
 				} else {
 					this.alertMessage = res.data.message;

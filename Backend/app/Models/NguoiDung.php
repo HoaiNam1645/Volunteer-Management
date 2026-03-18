@@ -56,6 +56,25 @@ class NguoiDung extends Authenticatable implements JWTSubject
         ];
     }
 
+    public function getAnhDaiDienAttribute($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        if (preg_match('#^https?://#', $value)) {
+            return $value;
+        }
+
+        $path = str_starts_with($value, '/') ? $value : '/' . ltrim($value, '/');
+        $request = request();
+        $baseUrl = $request
+            ? rtrim($request->getSchemeAndHttpHost(), '/')
+            : rtrim(config('app.url', 'http://127.0.0.1:8000'), '/');
+
+        return $baseUrl . $path;
+    }
+
     // Override password field name cho Auth
     public function getAuthPassword()
     {

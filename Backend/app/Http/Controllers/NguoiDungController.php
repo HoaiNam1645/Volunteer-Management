@@ -6,6 +6,7 @@ use App\Models\NguoiDung;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class NguoiDungController extends Controller
 {
@@ -85,6 +86,7 @@ class NguoiDungController extends Controller
             'gioi_tinh'     => 'nullable|in:nam,nu,khac',
             'so_cccd'       => 'nullable|string|max:20',
             'gioi_thieu'    => 'nullable|string|max:500',
+            'anh_dai_dien'  => 'nullable|image|max:5120',
             'tinh_thanh_id' => 'nullable|integer',
             'phuong_xa_id'  => 'nullable|integer',
             'dia_chi_duong' => 'nullable|string|max:300',
@@ -95,7 +97,7 @@ class NguoiDungController extends Controller
 
         $user = auth('api')->user();
 
-        $user->update($request->only([
+        $payload = $request->only([
             'ho_ten',
             'so_dien_thoai',
             'ngay_sinh',
@@ -108,7 +110,20 @@ class NguoiDungController extends Controller
             'vi_do',
             'kinh_do',
             'tuy_chon_thong_bao',
-        ]));
+        ]);
+
+        if ($request->hasFile('anh_dai_dien')) {
+            if ($user->getRawOriginal('anh_dai_dien')) {
+                $oldPath = preg_replace('#^/?storage/#', '', (string) $user->getRawOriginal('anh_dai_dien'));
+                if ($oldPath) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            $payload['anh_dai_dien'] = '/storage/' . $request->file('anh_dai_dien')->store('avatars', 'public');
+        }
+
+        $user->update($payload);
 
         return response()->json([
             'status'  => 1,
@@ -171,6 +186,7 @@ class NguoiDungController extends Controller
             'data'    => [
                 'ho_ten'            => $user->ho_ten,
                 'email'             => $user->email,
+                'anh_dai_dien'      => $user->anh_dai_dien,
                 'ky_nang_ids'       => $ky_nang_ids,
                 'khu_vuc_ids'       => $khu_vuc_ids,
                 'lich_ranh'         => $lich_ranh,

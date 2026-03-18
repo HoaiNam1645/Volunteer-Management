@@ -346,8 +346,24 @@
 </template>
 
 <script>
-import PageHeader from '../../components/PageHeader.vue'
-import api from '@/services/api.js'
+import PageHeader from '../../components/PageHeader.vue';
+import api from '@/services/api.js';
+
+const createInitialForm = () => ({
+	fullName: '',
+	email: '',
+	phone: '',
+	dob: '',
+	gender: '',
+	idNumber: '',
+	province: '',
+	ward: '',
+	street: '',
+	latitude: null,
+	longitude: null,
+	bio: '',
+	avatarPreview: null,
+});
 
 export default {
 	name: 'ThongTinCaNhan',
@@ -370,25 +386,12 @@ export default {
 			localAlertMessage: '',
 			localAlertSuccess: false,
 			isDataLoading: true,
-			form: {
-				fullName: '',
-				email: '',
-				phone: '',
-				dob: '',
-				gender: '',
-				idNumber: '',
-				province: '',
-				ward: '',
-				street: '',
-				latitude: null,
-				longitude: null,
-				bio: '',
-				avatarPreview: null
-			},
+			form: createInitialForm(),
+			avatarFile: null,
 			passwordForm: {
 				current: '',
 				newPassword: '',
-				confirm: ''
+				confirm: '',
 			},
 			provinces: [],
 			wards: [],
@@ -398,9 +401,9 @@ export default {
 				{ key: 'campaign_remind', title: 'Nhắc nhở chiến dịch', description: 'Nhận nhắc nhở trước khi chiến dịch bắt đầu', enabled: true, icon: 'fa-solid fa-clock', bgColor: '#fef3c7', iconColor: '#d97706' },
 				{ key: 'rating', title: 'Đánh giá mới', description: 'Nhận thông báo khi có đánh giá mới từ kiểm duyệt viên', enabled: true, icon: 'fa-solid fa-star', bgColor: '#fce7f3', iconColor: '#db2777' },
 				{ key: 'email_digest', title: 'Email tổng hợp hàng tuần', description: 'Nhận email tổng hợp hoạt động mỗi tuần', enabled: false, icon: 'fa-solid fa-envelope', bgColor: '#e0e7ff', iconColor: '#4f46e5' },
-				{ key: 'ai_suggest', title: 'Gợi ý AI', description: 'Nhận thông báo khi AI gợi ý chiến dịch phù hợp', enabled: true, icon: 'fa-solid fa-robot', bgColor: '#f3e8ff', iconColor: '#7c3aed' }
-			]
-		}
+				{ key: 'ai_suggest', title: 'Gợi ý AI', description: 'Nhận thông báo khi AI gợi ý chiến dịch phù hợp', enabled: true, icon: 'fa-solid fa-robot', bgColor: '#f3e8ff', iconColor: '#7c3aed' },
+			],
+		};
 	},
 	watch: {
 		'form.ward'(newVal) {
@@ -410,7 +413,7 @@ export default {
 			if (!this.isDataLoading) {
 				this.$nextTick(() => {
 					if (!this.form.ward) {
-						const prov = this.provinces.find(p => p.code === this.form.province);
+						const prov = this.provinces.find((item) => item.code === this.form.province);
 						if (prov) this.updateMapPosition(prov.lat, prov.lng);
 					}
 				});
@@ -421,54 +424,60 @@ export default {
 			if (this.geocodeTimer) clearTimeout(this.geocodeTimer);
 			if (newVal && this.form.street && this.form.province) {
 				this.geocodeTimer = setTimeout(() => {
-					this.geocodeAddress(newVal);
+					this.geocodeAddress();
 				}, 800);
 			}
-		}
+		},
 	},
 	computed: {
 		sidebarTabs() {
 			return [
 				{ label: this.$t('settings.tabs.personal'), value: 'personal', icon: 'fa-solid fa-user' },
 				{ label: this.$t('settings.tabs.password'), value: 'password', icon: 'fa-solid fa-lock' },
-				{ label: this.$t('settings.tabs.notifications'), value: 'notifications', icon: 'fa-solid fa-bell' }
+				{ label: this.$t('settings.tabs.notifications'), value: 'notifications', icon: 'fa-solid fa-bell' },
 			];
 		},
 		filteredWards() {
-			return this.wards; // Data is now filtered by API
+			return this.wards;
 		},
 		fullAddress() {
 			const parts = [];
 			if (this.form.street) parts.push(this.form.street);
-			const ward = this.wards.find(w => w.code === this.form.ward);
+			const ward = this.wards.find((item) => item.code === this.form.ward);
 			if (ward) parts.push(ward.name);
-			const province = this.provinces.find(p => p.code === this.form.province);
+			const province = this.provinces.find((item) => item.code === this.form.province);
 			if (province) parts.push(province.name);
 			return parts.join(', ');
 		},
 		passwordStrength() {
 			const pw = this.passwordForm.newPassword;
 			if (!pw) return { level: 0, label: '', colorClass: '', textClass: '' };
+
 			let score = 0;
 			if (pw.length >= 8) score++;
 			if (/[A-Z]/.test(pw)) score++;
 			if (/[0-9]/.test(pw)) score++;
 			if (/[^A-Za-z0-9]/.test(pw)) score++;
-			const level = score;
-			return { level, label: this.$t(`settings.pwStrength.${score}`), colorClass: score <= 1 ? 'bg-danger' : score === 2 ? 'bg-warning' : score === 3 ? 'bg-info' : 'bg-success', textClass: score <= 1 ? 'text-danger' : score === 2 ? 'text-warning' : score === 3 ? 'text-info' : 'text-success' };
+
+			return {
+				level: score,
+				label: this.$t(`settings.pwStrength.${score}`),
+				colorClass: score <= 1 ? 'bg-danger' : score === 2 ? 'bg-warning' : score === 3 ? 'bg-info' : 'bg-success',
+				textClass: score <= 1 ? 'text-danger' : score === 2 ? 'text-warning' : score === 3 ? 'text-info' : 'text-success',
+			};
 		},
 		canChangePassword() {
-			return this.passwordForm.current &&
-				this.passwordForm.newPassword &&
-				this.passwordForm.newPassword.length >= 8 &&
-				this.passwordForm.confirm === this.passwordForm.newPassword &&
-				this.passwordForm.newPassword !== this.passwordForm.current;
-		}
+			return this.passwordForm.current
+				&& this.passwordForm.newPassword
+				&& this.passwordForm.newPassword.length >= 8
+				&& this.passwordForm.confirm === this.passwordForm.newPassword
+				&& this.passwordForm.newPassword !== this.passwordForm.current;
+		},
 	},
 	async mounted() {
 		await this.loadCatalogs();
 		await this.loadUserData();
-		// Load Leaflet CSS
+
 		if (!document.getElementById('leaflet-css')) {
 			const link = document.createElement('link');
 			link.id = 'leaflet-css';
@@ -476,7 +485,7 @@ export default {
 			link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 			document.head.appendChild(link);
 		}
-		// Load Leaflet JS
+
 		if (!window.L) {
 			const script = document.createElement('script');
 			script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -511,7 +520,9 @@ export default {
 					this.form.street = d.dia_chi_duong || '';
 					this.form.latitude = d.vi_do;
 					this.form.longitude = d.kinh_do;
-					// Map tinh_thanh_id / phuong_xa_id sang province/ward codes nếu có
+					this.form.avatarPreview = d.anh_dai_dien || null;
+					this.avatarFile = null;
+
 					if (d.tinh_thanh_id) {
 						this.form.province = String(d.tinh_thanh_id);
 						await this.loadWards(this.form.province);
@@ -519,11 +530,10 @@ export default {
 					if (d.phuong_xa_id) {
 						this.form.ward = String(d.phuong_xa_id);
 					}
-					// Notification settings
 					if (d.tuy_chon_thong_bao) {
-						this.notificationSettings.forEach(noti => {
+						this.notificationSettings.forEach((noti) => {
 							if (d.tuy_chon_thong_bao[noti.key] !== undefined) {
-								noti.enabled = d.tuy_chon_thong_bao[noti.key];
+								noti.enabled = Boolean(Number(d.tuy_chon_thong_bao[noti.key]) || d.tuy_chon_thong_bao[noti.key] === true);
 							}
 						});
 					}
@@ -533,7 +543,7 @@ export default {
 			} finally {
 				setTimeout(() => {
 					this.isDataLoading = false;
-					if (this.map) {
+					if (this.map && this.form.latitude && this.form.longitude) {
 						this.updateMapPosition(parseFloat(this.form.latitude), parseFloat(this.form.longitude));
 					}
 				}, 300);
@@ -544,16 +554,23 @@ export default {
 			const container = document.getElementById('map-container');
 			if (!container || !window.L) return;
 
-			let lat = 16.0544, lng = 108.2022;
+			let lat = 16.0544;
+			let lng = 108.2022;
+
 			if (this.form.latitude && this.form.longitude) {
 				lat = parseFloat(this.form.latitude);
 				lng = parseFloat(this.form.longitude);
 			} else {
-				const ward = this.wards.find(w => w.code === this.form.ward);
-				if (ward) { lat = ward.lat; lng = ward.lng; }
-				else {
-					const prov = this.provinces.find(p => p.code === this.form.province);
-					if (prov) { lat = prov.lat; lng = prov.lng; }
+				const ward = this.wards.find((item) => item.code === this.form.ward);
+				if (ward) {
+					lat = ward.lat;
+					lng = ward.lng;
+				} else {
+					const prov = this.provinces.find((item) => item.code === this.form.province);
+					if (prov) {
+						lat = prov.lat;
+						lng = prov.lng;
+					}
 				}
 			}
 
@@ -561,23 +578,23 @@ export default {
 				center: [lat, lng],
 				zoom: 15,
 				zoomControl: true,
-				attributionControl: false
+				attributionControl: false,
 			});
 
 			window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-				maxZoom: 19
+				maxZoom: 19,
 			}).addTo(this.map);
 
 			const pinIcon = window.L.divIcon({
 				html: '<div class="custom-pin"><i class="fa-solid fa-location-dot"></i></div>',
 				iconSize: [36, 36],
 				iconAnchor: [18, 36],
-				className: 'custom-pin-wrapper'
+				className: 'custom-pin-wrapper',
 			});
 
 			this.marker = window.L.marker([lat, lng], {
 				draggable: true,
-				icon: pinIcon
+				icon: pinIcon,
 			}).addTo(this.map);
 
 			this.form.latitude = lat.toFixed(7);
@@ -590,7 +607,7 @@ export default {
 			});
 		},
 		updateMapPosition(lat, lng) {
-			if (this.map && this.marker) {
+			if (this.map && this.marker && Number.isFinite(lat) && Number.isFinite(lng)) {
 				this.map.setView([lat, lng], 15, { animate: true });
 				this.marker.setLatLng([lat, lng]);
 				this.form.latitude = lat.toFixed(7);
@@ -598,7 +615,7 @@ export default {
 			}
 		},
 		updateMapFromWard(wardCode) {
-			const ward = this.wards.find(w => w.code === wardCode);
+			const ward = this.wards.find((item) => item.code === wardCode);
 			if (ward) {
 				this.$nextTick(() => this.updateMapPosition(ward.lat, ward.lng));
 			}
@@ -607,46 +624,42 @@ export default {
 			this.geocoding = true;
 			this.geocodeStatus = '';
 			this.geocodeMessage = '';
-			try {
-				let street = this.form.street.trim();
-				// OSM (Nominatim) ở Việt Nam thường thiếu số nhà/hẻm nhỏ -> Xóa số nhà để map lấy Tên Đường
-				const cleanStreet = street.replace(/^(?:[sS]ố|[nN]gõ|[hH]ẻm|[kK]iệt|[nN]gách|[lL]ô)?\s*\d+[a-zA-Z]?(\/\d+[a-zA-Z]?)*\s*,?\s*/, '').trim();
 
-				const ward = this.wards.find(w => w.code === this.form.ward);
-				const province = this.provinces.find(p => p.code === this.form.province);
+			try {
+				const street = this.form.street.trim();
+				const cleanStreet = street.replace(/^(?:[sS]ố|[nN]gõ|[hH]ẻm|[kK]iệt|[nN]gách|[lL]ô)?\s*\d+[a-zA-Z]?(\/\d+[a-zA-Z]?)*\s*,?\s*/, '').trim();
+				const ward = this.wards.find((item) => item.code === this.form.ward);
+				const province = this.provinces.find((item) => item.code === this.form.province);
 				const wardName = ward ? ward.name : '';
 				const cityName = province ? province.name : '';
 
-				// Các chiến lược tìm kiếm theo độ ưu tiên giảm dần
 				const queries = [];
-				if (street && wardName && cityName) queries.push(`${street}, ${wardName}, ${cityName}`); // 1. Tìm chính xác có số nhà + Phường
-				if (cleanStreet && cleanStreet !== street && wardName && cityName) queries.push(`${cleanStreet}, ${wardName}, ${cityName}`); // 2. Thử lại không có số nhà + Phường
-				if (cleanStreet && cityName) queries.push(`${cleanStreet}, ${cityName}`); // 3. Bỏ qua Phường nếu bản đồ không khớp Phường với Đường
-				if (wardName && cityName) queries.push(`${wardName}, ${cityName}`); // 4. Fallback về trung tâm Phường
-				if (cityName) queries.push(cityName); // 5. Fallback về trung tâm Tỉnh/TP
+				if (street && wardName && cityName) queries.push(`${street}, ${wardName}, ${cityName}`);
+				if (cleanStreet && cleanStreet !== street && wardName && cityName) queries.push(`${cleanStreet}, ${wardName}, ${cityName}`);
+				if (cleanStreet && cityName) queries.push(`${cleanStreet}, ${cityName}`);
+				if (wardName && cityName) queries.push(`${wardName}, ${cityName}`);
+				if (cityName) queries.push(cityName);
 
 				let data = null;
 				for (const query of queries) {
 					const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=3`;
 					const res = await fetch(url, { headers: { 'Accept-Language': 'vi' } });
 					data = await res.json();
-					if (data && data.length > 0) {
-						break; // Dừng lại ở kết quả chính xác nhất tìm được
-					}
+					if (data?.length) break;
 				}
 
-				if (data && data.length > 0) {
+				if (data?.length) {
 					const lat = parseFloat(data[0].lat);
 					const lng = parseFloat(data[0].lon);
 					this.updateMapPosition(lat, lng);
-					this.map && this.map.setZoom(17);
+					if (this.map) this.map.setZoom(17);
 					this.geocodeStatus = 'success';
 					this.geocodeMessage = `${this.$t('settings.geocodeFound')} ${data[0].display_name.substring(0, 100)}`;
 				} else {
 					this.geocodeStatus = 'fallback';
 					this.geocodeMessage = this.$t('settings.geocodeFallbackMap');
 				}
-			} catch (err) {
+			} catch (_error) {
 				this.geocodeStatus = 'fallback';
 				this.geocodeMessage = this.$t('settings.geocodeError');
 			} finally {
@@ -665,12 +678,11 @@ export default {
 			try {
 				const res = await api.get('/danh-muc/tinh-thanh');
 				if (res.data.status === 1) {
-					// Map backend fields to frontend format
-					this.provinces = res.data.data.map(p => ({
-						code: String(p.id),
-						name: p.ten,
-						lat: parseFloat(p.vi_do || 0),
-						lng: parseFloat(p.kinh_do || 0)
+					this.provinces = res.data.data.map((item) => ({
+						code: String(item.id),
+						name: item.ten,
+						lat: parseFloat(item.vi_do || 0),
+						lng: parseFloat(item.kinh_do || 0),
 					}));
 				}
 			} catch (e) {
@@ -679,13 +691,13 @@ export default {
 		},
 		async loadWards(tinhThanhId) {
 			try {
-				const res = await api.get('/danh-muc/phuong-xa', { params: { tinh_thanh_id: tinhThanhId }});
+				const res = await api.get('/danh-muc/phuong-xa', { params: { tinh_thanh_id: tinhThanhId } });
 				if (res.data.status === 1) {
-					this.wards = res.data.data.map(w => ({
-						code: String(w.id),
-						name: w.ten,
-						lat: parseFloat(w.vi_do || 0),
-						lng: parseFloat(w.kinh_do || 0)
+					this.wards = res.data.data.map((item) => ({
+						code: String(item.id),
+						name: item.ten,
+						lat: parseFloat(item.vi_do || 0),
+						lng: parseFloat(item.kinh_do || 0),
 					}));
 				}
 			} catch (e) {
@@ -694,50 +706,66 @@ export default {
 		},
 		onAvatarChange(e) {
 			const file = e.target.files[0];
-			if (file) {
-				const reader = new FileReader();
-				reader.onload = (ev) => { this.form.avatarPreview = ev.target.result; };
-				reader.readAsDataURL(file);
-			}
+			if (!file) return;
+
+			this.avatarFile = file;
+			const reader = new FileReader();
+			reader.onload = (ev) => {
+				this.form.avatarPreview = ev.target.result;
+			};
+			reader.readAsDataURL(file);
 		},
 		async savePersonalInfo() {
 			this.savingPersonal = true;
 			this.localAlertMessage = '';
-			try {
-				// Build notification prefs object
-				const notiPrefs = {};
-				this.notificationSettings.forEach(n => { notiPrefs[n.key] = n.enabled; });
 
-				const res = await api.put('/nguoi-dung/cap-nhat-thong-tin', {
-					ho_ten: this.form.fullName,
-					so_dien_thoai: this.form.phone,
-					ngay_sinh: this.form.dob || null,
-					gioi_tinh: this.form.gender || null,
-					so_cccd: this.form.idNumber || null,
-					gioi_thieu: this.form.bio || null,
-					tinh_thanh_id: this.form.province || null,
-					phuong_xa_id: this.form.ward || null,
-					dia_chi_duong: this.form.street || null,
-					vi_do: this.form.latitude || null,
-					kinh_do: this.form.longitude || null,
-					tuy_chon_thong_bao: notiPrefs,
+			try {
+				const notiPrefs = {};
+				this.notificationSettings.forEach((item) => {
+					notiPrefs[item.key] = item.enabled;
 				});
+
+				const formData = new FormData();
+				formData.append('ho_ten', this.form.fullName);
+				formData.append('so_dien_thoai', this.form.phone || '');
+				formData.append('ngay_sinh', this.form.dob || '');
+				formData.append('gioi_tinh', this.form.gender || '');
+				formData.append('so_cccd', this.form.idNumber || '');
+				formData.append('gioi_thieu', this.form.bio || '');
+				formData.append('tinh_thanh_id', this.form.province || '');
+				formData.append('phuong_xa_id', this.form.ward || '');
+				formData.append('dia_chi_duong', this.form.street || '');
+				formData.append('vi_do', this.form.latitude || '');
+				formData.append('kinh_do', this.form.longitude || '');
+				Object.entries(notiPrefs).forEach(([key, value]) => {
+					formData.append(`tuy_chon_thong_bao[${key}]`, value ? '1' : '0');
+				});
+				if (this.avatarFile) {
+					formData.append('anh_dai_dien', this.avatarFile);
+				}
+
+				const res = await api.post('/nguoi-dung/cap-nhat-thong-tin', formData);
 				if (res.data.status === 1) {
+					const freshUser = res.data.data || {};
+					this.form.avatarPreview = freshUser.anh_dai_dien || this.form.avatarPreview;
+					this.avatarFile = null;
+
 					if (this.toast) {
 						this.toast.showToast('success', 'Thành công!', res.data.message);
 					} else {
 						this.localAlertMessage = res.data.message;
 						this.localAlertSuccess = true;
 					}
-					// Cập nhật user trong localStorage
+
 					const user = JSON.parse(localStorage.getItem('user') || '{}');
 					user.ho_ten = this.form.fullName;
+					if (freshUser.anh_dai_dien) user.anh_dai_dien = freshUser.anh_dai_dien;
 					localStorage.setItem('user', JSON.stringify(user));
 				}
 			} catch (error) {
 				this.localAlertSuccess = false;
 				let errMsg = 'Không thể kết nối server.';
-				if (error.response && error.response.data) {
+				if (error.response?.data) {
 					const data = error.response.data;
 					if (data.errors) {
 						const firstKey = Object.keys(data.errors)[0];
@@ -746,7 +774,7 @@ export default {
 						errMsg = data.message || 'Lỗi cập nhật.';
 					}
 				}
-				
+
 				if (this.toast) {
 					this.toast.showToast('error', 'Lỗi', errMsg);
 				} else {
@@ -759,6 +787,7 @@ export default {
 		async changePassword() {
 			this.savingPassword = true;
 			this.localAlertMessage = '';
+
 			try {
 				const res = await api.post('/nguoi-dung/doi-mat-khau', {
 					mat_khau_cu: this.passwordForm.current,
@@ -775,18 +804,18 @@ export default {
 					this.passwordForm = { current: '', newPassword: '', confirm: '' };
 				}
 			} catch (error) {
-				this.alertSuccess = false;
-				if (error.response && error.response.data) {
+				if (error.response?.data) {
 					const data = error.response.data;
 					if (data.errors) {
 						const firstKey = Object.keys(data.errors)[0];
-						this.alertMessage = data.errors[firstKey][0];
+						this.localAlertMessage = data.errors[firstKey][0];
 					} else {
-						this.alertMessage = data.message || 'Lỗi đổi mật khẩu.';
+						this.localAlertMessage = data.message || 'Lỗi đổi mật khẩu.';
 					}
 				} else {
-					this.alertMessage = 'Không thể kết nối server.';
+					this.localAlertMessage = 'Không thể kết nối server.';
 				}
+				this.localAlertSuccess = false;
 			} finally {
 				this.savingPassword = false;
 			}
@@ -795,10 +824,12 @@ export default {
 			this.savePersonalInfo();
 		},
 		async resetForm() {
+			this.form = createInitialForm();
+			this.avatarFile = null;
 			await this.loadUserData();
-		}
-	}
-}
+		},
+	},
+};
 </script>
 
 <style scoped>

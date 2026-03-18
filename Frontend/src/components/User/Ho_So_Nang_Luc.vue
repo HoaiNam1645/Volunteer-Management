@@ -32,7 +32,8 @@
 					<div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-3">
 						<div class="d-flex align-items-center gap-3">
 							<div class="profile-avatar">
-								<i class="fa-solid fa-user"></i>
+								<img v-if="profile.avatar" :src="profile.avatar" alt="Ảnh đại diện" class="profile-avatar-image">
+								<i v-else class="fa-solid fa-user"></i>
 							</div>
 							<div>
 								<h5 class="fw-bold mb-0">{{ profile.name }}</h5>
@@ -285,6 +286,7 @@ export default {
 			profile: {
 				name: '',
 				email: '',
+				avatar: '',
 				skills: [],
 				otherSkills: '',
 				regions: [],
@@ -362,6 +364,7 @@ export default {
 					const d = profileRes.data.data;
 					this.profile.name = d.ho_ten || '';
 					this.profile.email = d.email || '';
+					this.profile.avatar = d.anh_dai_dien || '';
 					this.profile.skills = d.ky_nang_ids || [];
 					this.profile.regions = d.khu_vuc_ids || [];
 					this.profile.availability = d.lich_ranh || [];
@@ -477,6 +480,7 @@ export default {
 	width: 56px;
 	height: 56px;
 	min-width: 56px;
+	overflow: hidden;
 	border-radius: 50%;
 	background: linear-gradient(135deg, #0d6efd, #6610f2);
 	display: flex;
@@ -484,6 +488,13 @@ export default {
 	justify-content: center;
 	color: white;
 	font-size: 22px;
+}
+
+.profile-avatar-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
 .skill-tag {

@@ -7,6 +7,8 @@ use App\Http\Requests\DangNhapRequest;
 use App\Http\Requests\DatLaiMatKhauRequest;
 use App\Http\Requests\QuenMatKhauRequest;
 use App\Jobs\SendMailJob;
+use App\Models\KhuVuc;
+use App\Models\KyNang;
 use App\Models\NguoiDung;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,49 +17,156 @@ use Illuminate\Support\Str;
 
 class XacThucController extends Controller
 {
+    private function resolveKyNangIcon(): string
+    {
+        return KyNang::query()
+            ->whereNotNull('bieu_tuong')
+            ->where('bieu_tuong', '!=', '')
+            ->value('bieu_tuong') ?? 'fa-solid fa-bars-staggered';
+    }
+
+    private function resolveCustomKyNangIds(array $items): array
+    {
+        return collect($items)
+            ->map(fn($value) => trim((string) $value))
+            ->filter()
+            ->map(function (string $ten) {
+                $icon = $this->resolveKyNangIcon();
+                $existing = KyNang::query()
+                    ->whereRaw('LOWER(ten) = ?', [mb_strtolower($ten)])
+                    ->first();
+
+                if ($existing) {
+                    $updates = [];
+
+                    if ((int) $existing->hoat_dong !== 1 || $existing->xoa_luc) {
+                        $updates['hoat_dong'] = 1;
+                        $updates['xoa_luc'] = null;
+                    }
+
+                    if (!$existing->bieu_tuong) {
+                        $updates['bieu_tuong'] = $icon;
+                    }
+
+                    if (!empty($updates)) {
+                        $existing->update([
+                            ...$updates,
+                        ]);
+                    }
+
+                    return $existing->id;
+                }
+
+                return KyNang::create([
+                    'ten' => $ten,
+                    'bieu_tuong' => $icon,
+                    'hoat_dong' => 1,
+                ])->id;
+            })
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function resolveCustomKhuVucIds(array $items): array
+    {
+        return collect($items)
+            ->map(fn($value) => trim((string) $value))
+            ->filter()
+            ->map(function (string $ten) {
+                $existing = KhuVuc::query()
+                    ->whereRaw('LOWER(ten) = ?', [mb_strtolower($ten)])
+                    ->first();
+
+                if ($existing) {
+                    if ((int) $existing->hoat_dong !== 1 || $existing->xoa_luc) {
+                        $existing->update([
+                            'hoat_dong' => 1,
+                            'xoa_luc' => null,
+                        ]);
+                    }
+
+                    return $existing->id;
+                }
+
+                return KhuVuc::create([
+                    'ten' => $ten,
+                    'hoat_dong' => 1,
+                ])->id;
+            })
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     // ======================== ĐĂNG KÝ ========================
     public function dangKy(DangKyRequest $request)
     {
-        $nguoi_dung = NguoiDung::create([
-            'ho_ten'        => $request->ho_ten,
-            'email'         => $request->email,
-            'mat_khau'      => $request->password,
-            'so_dien_thoai' => $request->so_dien_thoai,
-        ]);
+        $nguoi_dung = DB::transaction(function () use ($request) {
+            $nguoiDung = NguoiDung::create([
+                'ho_ten'        => $request->ho_ten,
+                'email'         => $request->email,
+                'mat_khau'      => $request->password,
+                'so_dien_thoai' => $request->so_dien_thoai,
+            ]);
 
-        // Lưu kỹ năng (M:N)
-        if ($request->ky_nang_ids && count($request->ky_nang_ids) > 0) {
-            $ky_nang_data = array_map(fn($id) => [
-                'nguoi_dung_id' => $nguoi_dung->id,
-                'ky_nang_id'    => $id,
+            $kyNangIds = collect($request->input('ky_nang_ids', []))
+                ->map(fn($id) => (int) $id)
+                ->filter()
+                ->values();
+
+            $kyNangIds = $kyNangIds
+                ->merge($this->resolveCustomKyNangIds($request->input('ky_nang_khac', [])))
+                ->unique()
+                ->values();
+
+            if ($kyNangIds->isNotEmpty()) {
+                $ky_nang_data = $kyNangIds->map(fn($id) => [
+                    'nguoi_dung_id' => $nguoiDung->id,
+                    'ky_nang_id'    => $id,
+                    'tao_luc'       => now(),
+                ])->all();
+
+                DB::table('nguoi_dung_ky_nangs')->insert($ky_nang_data);
+            }
+
+            $khuVucIds = collect($request->input('khu_vuc_ids', []))
+                ->map(fn($id) => (int) $id)
+                ->filter()
+                ->values();
+
+            $khuVucIds = $khuVucIds
+                ->merge($this->resolveCustomKhuVucIds($request->input('khu_vuc_khac', [])))
+                ->unique()
+                ->values();
+
+            if ($khuVucIds->isNotEmpty()) {
+                $khu_vuc_data = $khuVucIds->map(fn($id) => [
+                    'nguoi_dung_id' => $nguoiDung->id,
+                    'khu_vuc_id'    => $id,
+                    'tao_luc'       => now(),
+                ])->all();
+
+                DB::table('nguoi_dung_khu_vucs')->insert($khu_vuc_data);
+            }
+
+            $ma_xac_thuc = Str::uuid()->toString();
+            DB::table('xac_thuc_emails')->insert([
+                'nguoi_dung_id' => $nguoiDung->id,
+                'ma_xac_thuc'   => $ma_xac_thuc,
+                'het_han_luc'   => now()->addHour(),
                 'tao_luc'       => now(),
-            ], $request->ky_nang_ids);
-            DB::table('nguoi_dung_ky_nangs')->insert($ky_nang_data);
-        }
+            ]);
 
-        // Lưu khu vực hoạt động (M:N)
-        if ($request->khu_vuc_ids && count($request->khu_vuc_ids) > 0) {
-            $khu_vuc_data = array_map(fn($id) => [
-                'nguoi_dung_id' => $nguoi_dung->id,
-                'khu_vuc_id'    => $id,
-                'tao_luc'       => now(),
-            ], $request->khu_vuc_ids);
-            DB::table('nguoi_dung_khu_vucs')->insert($khu_vuc_data);
-        }
+            $nguoiDung->setAttribute('ma_xac_thuc_email', $ma_xac_thuc);
 
-        // Tạo mã xác thực email (hết hạn sau 1h)
-        $ma_xac_thuc = Str::uuid()->toString();
-        DB::table('xac_thuc_emails')->insert([
-            'nguoi_dung_id' => $nguoi_dung->id,
-            'ma_xac_thuc'   => $ma_xac_thuc,
-            'het_han_luc'   => now()->addHour(),
-            'tao_luc'       => now(),
-        ]);
+            return $nguoiDung;
+        });
 
         // Gửi mail xác thực
         $data_mail = [
             'ho_ten' => $nguoi_dung->ho_ten,
-            'link'   => env('FRONTEND_URL', 'http://localhost:5173') . '/xac-thuc-email/' . $ma_xac_thuc,
+            'link'   => env('FRONTEND_URL', 'http://localhost:5173') . '/xac-thuc-email/' . $nguoi_dung->ma_xac_thuc_email,
         ];
         SendMailJob::dispatch(
             $nguoi_dung->email,

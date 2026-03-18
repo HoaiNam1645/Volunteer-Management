@@ -8,23 +8,29 @@ const routes = [
     },
     {
         path: '/dang-nhap',
+        alias: ['/login'],
         component: () => import('../components/User/auth/Trang_Dang_Nhap.vue'),
-        meta: { layout: 'auth' }
+        meta: { layout: 'auth', guestOnly: true }
     },
     {
         path: '/dang-ky',
         component: () => import('../components/User/auth/Trang_Dang_Ky.vue'),
-        meta: { layout: 'auth' }
+        meta: { layout: 'auth', guestOnly: true }
+    },
+    {
+        path: '/dang-ky/thanh-cong',
+        component: () => import('../components/User/auth/Trang_Dang_Ky_Thanh_Cong.vue'),
+        meta: { layout: 'auth', guestOnly: true }
     },
     {
         path: '/quen-mat-khau',
         component: () => import('../components/User/auth/Trang_Quen_Mat_Khau.vue'),
-        meta: { layout: 'auth' }
+        meta: { layout: 'auth', guestOnly: true }
     },
     {
         path: '/dat-lai-mat-khau/:token',
         component: () => import('../components/User/auth/Trang_Dat_Lai_Mat_Khau.vue'),
-        meta: { layout: 'auth' }
+        meta: { layout: 'auth', guestOnly: true }
     },
     {
         path: '/xac-thuc-email/:token',
@@ -139,6 +145,18 @@ const router = createRouter({
     routes: routes
 })
 
+function getAuthenticatedHome(role) {
+    if (role === 'kiem_duyet_vien') {
+        return '/admin/chien-dich';
+    }
+
+    if (role === 'quan_tri_vien') {
+        return '/admin';
+    }
+
+    return '/';
+}
+
 router.beforeEach((to, from, next) => {
     let currentUser = null;
     try {
@@ -148,7 +166,13 @@ router.beforeEach((to, from, next) => {
     }
 
     const role = currentUser?.vai_tro || null;
+    const hasToken = Boolean(localStorage.getItem('token'));
+    const isAuthenticated = Boolean(role && hasToken);
     const isAdminRoute = to.path.startsWith('/admin');
+
+    if (to.meta.guestOnly && isAuthenticated) {
+        return next(getAuthenticatedHome(role));
+    }
 
     if (role === 'tinh_nguyen_vien' && isAdminRoute) {
         return next('/');

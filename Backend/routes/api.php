@@ -34,6 +34,7 @@ Route::middleware('auth:api')->group(function () {
     // API dành cho mọi tài khoản dùng chung
     Route::get('/nguoi-dung/thong-tin', [NguoiDungController::class, 'layThongTin']);
     Route::put('/nguoi-dung/cap-nhat-thong-tin', [NguoiDungController::class, 'capNhatThongTin']);
+    Route::post('/nguoi-dung/cap-nhat-thong-tin', [NguoiDungController::class, 'capNhatThongTin']);
     Route::post('/nguoi-dung/doi-mat-khau', [NguoiDungController::class, 'doiMatKhau']);
 
     // API dành riêng cho Tình nguyện viên

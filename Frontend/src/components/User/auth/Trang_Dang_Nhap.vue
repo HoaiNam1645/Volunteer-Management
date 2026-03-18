@@ -105,6 +105,8 @@
 <script>
 import api from '@/services/api.js';
 
+const REGISTER_PREFILL_KEY = 'register_prefill_login';
+
 export default {
 	name: "TrangDangNhap",
 	data() {
@@ -118,6 +120,21 @@ export default {
 			alertSuccess: false,
 		}
 	},
+	mounted() {
+		const shouldPrefill = this.$route.query.prefill === '1';
+		const rawPrefill = localStorage.getItem(REGISTER_PREFILL_KEY);
+		if (!shouldPrefill || !rawPrefill) {
+			return;
+		}
+
+		try {
+			const prefill = JSON.parse(rawPrefill);
+			this.email = prefill?.email || '';
+			this.password = prefill?.password || '';
+		} catch (_error) {
+			localStorage.removeItem(REGISTER_PREFILL_KEY);
+		}
+	},
 	methods: {
 		async handleLogin() {
 			this.isLoading = true;
@@ -128,6 +145,7 @@ export default {
 					password: this.password,
 				});
 				if (res.data.status === 1) {
+					localStorage.removeItem(REGISTER_PREFILL_KEY);
 					// Lưu token & user vào localStorage
 					localStorage.setItem('token', res.data.token);
 					localStorage.setItem('user', JSON.stringify(res.data.data));

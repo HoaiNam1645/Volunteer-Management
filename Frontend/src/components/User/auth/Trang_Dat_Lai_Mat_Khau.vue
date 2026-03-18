@@ -29,7 +29,7 @@
 							</div>
 							<h3 class="fw-bold text-dark mb-3">{{ $t('auth.resetPassword.successTitle') }}</h3>
 							<p class="text-muted mb-4">{{ $t('auth.resetPassword.successDesc') }}</p>
-							<router-link to="/dang-nhap" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-primary transition-hover">
+							<router-link :to="loginRoute" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-primary transition-hover">
 								{{ $t('auth.resetPassword.goToLogin') }}
 							</router-link>
 						</div>
@@ -84,17 +84,29 @@
 <script>
 import api from '@/services/api.js';
 
+const REGISTER_PREFILL_KEY = 'register_prefill_login';
+const RESET_EMAIL_KEY = 'reset_password_email';
+
 export default {
 	name: "TrangDatLaiMatKhau",
 	data() {
 		return {
 			password: '',
 			passwordConfirmation: '',
+			email: '',
 			showPw1: false,
 			isLoading: false,
 			alertMessage: '',
 			resetSuccess: false,
 		}
+	},
+	mounted() {
+		this.email = localStorage.getItem(RESET_EMAIL_KEY) || '';
+	},
+	computed: {
+		loginRoute() {
+			return { path: '/dang-nhap', query: { prefill: '1' } };
+		},
 	},
 	methods: {
 		async handleReset() {
@@ -111,7 +123,15 @@ export default {
 					password_confirmation: this.passwordConfirmation,
 				});
 				if (res.data.status === 1) {
+					localStorage.setItem(REGISTER_PREFILL_KEY, JSON.stringify({
+						email: this.email,
+						password: this.password,
+					}));
+					localStorage.removeItem(RESET_EMAIL_KEY);
 					this.resetSuccess = true;
+					setTimeout(() => {
+						this.$router.push(this.loginRoute);
+					}, 1500);
 				} else {
 					this.alertMessage = res.data.message;
 				}
