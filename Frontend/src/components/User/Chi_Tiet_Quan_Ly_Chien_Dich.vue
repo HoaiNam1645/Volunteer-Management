@@ -323,8 +323,8 @@
 							<button v-if="campaign.status === 'active'" class="btn btn-outline-success btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('hoan_thanh')">
 								<i class="fa-solid fa-flag-checkered" style="width:16px"></i><span>{{ $t('coordinator.completeCampaignBtn') }}</span>
 							</button>
-							<button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push('/quan-ly-chien-dich')">
-								<i class="fa-solid fa-robot" style="width:16px"></i><span>{{ $t('campaignDetail.aiSuggest') }}</span>
+							<button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push({ path: '/dieu-phoi-nhan-su', query: { campaign_id: String(campaign.id) } })">
+								<i class="fa-solid fa-people-arrows" style="width:16px"></i><span>Đi đến màn điều phối</span>
 							</button>
 							<button class="btn btn-outline-success btn-sm d-flex align-items-center gap-2">
 								<i class="fa-solid fa-bell" style="width:16px"></i><span>{{ $t('campaignDetail.sendAssignmentNotification') }}</span>
@@ -649,7 +649,6 @@ export default {
 				if (res.data.status === 1) this.skillsList = res.data.data;
 			} catch (err) { console.error(err); }
 		},
-
 		// ===== Map =====
 		initDetailMap(lat, lng) {
 			this.$nextTick(() => {

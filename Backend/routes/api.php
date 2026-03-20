@@ -7,6 +7,7 @@ use App\Http\Controllers\ChienDichController;
 use App\Http\Controllers\KiemDuyetChienDichController;
 use App\Http\Controllers\ThamGiaChienDichController;
 use App\Http\Controllers\TheoDoiPhanHoiController;
+use App\Http\Controllers\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================== DANH MỤC (Public) ========================================
@@ -44,6 +45,7 @@ Route::middleware('auth:api')->group(function () {
 
 // =========================================== Tình Nguyện Viên ==========================================
 Route::middleware(['auth:api', 'tinhNguyenVien'])->group(function () {
+    Route::get('/goi-y', [RecommendationController::class, 'goiY']);
     Route::get('/tinh-nguyen-vien/chien-dich', [ChienDichController::class, 'danhSach']);
     Route::post('/tinh-nguyen-vien/chien-dich', [ChienDichController::class, 'taoMoi']);
     Route::get('/tinh-nguyen-vien/chien-dich/{id}', [ChienDichController::class, 'chiTiet']);
@@ -53,6 +55,7 @@ Route::middleware(['auth:api', 'tinhNguyenVien'])->group(function () {
     Route::post('/chien-dich/{id}/dang-ky', [ThamGiaChienDichController::class, 'dangKy']);
     Route::put('/chien-dich/{id}/huy-dang-ky', [ThamGiaChienDichController::class, 'huyDangKy']);
     Route::put('/chien-dich/{id}/xac-nhan-tham-gia', [ThamGiaChienDichController::class, 'xacNhanThamGia']);
+    Route::post('/chien-dich/{id}/moi-tinh-nguyen-vien', [RecommendationController::class, 'moiTinhNguyenVien']);
     Route::get('/tinh-nguyen-vien/theo-doi-phan-hoi', [TheoDoiPhanHoiController::class, 'tongQuan']);
     Route::post('/tinh-nguyen-vien/theo-doi-phan-hoi/bao-cao', [TheoDoiPhanHoiController::class, 'taoBaoCao']);
     Route::post('/tinh-nguyen-vien/theo-doi-phan-hoi/danh-gia-chien-dich', [TheoDoiPhanHoiController::class, 'danhGiaChienDich']);

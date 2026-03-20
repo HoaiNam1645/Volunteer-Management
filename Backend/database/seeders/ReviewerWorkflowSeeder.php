@@ -41,7 +41,7 @@ class ReviewerWorkflowSeeder extends Seeder
         $pendingCampaign = $campaigns->firstWhere('trang_thai', 'cho_duyet');
         $cancelRequestCampaign = $campaigns->firstWhere('trang_thai', 'yeu_cau_huy');
 
-        foreach ($completedCampaigns->take(2) as $index => $campaign) {
+        foreach ($completedCampaigns->take(8) as $index => $campaign) {
             $campaign->loadMissing('dangKyThamGias');
             foreach ($campaign->dangKyThamGias->take(2) as $dangKy) {
                 $feedback = PhanHoiTnv::updateOrCreate(
@@ -77,7 +77,7 @@ class ReviewerWorkflowSeeder extends Seeder
             }
         }
 
-        foreach ($approvedCampaigns->take(3) as $index => $campaign) {
+        foreach ($approvedCampaigns->take(10) as $index => $campaign) {
             BaoCaoChienDich::updateOrCreate(
                 [
                     'chien_dich_id' => $campaign->id,
@@ -133,7 +133,7 @@ class ReviewerWorkflowSeeder extends Seeder
             );
         }
 
-        foreach ($campaigns->whereNotNull('duyet_boi')->take(4) as $campaign) {
+        foreach ($campaigns->whereNotNull('duyet_boi')->take(12) as $campaign) {
             ThongBao::firstOrCreate(
                 [
                     'nguoi_dung_id' => $campaign->nguoi_tao_id,

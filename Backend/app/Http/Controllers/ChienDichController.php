@@ -84,6 +84,10 @@ class ChienDichController extends Controller
                 'kiem_duyet_vien'     => $cd->duyetBoi,
                 'duyet_luc'           => $cd->duyet_luc?->format('Y-m-d H:i:s'),
                 'ly_do_tu_choi'       => $cd->ly_do_tu_choi,
+                'ky_nangs'            => $cd->kyNangs->map(fn($kyNang) => [
+                    'id'  => $kyNang->id,
+                    'ten' => $kyNang->ten,
+                ])->values(),
                 'ky_nang_ids'         => $cd->kyNangs->pluck('id')->toArray(),
                 'tao_luc'             => $cd->tao_luc?->format('Y-m-d H:i:s'),
             ];
@@ -155,6 +159,10 @@ class ChienDichController extends Controller
                 'kiem_duyet_vien'     => $cd->duyetBoi,
                 'duyet_luc'           => $cd->duyet_luc?->format('Y-m-d H:i:s'),
                 'ly_do_tu_choi'       => $cd->ly_do_tu_choi,
+                'ky_nangs'            => $cd->kyNangs->map(fn($kyNang) => [
+                    'id'  => $kyNang->id,
+                    'ten' => $kyNang->ten,
+                ])->values(),
                 'ky_nang_ids'         => $cd->kyNangs->pluck('id')->toArray(),
                 'danh_sach_dang_ky'   => $cd->dangKyThamGias->map(function ($dangKy) {
                     $nguoiDung = $dangKy->nguoiDung;

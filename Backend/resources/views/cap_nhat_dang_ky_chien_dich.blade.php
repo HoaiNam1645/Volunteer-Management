@@ -13,6 +13,7 @@
         'xac_nhan_dang_ky' => ['bg' => '#EFF6FF', 'accent' => '#2563EB', 'title' => 'Đăng ký chiến dịch thành công', 'message' => 'Bạn đã đăng ký thành công. Hãy xác nhận tham gia khi đã sẵn sàng.'],
         'xac_nhan_tham_gia' => ['bg' => '#ECFDF5', 'accent' => '#059669', 'title' => 'Xác nhận tham gia thành công', 'message' => 'Bạn đã xác nhận tham gia chiến dịch. Hệ thống đã ghi nhận thông tin của bạn.'],
         'huy_dang_ky' => ['bg' => '#FEF2F2', 'accent' => '#DC2626', 'title' => 'Hủy đăng ký thành công', 'message' => 'Đăng ký tham gia của bạn đã được hủy thành công.'],
+        'loi_moi_tham_gia' => ['bg' => '#EEF2FF', 'accent' => '#4F46E5', 'title' => 'Thư mời xác nhận tham gia chiến dịch', 'message' => 'Bạn đang được người điều phối mời tham gia chiến dịch này. Nếu phù hợp, hãy mở chi tiết chiến dịch và xác nhận tham gia để hệ thống ghi nhận chính thức.'],
         'nhac_xac_nhan_tham_gia' => ['bg' => '#FFF7ED', 'accent' => '#EA580C', 'title' => 'Nhắc nhở xác nhận tham gia', 'message' => 'Chiến dịch sắp bắt đầu trong 72 giờ tới. Nếu bạn vẫn tham gia, hãy xác nhận để ban tổ chức chủ động nhân sự.'],
         'nhac_chu_chien_dich_sap_bat_dau' => ['bg' => '#EEF2FF', 'accent' => '#4F46E5', 'title' => 'Nhắc nhở chiến dịch sắp bắt đầu', 'message' => 'Chiến dịch của bạn sắp bắt đầu trong vòng 72 giờ tới. Hãy kiểm tra lại nhân sự, địa điểm và các đầu việc cần chuẩn bị.'],
     ];
@@ -32,6 +33,13 @@
                     <td style="padding:28px 32px;">
                         <p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#374151;">Xin chào <strong>{{ $data['ho_ten'] ?? 'bạn' }}</strong>,</p>
                         <p style="margin:0 0 20px;font-size:15px;line-height:24px;color:#4B5563;">{{ $theme['message'] }}</p>
+
+                        @if(($data['loai'] ?? '') === 'loi_moi_tham_gia')
+                        <div style="background:#EEF2FF;border-left:4px solid #4F46E5;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
+                            <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#3730A3;">Người gửi lời mời</p>
+                            <p style="margin:0;font-size:14px;line-height:22px;color:#312E81;">{{ $data['nguoi_moi'] ?? 'Ban điều phối chiến dịch' }}</p>
+                        </div>
+                        @endif
 
                         <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:18px 20px;margin-bottom:20px;">
                             <p style="margin:0 0 10px;font-size:14px;color:#6B7280;">Chiến dịch</p>

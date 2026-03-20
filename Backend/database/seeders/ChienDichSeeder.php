@@ -7,6 +7,7 @@ use App\Models\DangKyThamGia;
 use App\Models\NguoiDung;
 use App\Models\LoaiChienDich;
 use App\Models\KyNang;
+use App\Models\KhuVuc;
 use Illuminate\Database\Seeder;
 use Carbon\Carbon;
 
@@ -19,7 +20,10 @@ class ChienDichSeeder extends Seeder
         $kiemDuyetVienIds = NguoiDung::where('vai_tro', 'kiem_duyet_vien')->pluck('id')->toArray();
         $tnvIds = NguoiDung::where('vai_tro', 'tinh_nguyen_vien')->pluck('id')->toArray();
         $loaiIds = LoaiChienDich::pluck('id')->toArray();
+        $loaiByName = LoaiChienDich::pluck('id', 'ten');
         $kyNangIds = KyNang::pluck('id')->toArray();
+        $kyNangByName = KyNang::pluck('id', 'ten');
+        $khuVucByName = KhuVuc::pluck('id', 'ten');
 
         if (empty($nguoiTaoIds) || empty($kiemDuyetVienIds) || empty($loaiIds)) {
             $this->command->warn('Cần có TNV, KDV và Loại chiến dịch trước. Bỏ qua ChienDichSeeder.');
@@ -165,9 +169,163 @@ class ChienDichSeeder extends Seeder
             ],
         ];
 
+        $locationSeeds = [
+            ['dia_diem' => 'Bán đảo Sơn Trà, Đà Nẵng', 'vi_do' => 16.1187, 'kinh_do' => 108.2991, 'khu_vuc' => 'Đà Nẵng'],
+            ['dia_diem' => 'Công viên 29/3, Đà Nẵng', 'vi_do' => 16.0518, 'kinh_do' => 108.2103, 'khu_vuc' => 'Đà Nẵng'],
+            ['dia_diem' => 'Phố đi bộ Hồ Gươm, Hà Nội', 'vi_do' => 21.0287, 'kinh_do' => 105.8523, 'khu_vuc' => 'Hà Nội'],
+            ['dia_diem' => 'Làng trẻ SOS Gò Vấp, TP.HCM', 'vi_do' => 10.8364, 'kinh_do' => 106.6697, 'khu_vuc' => 'TP. Hồ Chí Minh'],
+            ['dia_diem' => 'Bệnh viện Đa khoa Cần Thơ', 'vi_do' => 10.0371, 'kinh_do' => 105.7834, 'khu_vuc' => 'Cần Thơ'],
+            ['dia_diem' => 'Bãi biển Mỹ Khê, Đà Nẵng', 'vi_do' => 16.0678, 'kinh_do' => 108.2468, 'khu_vuc' => 'Đà Nẵng'],
+            ['dia_diem' => 'Trung tâm bảo trợ xã hội Hải Phòng', 'vi_do' => 20.8443, 'kinh_do' => 106.6897, 'khu_vuc' => 'Hải Phòng'],
+            ['dia_diem' => 'Xã Triệu Long, Quảng Trị', 'vi_do' => 16.7392, 'kinh_do' => 107.1994, 'khu_vuc' => 'Quảng Trị'],
+            ['dia_diem' => 'Nhà thiếu nhi Huế', 'vi_do' => 16.4691, 'kinh_do' => 107.5903, 'khu_vuc' => 'Huế'],
+            ['dia_diem' => 'Xã Ia Kênh, Gia Lai', 'vi_do' => 13.9790, 'kinh_do' => 107.9912, 'khu_vuc' => 'Gia Lai'],
+            ['dia_diem' => 'Trường THCS Quỳnh Thắng, Nghệ An', 'vi_do' => 19.2162, 'kinh_do' => 105.6541, 'khu_vuc' => 'Nghệ An'],
+            ['dia_diem' => 'Phường Phước Hải, Khánh Hòa', 'vi_do' => 12.2279, 'kinh_do' => 109.2056, 'khu_vuc' => 'Khánh Hòa'],
+            ['dia_diem' => 'Xã Tân Phú, Đồng Nai', 'vi_do' => 11.3508, 'kinh_do' => 107.3768, 'khu_vuc' => 'Đồng Nai'],
+            ['dia_diem' => 'Chợ nổi Cái Răng, Cần Thơ', 'vi_do' => 10.0017, 'kinh_do' => 105.7851, 'khu_vuc' => 'Cần Thơ'],
+            ['dia_diem' => 'Khu dân cư An Phú, TP.HCM', 'vi_do' => 10.7896, 'kinh_do' => 106.7475, 'khu_vuc' => 'TP. Hồ Chí Minh'],
+        ];
+
+        $campaignTemplates = [
+            [
+                'prefix' => 'Ngày chủ nhật xanh',
+                'mo_ta' => 'Chiến dịch tập trung làm sạch khu vực công cộng, phân loại rác và tuyên truyền bảo vệ môi trường cho người dân địa phương.',
+                'loai' => 'Môi trường',
+                'uu_tien' => 'cao',
+                'min' => 12,
+                'max' => 35,
+                'skills' => ['Môi trường', 'Điều phối nhóm', 'Truyền thông / Sự kiện'],
+            ],
+            [
+                'prefix' => 'Lớp học cộng đồng cuối tuần',
+                'mo_ta' => 'Tổ chức lớp học kỹ năng và học tập cho trẻ em có hoàn cảnh khó khăn, kết hợp sinh hoạt nhóm và hỗ trợ phụ huynh.',
+                'loai' => 'Giáo dục',
+                'uu_tien' => 'trung_binh',
+                'min' => 8,
+                'max' => 20,
+                'skills' => ['Giáo dục / Dạy học', 'Hỗ trợ trẻ em', 'Tổ chức trò chơi'],
+            ],
+            [
+                'prefix' => 'Khám sức khỏe cộng đồng',
+                'mo_ta' => 'Hỗ trợ khám sàng lọc, tư vấn sức khỏe, phân luồng và chăm sóc người dân tại điểm khám lưu động.',
+                'loai' => 'Y tế',
+                'uu_tien' => 'khan_cap',
+                'min' => 10,
+                'max' => 24,
+                'skills' => ['Y tế / Chăm sóc sức khỏe', 'Sơ cứu khẩn cấp', 'Điều phối nhóm'],
+            ],
+            [
+                'prefix' => 'Kết nối yêu thương',
+                'mo_ta' => 'Tổ chức hoạt động thăm hỏi, tặng quà và hỗ trợ sinh hoạt cho các nhóm yếu thế trong cộng đồng.',
+                'loai' => 'Cộng đồng',
+                'uu_tien' => 'cao',
+                'min' => 10,
+                'max' => 28,
+                'skills' => ['Điều phối nhóm', 'Hỗ trợ người cao tuổi', 'Truyền thông / Sự kiện'],
+            ],
+            [
+                'prefix' => 'Tiếp sức vùng lũ',
+                'mo_ta' => 'Hỗ trợ vận chuyển hàng cứu trợ, khảo sát nhu cầu và phân phát nhu yếu phẩm cho người dân bị ảnh hưởng thiên tai.',
+                'loai' => 'Cứu trợ thiên tai',
+                'uu_tien' => 'khan_cap',
+                'min' => 18,
+                'max' => 45,
+                'skills' => ['Lái xe / Vận chuyển', 'Nấu ăn / Hậu cần', 'Khảo sát / Thu thập dữ liệu'],
+            ],
+            [
+                'prefix' => 'Ngày hội thiếu nhi',
+                'mo_ta' => 'Tổ chức trò chơi, phát quà, giao lưu và hướng dẫn kỹ năng mềm cho trẻ em tại địa phương.',
+                'loai' => 'Thiếu nhi',
+                'uu_tien' => 'trung_binh',
+                'min' => 8,
+                'max' => 22,
+                'skills' => ['Hỗ trợ trẻ em', 'Tổ chức trò chơi', 'Truyền thông / Sự kiện'],
+            ],
+            [
+                'prefix' => 'Chăm sóc người cao tuổi',
+                'mo_ta' => 'Thăm hỏi, hỗ trợ sinh hoạt, tổ chức hoạt động giao lưu và đo huyết áp cho người cao tuổi.',
+                'loai' => 'Người cao tuổi',
+                'uu_tien' => 'trung_binh',
+                'min' => 6,
+                'max' => 18,
+                'skills' => ['Hỗ trợ người cao tuổi', 'Y tế / Chăm sóc sức khỏe', 'Tư vấn tâm lý'],
+            ],
+            [
+                'prefix' => 'Công nghệ cho cộng đồng',
+                'mo_ta' => 'Hỗ trợ người dân làm quen với dịch vụ số, thiết bị cơ bản và kỹ năng sử dụng công nghệ trong đời sống.',
+                'loai' => 'Công nghệ vì cộng đồng',
+                'uu_tien' => 'thap',
+                'min' => 5,
+                'max' => 16,
+                'skills' => ['Kỹ thuật / IT', 'Khảo sát / Thu thập dữ liệu', 'Ngoại ngữ / Phiên dịch'],
+            ],
+            [
+                'prefix' => 'Sơn sửa nhà tình thương',
+                'mo_ta' => 'Hỗ trợ sửa chữa, sơn mới và hoàn thiện các hạng mục cơ bản cho nhà của hộ gia đình khó khăn.',
+                'loai' => 'Nhà ở / Công trình',
+                'uu_tien' => 'cao',
+                'min' => 12,
+                'max' => 30,
+                'skills' => ['Xây dựng / Sửa chữa', 'Nấu ăn / Hậu cần', 'Điều phối nhóm'],
+            ],
+        ];
+
+        $generatedStatuses = [
+            'da_duyet', 'da_duyet', 'da_duyet', 'da_duyet',
+            'cho_duyet', 'da_duyet', 'hoan_thanh', 'da_duyet',
+            'tu_choi', 'da_duyet', 'yeu_cau_huy', 'hoan_thanh',
+            'da_duyet', 'da_duyet', 'cho_duyet', 'da_duyet',
+            'hoan_thanh', 'da_duyet', 'da_duyet', 'tu_choi',
+            'da_duyet', 'yeu_cau_huy', 'da_duyet', 'hoan_thanh',
+        ];
+
+        foreach ($generatedStatuses as $index => $status) {
+            $template = $campaignTemplates[$index % count($campaignTemplates)];
+            $location = $locationSeeds[$index % count($locationSeeds)];
+            $start = match ($status) {
+                'hoan_thanh' => $now->copy()->subDays(25 - ($index % 8)),
+                'tu_choi' => $now->copy()->addDays(12 + ($index % 6)),
+                'cho_duyet' => $now->copy()->addDays(8 + ($index % 10)),
+                'yeu_cau_huy' => $now->copy()->addDays(6 + ($index % 5)),
+                default => $now->copy()->addDays(3 + ($index % 20)),
+            };
+            $durationDays = 1 + ($index % 4);
+            $end = $start->copy()->addDays($durationDays);
+            $deadline = match ($status) {
+                'hoan_thanh' => $start->copy()->subDays(3),
+                default => $start->copy()->subDays(2 + ($index % 3)),
+            };
+
+            $chienDichs[] = [
+                'tieu_de' => $template['prefix'] . ' - ' . $location['khu_vuc'] . ' #' . str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),
+                'mo_ta' => $template['mo_ta'],
+                'loai_chien_dich_id' => $loaiByName[$template['loai']] ?? $loaiIds[0],
+                'dia_diem' => $location['dia_diem'],
+                'khu_vuc_ten' => $location['khu_vuc'],
+                'vi_do' => $location['vi_do'] + ((($index % 3) - 1) * 0.004),
+                'kinh_do' => $location['kinh_do'] + ((($index % 5) - 2) * 0.004),
+                'ngay_bat_dau' => $start->toDateString(),
+                'ngay_ket_thuc' => $end->toDateString(),
+                'han_dang_ky' => $deadline->toDateString(),
+                'so_luong_toi_da' => $template['max'] + ($index % 6),
+                'so_luong_toi_thieu' => $template['min'],
+                'muc_do_uu_tien' => $template['uu_tien'],
+                'trang_thai' => $status,
+                'ly_do_tu_choi' => $status === 'tu_choi' ? 'Nội dung kế hoạch hoặc phương án tổ chức chưa đủ rõ ràng.' : null,
+                'skills_seed' => $template['skills'],
+            ];
+        }
+
         foreach ($chienDichs as $index => $cdData) {
+            $skillsSeed = $cdData['skills_seed'] ?? [];
+            $khuVucTen = $cdData['khu_vuc_ten'] ?? null;
+            unset($cdData['skills_seed']);
+            unset($cdData['khu_vuc_ten']);
+
             // Người tạo chiến dịch là TNV, luân phiên theo dữ liệu seed.
             $cdData['nguoi_tao_id'] = $nguoiTaoIds[$index % count($nguoiTaoIds)];
+            $cdData['khu_vuc_id'] = $khuVucTen ? ($khuVucByName[$khuVucTen] ?? null) : null;
 
             // Nếu đã duyệt / hoàn thành → gán KDV duyệt.
             if (in_array($cdData['trang_thai'], ['da_duyet', 'dang_dien_ra', 'hoan_thanh', 'tu_choi', 'yeu_cau_huy'])) {
@@ -183,13 +341,25 @@ class ChienDichSeeder extends Seeder
                 $cdData
             );
 
-            // Gắn kỹ năng ngẫu nhiên (1-3)
+            // Gắn kỹ năng theo chủ đề chiến dịch, bổ sung thêm 1 kỹ năng liên quan nếu cần.
             if (!empty($kyNangIds)) {
-                $randomKeys = (array) array_rand($kyNangIds, rand(1, min(3, count($kyNangIds))));
                 $skillsData = [];
-                foreach ($randomKeys as $key) {
-                    $skillsData[$kyNangIds[$key]] = [
-                        'bat_buoc' => rand(0, 1),
+                $seedSkillIds = [];
+                foreach ($skillsSeed as $skillName) {
+                    $skillId = $kyNangByName[$skillName] ?? null;
+                    if ($skillId) {
+                        $seedSkillIds[] = $skillId;
+                    }
+                }
+                if (count($seedSkillIds) < 2) {
+                    $seedSkillIds[] = $kyNangIds[$index % count($kyNangIds)];
+                    $seedSkillIds[] = $kyNangIds[($index + 4) % count($kyNangIds)];
+                }
+
+                $seedSkillIds = array_values(array_unique($seedSkillIds));
+                foreach ($seedSkillIds as $skillIndex => $skillId) {
+                    $skillsData[$skillId] = [
+                        'bat_buoc' => $skillIndex === 0 ? 1 : (($index + $skillIndex) % 2),
                         'tao_luc'  => $now,
                     ];
                 }
@@ -202,7 +372,10 @@ class ChienDichSeeder extends Seeder
 
                 if (!empty($ungVienIds)) {
                     shuffle($ungVienIds);
-                    $numRegistrations = rand(2, min(4, count($ungVienIds)));
+                    $numRegistrations = min(
+                        max(3, $cd->so_luong_toi_thieu ? min($cd->so_luong_toi_thieu + 2, 8) : 4),
+                        count($ungVienIds)
+                    );
                     $selectedTnvIds = array_slice($ungVienIds, 0, $numRegistrations);
 
                     // Xóa đăng ký cũ để tránh giữ lại dữ liệu seed sai logic từ các lần chạy trước.

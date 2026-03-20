@@ -406,6 +406,13 @@ export default {
 		};
 	},
 	watch: {
+		activeTab(newValue) {
+			if (newValue === 'personal') {
+				this.$nextTick(() => {
+					setTimeout(() => this.ensureMapReady(), 100);
+				});
+			}
+		},
 		'form.ward'(newVal) {
 			if (!this.isDataLoading) this.updateMapFromWard(newVal);
 		},
@@ -490,11 +497,11 @@ export default {
 			const script = document.createElement('script');
 			script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 			script.onload = () => {
-				this.$nextTick(() => this.initMap());
+				this.$nextTick(() => this.ensureMapReady());
 			};
 			document.head.appendChild(script);
 		} else {
-			this.$nextTick(() => this.initMap());
+			this.$nextTick(() => this.ensureMapReady());
 		}
 	},
 	beforeUnmount() {
@@ -543,14 +550,32 @@ export default {
 			} finally {
 				setTimeout(() => {
 					this.isDataLoading = false;
-					if (this.map && this.form.latitude && this.form.longitude) {
-						this.updateMapPosition(parseFloat(this.form.latitude), parseFloat(this.form.longitude));
-					}
+					this.ensureMapReady();
 				}, 300);
 			}
 		},
+		ensureMapReady() {
+			if (!this.form.province) return;
+
+			if (!this.map) {
+				this.initMap();
+				return;
+			}
+
+			setTimeout(() => {
+				if (this.map) {
+					this.map.invalidateSize();
+					if (this.form.latitude && this.form.longitude) {
+						this.updateMapPosition(parseFloat(this.form.latitude), parseFloat(this.form.longitude));
+					}
+				}
+			}, 250);
+		},
 		initMap() {
-			if (this.map) return;
+			if (this.map) {
+				setTimeout(() => this.map?.invalidateSize(), 250);
+				return;
+			}
 			const container = document.getElementById('map-container');
 			if (!container || !window.L) return;
 
@@ -605,6 +630,12 @@ export default {
 				this.form.latitude = pos.lat.toFixed(7);
 				this.form.longitude = pos.lng.toFixed(7);
 			});
+
+			setTimeout(() => {
+				if (this.map) {
+					this.map.invalidateSize();
+				}
+			}, 300);
 		},
 		updateMapPosition(lat, lng) {
 			if (this.map && this.marker && Number.isFinite(lat) && Number.isFinite(lng)) {
@@ -612,6 +643,9 @@ export default {
 				this.marker.setLatLng([lat, lng]);
 				this.form.latitude = lat.toFixed(7);
 				this.form.longitude = lng.toFixed(7);
+				this.$nextTick(() => {
+					setTimeout(() => this.map?.invalidateSize(), 100);
+				});
 			}
 		},
 		updateMapFromWard(wardCode) {
@@ -670,6 +704,7 @@ export default {
 			this.form.ward = '';
 			if (this.form.province) {
 				await this.loadWards(this.form.province);
+				this.$nextTick(() => this.ensureMapReady());
 			} else {
 				this.wards = [];
 			}
@@ -827,6 +862,7 @@ export default {
 			this.form = createInitialForm();
 			this.avatarFile = null;
 			await this.loadUserData();
+			this.$nextTick(() => this.ensureMapReady());
 		},
 	},
 };
