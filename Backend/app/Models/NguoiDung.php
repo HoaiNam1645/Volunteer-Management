@@ -29,6 +29,7 @@ class NguoiDung extends Authenticatable implements JWTSubject
         'vai_tro',
         'trang_thai',
         'xac_thuc_email_luc',
+        'xoa_luc',
         // Địa chỉ
         'tinh_thanh_id',
         'phuong_xa_id',

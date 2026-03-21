@@ -846,7 +846,7 @@ export default {
         },
         userManagement: {
             title: 'User Management',
-            subtitle: 'Manage accounts, roles and approve new accounts',
+            subtitle: 'Manage accounts, roles, account status and email verification',
             addUser: 'Add User',
             tabs: {
                 all: 'All',
@@ -873,9 +873,11 @@ export default {
                 user: 'User',
                 role: 'Role',
                 status: 'Status',
+                emailVerified: 'Email Verification',
                 createdAt: 'Created At',
                 campaigns: 'Campaigns',
-                actions: 'Actions'
+                actions: 'Actions',
+                noPhone: 'No phone number'
             },
             actions: {
                 view: 'View Details',
@@ -886,8 +888,12 @@ export default {
                 delete: 'Delete'
             },
             emptyState: 'No matching users found',
+            emailVerified: {
+                yes: 'Verified',
+                no: 'Not verified'
+            },
             pagination: {
-                showing: 'Showing {count} users'
+                showing: 'Showing {from}-{to} / {total} users'
             },
             modal: {
                 addUser: 'Add New User',
@@ -900,10 +906,10 @@ export default {
                 phonePlaceholder: 'Enter phone number...',
                 role: 'Role',
                 password: 'Password',
+                passwordOptional: 'New Password',
                 passwordPlaceholder: 'Enter password...',
                 status: 'Status',
-                note: 'Note',
-                notePlaceholder: 'Notes about the user...',
+                emailVerified: 'Mark email as verified',
                 cancel: 'Cancel',
                 createAccount: 'Create Account',
                 update: 'Update',
@@ -927,7 +933,11 @@ export default {
                 unlockSuccessTitle: 'Account Unlocked',
                 unlockSuccessMessage: '"{name}" has been unlocked',
                 deleteSuccessTitle: 'User Deleted',
-                deleteSuccessMessage: '"{name}" has been deleted from the system'
+                deleteSuccessMessage: '"{name}" has been deleted from the system',
+                loadErrorTitle: 'Unable to load users',
+                loadErrorMessage: 'Please try again later.',
+                saveErrorTitle: 'Unable to save changes',
+                saveErrorMessage: 'Something went wrong while updating user data.'
             },
             confirm: {
                 approveTitle: 'Approve account?',
@@ -1253,10 +1263,16 @@ export default {
         categories: {
             title: 'System Categories Management',
             subtitle: 'Skills, operation regions and campaign types',
+            common: {
+                active: 'Active',
+                inactive: 'Hidden',
+                noIcon: 'No icon configured'
+            },
             skills: {
                 title: 'Skills',
                 search: 'Search skills...',
                 usersCount: '{count} users',
+                campaignsCount: '{count} campaigns',
                 notFound: 'No skills found',
                 total: 'Total: {count} skills',
                 label: 'skill'
@@ -1264,7 +1280,9 @@ export default {
             regions: {
                 title: 'Regions',
                 search: 'Search regions...',
+                usersCount: '{count} volunteers',
                 campaignsCount: '{count} campaigns',
+                noCoordinates: 'No coordinates available',
                 notFound: 'No regions found',
                 total: 'Total: {count} regions',
                 label: 'region'
@@ -1282,6 +1300,17 @@ export default {
                 editTitle: 'Edit {cat}',
                 nameLabel: '{cat} Name',
                 namePlaceholder: 'Enter {cat} name...',
+                iconLabel: 'Icon',
+                iconPlaceholder: 'Example: fa-solid fa-wrench',
+                descriptionLabel: 'Description',
+                descriptionPlaceholder: 'Short description for this skill...',
+                latitudeLabel: 'Latitude',
+                latitudePlaceholder: 'Example: 16.0544',
+                longitudeLabel: 'Longitude',
+                longitudePlaceholder: 'Example: 108.2022',
+                colorLabel: 'Color',
+                colorPlaceholder: 'Example: #f59f00',
+                activeLabel: 'Show this category across the system',
                 cancelBtn: 'Cancel',
                 updateBtn: 'Update',
                 addBtn: 'Add New'
@@ -1293,11 +1322,17 @@ export default {
             },
             toast: {
                 updateSuccess: 'Update successful',
-                updateMsg: 'Changed "{old}" to "{new}"',
+                updateMsg: 'Category "{name}" has been updated',
                 addSuccess: 'Add successful',
                 addMsg: 'Added {cat} "{name}"',
                 deleteSuccess: 'Deleted',
-                deleteMsg: 'Deleted {cat} "{name}"'
+                deleteMsg: 'Deleted {cat} "{name}"',
+                loadErrorTitle: 'Unable to load categories',
+                loadErrorMessage: 'Please try again later.',
+                saveErrorTitle: 'Unable to save category',
+                saveErrorMessage: 'Something went wrong while updating this category.',
+                deleteBlockedTitle: 'Unable to delete category',
+                deleteBlockedMessage: 'This category is already being used in the system.'
             },
             validation: {
                 nameRequired: 'Please enter a name'

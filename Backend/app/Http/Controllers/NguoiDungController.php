@@ -7,15 +7,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class NguoiDungController extends Controller
 {
     // ======================== DANH SÁCH NGƯỜI DÙNG (ADMIN) ========================
     public function danhSachQuanLy(Request $request)
     {
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = max(1, min(50, (int) $request->input('per_page', 10)));
 
-        $query = NguoiDung::query()->whereNull('xoa_luc');
+        $baseQuery = NguoiDung::query()->whereNull('xoa_luc');
+        $query = (clone $baseQuery)->withCount(['dangKyThamGias', 'chienDichs']);
 
         if ($request->filled('tu_khoa')) {
             $tuKhoa = $request->tu_khoa;
@@ -36,15 +38,165 @@ class NguoiDungController extends Controller
 
         $paginated = $query->orderByDesc('tao_luc')->paginate($perPage);
 
+        $stats = [
+            'tong'       => (clone $baseQuery)->count(),
+            'cho_duyet'  => (clone $baseQuery)->where('trang_thai', 'cho_duyet')->count(),
+            'bi_khoa'    => (clone $baseQuery)->where('trang_thai', 'bi_khoa')->count(),
+            'hoat_dong'  => (clone $baseQuery)->where('trang_thai', 'hoat_dong')->count(),
+        ];
+
         return response()->json([
             'status'       => 1,
             'message'      => 'Lấy danh sách người dùng thành công.',
-            'data'         => $paginated->items(),
+            'data'         => collect($paginated->items())->map(fn ($user) => $this->adminUserPayload($user))->values(),
             'current_page' => $paginated->currentPage(),
             'last_page'    => $paginated->lastPage(),
             'per_page'     => $paginated->perPage(),
             'total'        => $paginated->total(),
+            'meta'         => [
+                'stats' => $stats,
+            ],
         ]);
+    }
+
+    public function taoQuanLy(Request $request)
+    {
+        $payload = $this->validateAdminUser($request);
+
+        $user = NguoiDung::create($payload);
+        $user->loadCount(['dangKyThamGias', 'chienDichs']);
+
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Tạo tài khoản thành công.',
+            'data'    => $this->adminUserPayload($user),
+        ], 201);
+    }
+
+    public function capNhatQuanLy(Request $request, int $id)
+    {
+        $user = NguoiDung::query()->whereNull('xoa_luc')->findOrFail($id);
+
+        if ($user->id === auth('api')->id() && $request->input('trang_thai') === 'bi_khoa') {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Bạn không thể tự khóa tài khoản của chính mình.',
+            ], 422);
+        }
+
+        $payload = $this->validateAdminUser($request, $user);
+        $user->update($payload);
+        $user->loadCount(['dangKyThamGias', 'chienDichs']);
+
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Cập nhật tài khoản thành công.',
+            'data'    => $this->adminUserPayload($user->fresh()),
+        ]);
+    }
+
+    public function capNhatTrangThaiQuanLy(Request $request, int $id)
+    {
+        $request->validate([
+            'trang_thai' => 'required|in:cho_duyet,hoat_dong,bi_khoa',
+        ]);
+
+        $user = NguoiDung::query()->whereNull('xoa_luc')->findOrFail($id);
+
+        if ($user->id === auth('api')->id() && $request->trang_thai === 'bi_khoa') {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Bạn không thể tự khóa tài khoản của chính mình.',
+            ], 422);
+        }
+
+        $updates = ['trang_thai' => $request->trang_thai];
+        if ($request->trang_thai === 'hoat_dong' && !$user->xac_thuc_email_luc) {
+            $updates['xac_thuc_email_luc'] = now();
+        }
+
+        $user->update($updates);
+        $user->loadCount(['dangKyThamGias', 'chienDichs']);
+
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Cập nhật trạng thái thành công.',
+            'data'    => $this->adminUserPayload($user->fresh()),
+        ]);
+    }
+
+    public function xoaQuanLy(int $id)
+    {
+        $user = NguoiDung::query()->whereNull('xoa_luc')->findOrFail($id);
+
+        if ($user->id === auth('api')->id()) {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Bạn không thể tự xóa tài khoản của chính mình.',
+            ], 422);
+        }
+
+        $user->update([
+            'xoa_luc' => now(),
+        ]);
+
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Xóa người dùng thành công.',
+        ]);
+    }
+
+    private function validateAdminUser(Request $request, ?NguoiDung $user = null): array
+    {
+        $userId = $user?->id;
+
+        $validated = $request->validate([
+            'ho_ten'              => 'required|string|max:150',
+            'email'               => ['required', 'email', 'max:255', Rule::unique('nguoi_dungs', 'email')->ignore($userId)],
+            'so_dien_thoai'       => 'nullable|string|max:20',
+            'vai_tro'             => 'required|in:tinh_nguyen_vien,kiem_duyet_vien,quan_tri_vien',
+            'trang_thai'          => 'required|in:cho_duyet,hoat_dong,bi_khoa',
+            'mat_khau'            => ($user ? 'nullable' : 'required') . '|string|min:8',
+            'xac_thuc_email'      => 'nullable|boolean',
+        ]);
+
+        $payload = [
+            'ho_ten'        => $validated['ho_ten'],
+            'email'         => $validated['email'],
+            'so_dien_thoai' => $validated['so_dien_thoai'] ?? null,
+            'vai_tro'       => $validated['vai_tro'],
+            'trang_thai'    => $validated['trang_thai'],
+        ];
+
+        if (!empty($validated['mat_khau'])) {
+            $payload['mat_khau'] = $validated['mat_khau'];
+        }
+
+        $xacThucEmail = $request->boolean('xac_thuc_email', $validated['trang_thai'] === 'hoat_dong');
+        $payload['xac_thuc_email_luc'] = $xacThucEmail ? ($user?->xac_thuc_email_luc ?? now()) : null;
+
+        return $payload;
+    }
+
+    private function adminUserPayload(NguoiDung $user): array
+    {
+        $campaignCount = $user->vai_tro === 'tinh_nguyen_vien'
+            ? (int) ($user->dang_ky_tham_gias_count ?? 0)
+            : (int) ($user->chien_dichs_count ?? 0);
+
+        return [
+            'id'                => $user->id,
+            'ho_ten'            => $user->ho_ten,
+            'email'             => $user->email,
+            'so_dien_thoai'     => $user->so_dien_thoai,
+            'vai_tro'           => $user->vai_tro,
+            'trang_thai'        => $user->trang_thai,
+            'anh_dai_dien'      => $user->anh_dai_dien,
+            'xac_thuc_email_luc'=> $user->xac_thuc_email_luc,
+            'da_xac_thuc_email' => !is_null($user->xac_thuc_email_luc),
+            'tao_luc'           => $user->tao_luc,
+            'campaign_count'    => $campaignCount,
+        ];
     }
 
     // ======================== LẤY THÔNG TIN CÁ NHÂN ========================

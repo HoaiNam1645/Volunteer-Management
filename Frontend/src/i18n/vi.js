@@ -845,7 +845,7 @@ export default {
         },
         userManagement: {
             title: 'Quản lý người dùng',
-            subtitle: 'Quản lý tài khoản, phân quyền và duyệt tài khoản mới',
+            subtitle: 'Quản lý tài khoản, vai trò, trạng thái hoạt động và xác thực email',
             addUser: 'Thêm người dùng',
             tabs: {
                 all: 'Tất cả',
@@ -872,9 +872,11 @@ export default {
                 user: 'Người dùng',
                 role: 'Vai trò',
                 status: 'Trạng thái',
+                emailVerified: 'Xác thực email',
                 createdAt: 'Ngày tạo',
                 campaigns: 'Chiến dịch',
-                actions: 'Thao tác'
+                actions: 'Thao tác',
+                noPhone: 'Chưa có số điện thoại'
             },
             actions: {
                 view: 'Xem chi tiết',
@@ -885,8 +887,12 @@ export default {
                 delete: 'Xóa'
             },
             emptyState: 'Không tìm thấy người dùng nào phù hợp',
+            emailVerified: {
+                yes: 'Đã xác thực',
+                no: 'Chưa xác thực'
+            },
             pagination: {
-                showing: 'Hiển thị {count} người dùng'
+                showing: 'Hiển thị {from}-{to} / {total} người dùng'
             },
             modal: {
                 addUser: 'Thêm người dùng mới',
@@ -899,10 +905,10 @@ export default {
                 phonePlaceholder: 'Nhập số điện thoại...',
                 role: 'Vai trò',
                 password: 'Mật khẩu',
+                passwordOptional: 'Mật khẩu mới',
                 passwordPlaceholder: 'Nhập mật khẩu...',
                 status: 'Trạng thái',
-                note: 'Ghi chú',
-                notePlaceholder: 'Ghi chú về người dùng...',
+                emailVerified: 'Đánh dấu đã xác thực email',
                 cancel: 'Hủy',
                 createAccount: 'Tạo tài khoản',
                 update: 'Cập nhật',
@@ -926,7 +932,11 @@ export default {
                 unlockSuccessTitle: 'Đã mở khóa tài khoản',
                 unlockSuccessMessage: '"{name}" đã được mở khóa',
                 deleteSuccessTitle: 'Đã xóa người dùng',
-                deleteSuccessMessage: '"{name}" đã bị xóa khỏi hệ thống'
+                deleteSuccessMessage: '"{name}" đã bị xóa khỏi hệ thống',
+                loadErrorTitle: 'Không thể tải danh sách người dùng',
+                loadErrorMessage: 'Vui lòng thử lại sau.',
+                saveErrorTitle: 'Không thể lưu thay đổi',
+                saveErrorMessage: 'Đã có lỗi xảy ra khi cập nhật dữ liệu người dùng.'
             },
             confirm: {
                 approveTitle: 'Duyệt tài khoản?',
@@ -1252,10 +1262,16 @@ export default {
         categories: {
             title: 'Quản lý danh mục hệ thống',
             subtitle: 'Kỹ năng, khu vực hoạt động và loại chiến dịch',
+            common: {
+                active: 'Đang hoạt động',
+                inactive: 'Tạm ẩn',
+                noIcon: 'Chưa cấu hình biểu tượng'
+            },
             skills: {
                 title: 'Kỹ năng',
                 search: 'Tìm kiếm kỹ năng...',
                 usersCount: '{count} người dùng',
+                campaignsCount: '{count} chiến dịch',
                 notFound: 'Không tìm thấy kỹ năng',
                 total: 'Tổng: {count} kỹ năng',
                 label: 'kỹ năng'
@@ -1263,7 +1279,9 @@ export default {
             regions: {
                 title: 'Khu vực',
                 search: 'Tìm kiếm khu vực...',
+                usersCount: '{count} tình nguyện viên',
                 campaignsCount: '{count} chiến dịch',
+                noCoordinates: 'Chưa có tọa độ',
                 notFound: 'Không tìm thấy khu vực',
                 total: 'Tổng: {count} khu vực',
                 label: 'khu vực'
@@ -1281,6 +1299,17 @@ export default {
                 editTitle: 'Chỉnh sửa {cat}',
                 nameLabel: 'Tên {cat}',
                 namePlaceholder: 'Nhập tên {cat}...',
+                iconLabel: 'Biểu tượng',
+                iconPlaceholder: 'Ví dụ: fa-solid fa-wrench',
+                descriptionLabel: 'Mô tả',
+                descriptionPlaceholder: 'Mô tả ngắn cho kỹ năng này...',
+                latitudeLabel: 'Vĩ độ',
+                latitudePlaceholder: 'Ví dụ: 16.0544',
+                longitudeLabel: 'Kinh độ',
+                longitudePlaceholder: 'Ví dụ: 108.2022',
+                colorLabel: 'Màu sắc',
+                colorPlaceholder: 'Ví dụ: #f59f00',
+                activeLabel: 'Hiển thị danh mục này trên hệ thống',
                 cancelBtn: 'Hủy',
                 updateBtn: 'Cập nhật',
                 addBtn: 'Thêm mới'
@@ -1292,11 +1321,17 @@ export default {
             },
             toast: {
                 updateSuccess: 'Cập nhật thành công',
-                updateMsg: 'Đã đổi "{old}" thành "{new}"',
+                updateMsg: 'Danh mục "{name}" đã được cập nhật',
                 addSuccess: 'Thêm thành công',
                 addMsg: 'Đã thêm {cat} "{name}"',
                 deleteSuccess: 'Đã xóa',
-                deleteMsg: 'Đã xóa {cat} "{name}"'
+                deleteMsg: 'Đã xóa {cat} "{name}"',
+                loadErrorTitle: 'Không thể tải danh mục',
+                loadErrorMessage: 'Vui lòng thử lại sau.',
+                saveErrorTitle: 'Không thể lưu danh mục',
+                saveErrorMessage: 'Đã có lỗi xảy ra khi cập nhật danh mục.',
+                deleteBlockedTitle: 'Không thể xóa danh mục',
+                deleteBlockedMessage: 'Danh mục này đang được sử dụng trong hệ thống.'
             },
             validation: {
                 nameRequired: 'Vui lòng nhập tên'

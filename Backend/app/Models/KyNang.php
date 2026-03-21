@@ -10,5 +10,5 @@ class KyNang extends Model
     const CREATED_AT = 'tao_luc';
     const UPDATED_AT = 'cap_nhat_luc';
 
-    protected $fillable = ['ten', 'bieu_tuong', 'mo_ta', 'hoat_dong'];
+    protected $fillable = ['ten', 'bieu_tuong', 'mo_ta', 'hoat_dong', 'xoa_luc'];
 }

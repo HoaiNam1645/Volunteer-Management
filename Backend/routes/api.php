@@ -78,4 +78,13 @@ Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
 // =========================================== QUẢN TRỊ VIÊN ==========================================
 Route::middleware(['auth:api', 'quanTriVien'])->group(function () {
     Route::get('/admin/nguoi-dung', [NguoiDungController::class, 'danhSachQuanLy']);
+    Route::post('/admin/nguoi-dung', [NguoiDungController::class, 'taoQuanLy']);
+    Route::put('/admin/nguoi-dung/{id}', [NguoiDungController::class, 'capNhatQuanLy']);
+    Route::put('/admin/nguoi-dung/{id}/trang-thai', [NguoiDungController::class, 'capNhatTrangThaiQuanLy']);
+    Route::delete('/admin/nguoi-dung/{id}', [NguoiDungController::class, 'xoaQuanLy']);
+
+    Route::get('/admin/danh-muc', [DanhMucController::class, 'danhSachQuanLy']);
+    Route::post('/admin/danh-muc/{type}', [DanhMucController::class, 'taoQuanLy']);
+    Route::put('/admin/danh-muc/{type}/{id}', [DanhMucController::class, 'capNhatQuanLy']);
+    Route::delete('/admin/danh-muc/{type}/{id}', [DanhMucController::class, 'xoaQuanLy']);
 });

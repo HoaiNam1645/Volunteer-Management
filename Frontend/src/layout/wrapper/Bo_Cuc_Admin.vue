@@ -37,26 +37,12 @@
 							<router-link to="/admin/nguoi-dung" class="nav-link" :class="{ active: $route.path.startsWith('/admin/nguoi-dung') }">
 								<i class="fa-solid fa-users"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.users') }}</span>
-								<span class="nav-badge bg-danger" v-show="!sidebarCollapsed">5</span>
-							</router-link>
-						</li>
-						<li class="nav-item">
-							<router-link to="/admin/chien-dich" class="nav-link" :class="{ active: $route.path.startsWith('/admin/chien-dich') }">
-								<i class="fa-solid fa-flag"></i>
-								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.campaigns') }}</span>
-								<span class="nav-badge bg-warning text-dark" v-show="!sidebarCollapsed">3</span>
 							</router-link>
 						</li>
 						<li class="nav-item" v-if="!isReviewer">
 							<router-link to="/admin/danh-muc" class="nav-link" :class="{ active: $route.path.startsWith('/admin/danh-muc') }">
 								<i class="fa-solid fa-layer-group"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.categories') }}</span>
-							</router-link>
-						</li>
-						<li class="nav-item" v-if="!isReviewer">
-							<router-link to="/admin/bai-viet" class="nav-link" :class="{ active: $route.path.startsWith('/admin/bai-viet') }">
-								<i class="fa-solid fa-newspaper"></i>
-								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.articles') }}</span>
 							</router-link>
 						</li>
 					</ul>

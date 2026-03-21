@@ -16,6 +16,7 @@ class LoaiChienDich extends Model
         'bieu_tuong',
         'mau_sac',
         'hoat_dong',
+        'xoa_luc',
     ];
 
     protected function casts(): array

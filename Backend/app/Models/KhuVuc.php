@@ -10,5 +10,5 @@ class KhuVuc extends Model
     const CREATED_AT = 'tao_luc';
     const UPDATED_AT = 'cap_nhat_luc';
 
-    protected $fillable = ['ten', 'vi_do', 'kinh_do', 'hoat_dong'];
+    protected $fillable = ['ten', 'vi_do', 'kinh_do', 'hoat_dong', 'xoa_luc'];
 }
