@@ -63,12 +63,13 @@
 										<div><i class="fa-regular fa-calendar text-primary me-2"></i>{{ campaign.startDate }} — {{ campaign.endDate }}</div>
 										<div v-if="campaign.distanceText"><i class="fa-solid fa-route text-success me-2"></i>{{ campaign.distanceText }}</div>
 									</div>
-									<div class="recommend-breakdown rounded-3 p-3 bg-light mb-3">
-										<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.skill') }}</span><strong>{{ campaign.breakdown.skill }}%</strong></div>
-										<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.availability') }}</span><strong>{{ campaign.breakdown.availability }}%</strong></div>
-										<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.distance') }}</span><strong>{{ campaign.breakdown.distance }}%</strong></div>
-										<div class="d-flex justify-content-between small"><span>{{ $t('campaignList.recommendation.reliability') }}</span><strong>{{ campaign.breakdown.reliability }}%</strong></div>
-									</div>
+										<div class="recommend-breakdown rounded-3 p-3 bg-light mb-3">
+											<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.skill') }}</span><strong>{{ campaign.breakdown.skill }}%</strong></div>
+											<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.availability') }}</span><strong>{{ campaign.breakdown.availability }}%</strong></div>
+											<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.distance') }}</span><strong>{{ campaign.breakdown.distance }}%</strong></div>
+											<div class="d-flex justify-content-between small mb-1"><span>{{ $t('campaignList.recommendation.reliability') }}</span><strong>{{ campaign.breakdown.reliability }}%</strong></div>
+											<div class="d-flex justify-content-between small"><span>{{ $t('campaignList.recommendation.profileStrength') }}</span><strong>{{ campaign.breakdown.profileStrength }}%</strong></div>
+										</div>
 									<div class="small text-muted mt-auto">
 										<div v-for="reason in campaign.reasons" :key="reason" class="mb-1">
 											<i class="fa-solid fa-circle-check text-success me-2"></i>{{ reason }}
@@ -816,12 +817,13 @@ export default {
 					reasons: item.reasons || [],
 					warnings: item.warnings || [],
 					recommendationBadges: item.badges || [],
-					breakdown: {
-						skill: Math.round(item.score_breakdown?.skill || 0),
-						availability: Math.round(item.score_breakdown?.availability || 0),
-						distance: Math.round(item.score_breakdown?.distance || 0),
-						reliability: Math.round(item.score_breakdown?.reliability || 0),
-					},
+						breakdown: {
+							skill: Math.round(item.score_breakdown?.skill || 0),
+							availability: Math.round(item.score_breakdown?.availability || 0),
+							distance: Math.round(item.score_breakdown?.distance || 0),
+							reliability: Math.round(item.score_breakdown?.reliability || 0),
+							profileStrength: Math.round(item.score_breakdown?.profile_strength || 0),
+						},
 					skills: (item.ky_nangs || []).map((skill) => skill.ten).filter(Boolean),
 					startDateRaw: item.ngay_bat_dau || '',
 					endDateRaw: item.ngay_ket_thuc || '',

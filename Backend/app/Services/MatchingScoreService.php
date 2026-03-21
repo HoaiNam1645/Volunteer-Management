@@ -10,9 +10,10 @@ class MatchingScoreService
 {
     private const WEIGHT_SKILL = 0.30;
     private const WEIGHT_AVAILABILITY = 0.20;
-    private const WEIGHT_DISTANCE = 0.40;
+    private const WEIGHT_DISTANCE = 0.30;
     private const WEIGHT_PREFERENCE = 0.05;
     private const WEIGHT_RELIABILITY = 0.05;
+    private const WEIGHT_PROFILE_STRENGTH = 0.10;
 
     public function calculateSkillScore(array $sourceSkillIds, array $targetSkillIds): float
     {
@@ -130,6 +131,14 @@ class MatchingScoreService
         return max(0, min(100, round($score, 2)));
     }
 
+    public function calculateProfileStrengthScore(int $experienceCount, int $certificateCount): float
+    {
+        $normalizedExperience = min(max($experienceCount, 0), 5) / 5;
+        $normalizedCertificate = min(max($certificateCount, 0), 3) / 3;
+
+        return round((($normalizedExperience * 0.7) + ($normalizedCertificate * 0.3)) * 100, 2);
+    }
+
     public function calculateFinalScore(array $breakdown): float
     {
         return round(
@@ -137,7 +146,8 @@ class MatchingScoreService
             + ($breakdown['availability'] ?? 0) * self::WEIGHT_AVAILABILITY
             + ($breakdown['distance'] ?? 0) * self::WEIGHT_DISTANCE
             + ($breakdown['preference'] ?? 0) * self::WEIGHT_PREFERENCE
-            + ($breakdown['reliability'] ?? 0) * self::WEIGHT_RELIABILITY,
+            + ($breakdown['reliability'] ?? 0) * self::WEIGHT_RELIABILITY
+            + ($breakdown['profile_strength'] ?? 0) * self::WEIGHT_PROFILE_STRENGTH,
             2
         );
     }

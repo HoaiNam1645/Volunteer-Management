@@ -209,23 +209,47 @@
 
 							<div v-if="excludedVolunteers.length > 0" class="border rounded-4 p-3 bg-light mt-4">
 							<div class="d-flex align-items-center justify-content-between mb-3">
-								<div>
-									<div class="fw-semibold">{{ $t('coordinationScreen.excludedGroup') }}</div>
-									<div class="small text-muted">{{ $t('coordinationScreen.excludedDesc') }}</div>
+								<div class="d-flex align-items-center gap-3">
+									<div>
+										<div class="fw-semibold">{{ $t('coordinationScreen.excludedGroup') }}</div>
+										<div class="small text-muted">{{ $t('coordinationScreen.excludedDesc') }}</div>
+									</div>
+									<div v-if="excludedVolunteers.length" class="form-check mb-0 small">
+										<input
+											:id="'select-excluded-all'"
+											class="form-check-input"
+											type="checkbox"
+											:checked="isGroupFullySelected(excludedVolunteers)"
+											@change="toggleGroupSelection(excludedVolunteers, $event.target.checked)">
+										<label class="form-check-label" :for="'select-excluded-all'">{{ $t('coordinationScreen.selectAll') }}</label>
+									</div>
 								</div>
 								<span class="badge bg-secondary text-white rounded-pill">{{ excludedVolunteers.length }}</span>
 							</div>
 								<div v-for="item in paginatedExcludedVolunteers" :key="'excluded-' + item.id" class="list-row-card list-row-card-excluded">
+									<div class="form-check flex-shrink-0 mb-0">
+										<input
+											:id="'excluded-select-' + item.id"
+											class="form-check-input"
+											type="checkbox"
+											:checked="isVolunteerSelected(item.id)"
+											@change="toggleVolunteerSelection(item.id, $event.target.checked)">
+									</div>
 									<div class="list-row-main min-w-0">
 										<div class="list-row-inline">
 											<div class="fw-semibold text-dark text-truncate">{{ item.ho_ten }}</div>
-											<div class="small text-muted compact-meta">
-												{{ getExcludedShortTitle(item.reason) }}
-											</div>
+											<span class="list-row-score">{{ Math.round(item.final_score || 0) }}%</span>
+											<span v-if="getRegistrationStatusLabel(item.registration_status)" class="badge rounded-pill border text-dark bg-light">{{ getRegistrationStatusLabel(item.registration_status) }}</span>
+											<div class="small text-muted compact-meta">{{ getVolunteerListMeta(mapExcludedVolunteerForUi(item)) }}</div>
 										</div>
 									</div>
-									<button class="btn btn-sm btn-light border rounded-pill px-3 flex-shrink-0" @click="openVolunteerDetail(mapExcludedVolunteerForUi(item), $t('coordinationScreen.excludedGroup'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-								</div>
+										<div class="d-flex gap-2 flex-shrink-0">
+											<button class="btn btn-sm btn-light border rounded-pill px-3" @click="openVolunteerDetail(mapExcludedVolunteerForUi(item), $t('coordinationScreen.excludedGroup'))">{{ $t('coordinationScreen.viewDetail') }}</button>
+											<button class="btn btn-sm btn-primary rounded-pill px-3" :disabled="inviteLoading || !canInviteVolunteer(item)" @click="inviteVolunteers([item.id])">
+												{{ getInviteButtonLabel(item) }}
+											</button>
+										</div>
+									</div>
 							<div class="mt-2">
 								<div class="small text-muted mb-2">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedExcludedVolunteers.length, total: excludedVolunteers.length }) }}</div>
 								<div class="d-flex justify-content-end">
@@ -326,6 +350,59 @@
 						</div>
 					</div>
 				</div>
+
+				<div class="card border-0 shadow-sm mt-4">
+					<div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
+						<div>
+							<h6 class="fw-bold mb-1"><i class="fa-solid fa-ranking-star me-2 text-warning"></i>{{ $t('coordinationScreen.profileHighlightTitle') }}</h6>
+							<div class="text-muted small">{{ $t('coordinationScreen.profileHighlightDesc') }}</div>
+						</div>
+						<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="toggleProfileSort">
+							<i class="fa-solid fa-arrow-up-wide-short me-1"></i>{{ profileSortLabel }}
+						</button>
+					</div>
+					<div class="card-body p-4">
+						<div v-if="sortedProfileHighlightVolunteers.length === 0" class="text-center py-4 text-muted">
+							<i class="fa-solid fa-chart-line d-block fs-3 mb-2 opacity-25"></i>
+							{{ $t('coordinationScreen.noProfileHighlights') }}
+						</div>
+						<div v-else class="d-flex flex-column gap-3">
+							<div v-for="volunteer in paginatedProfileHighlightVolunteers" :key="'profile-' + volunteer.id" class="list-row-card">
+								<div class="list-row-main min-w-0">
+									<div class="list-row-inline">
+										<div class="fw-semibold text-dark text-truncate">{{ volunteer.name }}</div>
+										<span class="list-row-score">{{ volunteer.breakdown.profileStrength }}%</span>
+										<div class="small text-muted compact-meta">
+											{{ $t('coordinationScreen.profileStrengthMeta', { experience: volunteer.experienceCount, certificates: volunteer.certificateCount }) }}
+										</div>
+									</div>
+								</div>
+								<div class="d-flex gap-2 flex-shrink-0">
+									<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.profileHighlightTitle'))">{{ $t('coordinationScreen.viewDetail') }}</button>
+									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
+										{{ getInviteButtonLabel(volunteer) }}
+									</button>
+								</div>
+							</div>
+							<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+								<div class="small text-muted">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedProfileHighlightVolunteers.length, total: sortedProfileHighlightVolunteers.length }) }}</div>
+								<nav v-if="totalProfileHighlightPages > 1">
+									<ul class="pagination pagination-sm mb-0">
+										<li class="page-item" :class="{ disabled: profileHighlightPage === 1 }">
+											<button class="page-link" @click="profileHighlightPage = Math.max(1, profileHighlightPage - 1)">{{ $t('campaignList.prev') }}</button>
+										</li>
+										<li v-for="page in totalProfileHighlightPages" :key="'profile-page-' + page" class="page-item" :class="{ active: profileHighlightPage === page }">
+											<button class="page-link" @click="profileHighlightPage = page">{{ page }}</button>
+										</li>
+										<li class="page-item" :class="{ disabled: profileHighlightPage === totalProfileHighlightPages }">
+											<button class="page-link" @click="profileHighlightPage = Math.min(totalProfileHighlightPages, profileHighlightPage + 1)">{{ $t('campaignList.nextPage') }}</button>
+										</li>
+									</ul>
+								</nav>
+							</div>
+						</div>
+					</div>
+				</div>
 			</template>
 		</template>
 
@@ -352,12 +429,13 @@
 							<span v-if="selectedVolunteerDetail.registrationStatusLabel" class="badge bg-light text-dark border rounded-pill">{{ selectedVolunteerDetail.registrationStatusLabel }}</span>
 						</div>
 
-						<div class="small text-muted d-flex flex-wrap gap-3 mb-4">
-							<span v-if="selectedVolunteerDetail.email"><i class="fa-solid fa-envelope me-1"></i>{{ selectedVolunteerDetail.email }}</span>
-							<span><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ selectedVolunteerDetail.areaText }}</span>
-							<span v-if="selectedVolunteerDetail.distanceText"><i class="fa-solid fa-route text-success me-1"></i>{{ selectedVolunteerDetail.distanceText }}</span>
-							<span><i class="fa-regular fa-calendar text-primary me-1"></i>{{ selectedVolunteerDetail.availabilityText }}</span>
-						</div>
+							<div class="small text-muted d-flex flex-wrap gap-3 mb-4">
+								<span v-if="selectedVolunteerDetail.email"><i class="fa-solid fa-envelope me-1"></i>{{ selectedVolunteerDetail.email }}</span>
+								<span><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ selectedVolunteerDetail.areaText }}</span>
+								<span v-if="selectedVolunteerDetail.distanceText"><i class="fa-solid fa-route text-success me-1"></i>{{ selectedVolunteerDetail.distanceText }}</span>
+								<span><i class="fa-regular fa-calendar text-primary me-1"></i>{{ selectedVolunteerDetail.availabilityText }}</span>
+								<span><i class="fa-solid fa-briefcase text-secondary me-1"></i>{{ $t('coordinationScreen.profileStrengthMeta', { experience: selectedVolunteerDetail.experienceCount, certificates: selectedVolunteerDetail.certificateCount }) }}</span>
+							</div>
 
 						<div v-if="selectedVolunteerDetail.skills?.length" class="d-flex flex-wrap gap-2 mb-4">
 							<span v-for="skill in selectedVolunteerDetail.skills" :key="'detail-skill-' + skill" class="badge bg-light text-muted border">{{ skill }}</span>
@@ -380,11 +458,15 @@
 								<span>{{ $t('coordinationScreen.priorityLabel') }}</span>
 								<strong>{{ selectedVolunteerDetail.breakdown.preference }}%</strong>
 							</div>
-							<div class="recommend-breakdown-item">
-								<span>{{ $t('coordinationScreen.reliabilityLabel') }}</span>
-								<strong>{{ selectedVolunteerDetail.breakdown.reliability }}%</strong>
+								<div class="recommend-breakdown-item">
+									<span>{{ $t('coordinationScreen.reliabilityLabel') }}</span>
+									<strong>{{ selectedVolunteerDetail.breakdown.reliability }}%</strong>
+								</div>
+								<div class="recommend-breakdown-item">
+									<span>{{ $t('coordinationScreen.profileStrengthLabel') }}</span>
+									<strong>{{ selectedVolunteerDetail.breakdown.profileStrength }}%</strong>
+								</div>
 							</div>
-						</div>
 
 						<div class="mb-3" v-if="selectedVolunteerDetail.reason">
 							<div class="fw-semibold mb-2">{{ $t('coordinationScreen.needBeforeInvite') }}</div>
@@ -519,14 +601,14 @@
 								@click="toggleComparisonPanel">
 								{{ showComparisonPanel ? $t('coordinationScreen.compare.hide') : $t('coordinationScreen.compare.show') }}
 							</button>
-							<button
-								v-if="selectedVolunteerDetail.id && selectedVolunteerContext !== $t('coordinationScreen.excludedGroup')"
-								type="button"
-							class="btn btn-primary rounded-pill px-4"
-							:disabled="inviteLoading || !canInviteVolunteer(selectedVolunteerDetail)"
-							@click="inviteVolunteers([selectedVolunteerDetail.id])">
-							{{ getInviteButtonLabel(selectedVolunteerDetail) }}
-						</button>
+								<button
+									v-if="selectedVolunteerDetail.id"
+									type="button"
+								class="btn btn-primary rounded-pill px-4"
+								:disabled="inviteLoading || !canInviteVolunteer(selectedVolunteerDetail)"
+								@click="inviteVolunteers([selectedVolunteerDetail.id])">
+								{{ getInviteButtonLabel(selectedVolunteerDetail) }}
+							</button>
 					</div>
 				</div>
 			</div>
@@ -552,13 +634,15 @@ export default {
 			selectedCampaignId: '',
 			isLoadingCampaigns: false,
 			isLoadingRecommendations: false,
-			inviteLoading: false,
-			pageSize: 8,
-			recommendationPage: 1,
-			primaryPage: 1,
-			backupPage: 1,
-			excludedPage: 1,
-			selectedInviteIds: [],
+				inviteLoading: false,
+				pageSize: 8,
+				recommendationPage: 1,
+				primaryPage: 1,
+				backupPage: 1,
+				excludedPage: 1,
+				profileHighlightPage: 1,
+				profileSortMode: 'strongest',
+				selectedInviteIds: [],
 			recommendedVolunteers: [],
 			excludedVolunteers: [],
 			allocationPrimary: [],
@@ -728,13 +812,49 @@ export default {
 		totalBackupPages() {
 			return this.getTotalPages(this.allocationBackup);
 		},
-		paginatedExcludedVolunteers() {
-			return this.paginateItems(this.excludedVolunteers, this.excludedPage);
+			paginatedExcludedVolunteers() {
+				return this.paginateItems(this.excludedVolunteers, this.excludedPage);
+			},
+			totalExcludedPages() {
+				return this.getTotalPages(this.excludedVolunteers);
+			},
+			profileHighlightVolunteers() {
+				const merged = [
+					...this.allocationPrimary,
+					...this.displayedRecommendedVolunteers,
+					...this.excludedVolunteers.map((item) => this.mapExcludedVolunteerForUi(item)),
+				];
+				const byId = new Map();
+				merged.forEach((item) => {
+					if (!byId.has(item.id)) byId.set(item.id, item);
+				});
+				return Array.from(byId.values());
+			},
+			sortedProfileHighlightVolunteers() {
+				const items = [...this.profileHighlightVolunteers];
+				const factor = this.profileSortMode === 'strongest' ? -1 : 1;
+				return items.sort((a, b) => {
+					const profileCompare = (a.breakdown.profileStrength - b.breakdown.profileStrength) * factor;
+					if (profileCompare !== 0) return profileCompare;
+					const experienceCompare = ((a.experienceCount || 0) - (b.experienceCount || 0)) * factor;
+					if (experienceCompare !== 0) return experienceCompare;
+					const certificateCompare = ((a.certificateCount || 0) - (b.certificateCount || 0)) * factor;
+					if (certificateCompare !== 0) return certificateCompare;
+					return ((a.finalScore || 0) - (b.finalScore || 0)) * factor;
+				});
+			},
+			paginatedProfileHighlightVolunteers() {
+				return this.paginateItems(this.sortedProfileHighlightVolunteers, this.profileHighlightPage);
+			},
+			totalProfileHighlightPages() {
+				return this.getTotalPages(this.sortedProfileHighlightVolunteers);
+			},
+			profileSortLabel() {
+				return this.profileSortMode === 'strongest'
+					? this.$t('coordinationScreen.profileSortStrongest')
+					: this.$t('coordinationScreen.profileSortWeakest');
+			},
 		},
-		totalExcludedPages() {
-			return this.getTotalPages(this.excludedVolunteers);
-		},
-	},
 	watch: {
 		selectedCampaignId(newValue) {
 			if (!newValue) {
@@ -895,10 +1015,11 @@ export default {
 			},
 			resetPagination() {
 				this.recommendationPage = 1;
-			this.primaryPage = 1;
-			this.backupPage = 1;
-			this.excludedPage = 1;
-		},
+				this.primaryPage = 1;
+				this.backupPage = 1;
+				this.excludedPage = 1;
+				this.profileHighlightPage = 1;
+			},
 		getTotalPages(items) {
 			return Math.max(1, Math.ceil((items?.length || 0) / this.pageSize));
 		},
@@ -922,13 +1043,15 @@ export default {
 			}[status] || '';
 		},
 		canInviteVolunteer(volunteer) {
-			return !['da_dang_ky', 'da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'].includes(volunteer?.registrationStatus || '');
+			const status = volunteer?.registrationStatus || volunteer?.registration_status || '';
+			return !['da_dang_ky', 'da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'].includes(status);
 		},
 		getInviteButtonLabel(volunteer) {
-			if (volunteer?.registrationStatus === 'da_dang_ky') return this.$t('coordinationScreen.invitePending');
-			if (volunteer?.registrationStatus === 'da_xac_nhan') return this.$t('coordinationScreen.inviteConfirmed');
-			if (volunteer?.registrationStatus === 'dang_tham_gia') return this.$t('coordinationScreen.inviteParticipating');
-			if (volunteer?.registrationStatus === 'hoan_thanh') return this.$t('coordinationScreen.inviteCompleted');
+			const status = volunteer?.registrationStatus || volunteer?.registration_status || '';
+			if (status === 'da_dang_ky') return this.$t('coordinationScreen.invitePending');
+			if (status === 'da_xac_nhan') return this.$t('coordinationScreen.inviteConfirmed');
+			if (status === 'dang_tham_gia') return this.$t('coordinationScreen.inviteParticipating');
+			if (status === 'hoan_thanh') return this.$t('coordinationScreen.inviteCompleted');
 			return this.$t('coordinationScreen.invite');
 		},
 		isVolunteerSelected(volunteerId) {
@@ -947,17 +1070,21 @@ export default {
 			if (!volunteers.length) return false;
 			return volunteers.every((item) => this.selectedInviteIds.includes(item.id));
 		},
-		toggleGroupSelection(volunteers = [], checked) {
-			const ids = new Set(this.selectedInviteIds);
+			toggleGroupSelection(volunteers = [], checked) {
+				const ids = new Set(this.selectedInviteIds);
 			volunteers.forEach((item) => {
 				if (checked) {
 					ids.add(item.id);
 				} else {
 					ids.delete(item.id);
 				}
-			});
-			this.selectedInviteIds = Array.from(ids);
-		},
+				});
+				this.selectedInviteIds = Array.from(ids);
+			},
+			toggleProfileSort() {
+				this.profileSortMode = this.profileSortMode === 'strongest' ? 'weakest' : 'strongest';
+				this.profileHighlightPage = 1;
+			},
 		getExcludedShortTitle(reason = '') {
 			const normalized = reason.toLowerCase();
 			if (normalized.includes('trùng lịch')) return this.$t('coordinationScreen.excludedScheduleConflictTitle');
@@ -975,14 +1102,15 @@ export default {
 			return reason || this.$t('coordinationScreen.excludedDefaultSummary');
 		},
 			mapVolunteerForUi(item, bucket = 'recommendation') {
-			const finalScore = Math.round(item.final_score || 0);
-			const breakdown = {
-				skill: Math.round(item.score_breakdown?.skill || 0),
-				availability: Math.round(item.score_breakdown?.availability || 0),
-				distance: Math.round(item.score_breakdown?.distance || 0),
-				preference: Math.round(item.score_breakdown?.preference || 0),
-				reliability: Math.round(item.score_breakdown?.reliability || 0),
-			};
+				const finalScore = Math.round(item.final_score || 0);
+				const breakdown = {
+					skill: Math.round(item.score_breakdown?.skill || 0),
+					availability: Math.round(item.score_breakdown?.availability || 0),
+					distance: Math.round(item.score_breakdown?.distance || 0),
+					preference: Math.round(item.score_breakdown?.preference || 0),
+					reliability: Math.round(item.score_breakdown?.reliability || 0),
+					profileStrength: Math.round(item.score_breakdown?.profile_strength || 0),
+				};
 			const reasons = item.reasons || [];
 			const warnings = item.warnings || [];
 			const name = item.ho_ten || item.name || '—';
@@ -1021,6 +1149,8 @@ export default {
 					availabilityDays: item.lich_ranh || [],
 					distanceText: item.distance_km !== null && item.distance_km !== undefined ? `${item.distance_km} km` : '',
 					distanceValue: item.distance_km !== null && item.distance_km !== undefined ? Number(item.distance_km) : null,
+					experienceCount: Number(item.experience_count || 0),
+					certificateCount: Number(item.certificate_count || 0),
 					registrationStatus: item.registration_status || '',
 					registrationStatusLabel: this.getRegistrationStatusLabel(item.registration_status),
 					finalScore,
@@ -1037,7 +1167,7 @@ export default {
 				decisionSummary,
 			};
 		},
-		mapExcludedVolunteerForUi(item) {
+			mapExcludedVolunteerForUi(item) {
 			const mapped = this.mapVolunteerForUi(item, 'excluded');
 			return {
 				...mapped,
@@ -1046,9 +1176,39 @@ export default {
 				decisionSummary: this.getExcludedShortSummary(item.reason || ''),
 				matchLabel: mapped.matchLabel || '',
 				matchLevel: mapped.matchLevel || '',
-			};
-		},
-			openVolunteerDetail(volunteer, context = '') {
+				};
+			},
+			applyInviteState(volunteerIds = [], nextStatus = 'da_dang_ky') {
+				const idSet = new Set((volunteerIds || []).map((id) => Number(id)));
+				const updateMappedList = (list = []) => list.map((item) => {
+					if (!idSet.has(Number(item.id))) return item;
+					return {
+						...item,
+						registrationStatus: nextStatus,
+						registrationStatusLabel: this.getRegistrationStatusLabel(nextStatus),
+					};
+				});
+				const updateRawList = (list = []) => list.map((item) => {
+					if (!idSet.has(Number(item.id))) return item;
+					return {
+						...item,
+						registration_status: nextStatus,
+					};
+				});
+
+				this.allocationPrimary = updateMappedList(this.allocationPrimary);
+				this.recommendedVolunteers = updateMappedList(this.recommendedVolunteers);
+				this.excludedVolunteers = updateRawList(this.excludedVolunteers);
+
+				if (this.selectedVolunteerDetail && idSet.has(Number(this.selectedVolunteerDetail.id))) {
+					this.selectedVolunteerDetail = {
+						...this.selectedVolunteerDetail,
+						registrationStatus: nextStatus,
+						registrationStatusLabel: this.getRegistrationStatusLabel(nextStatus),
+					};
+				}
+			},
+				openVolunteerDetail(volunteer, context = '') {
 				this.selectedVolunteerDetail = volunteer;
 				this.selectedVolunteerContext = context;
 				this.showComparisonPanel = false;
@@ -1123,17 +1283,24 @@ export default {
 				this.isLoadingRecommendations = false;
 			}
 		},
-		async inviteVolunteers(volunteerIds) {
-			if (!volunteerIds || volunteerIds.length === 0 || !this.selectedCampaignId) return;
-			this.inviteLoading = true;
-			try {
-				const res = await api.post(`/chien-dich/${this.selectedCampaignId}/moi-tinh-nguyen-vien`, {
-					volunteer_ids: volunteerIds,
-				});
-				this.toast?.showToast('success', this.$t('common.success'), res.data?.message || this.$t('coordinationScreen.inviteSuccess'));
-				this.selectedInviteIds = this.selectedInviteIds.filter((id) => !volunteerIds.includes(id));
-				await this.loadCoordinationData();
-			} catch (error) {
+			async inviteVolunteers(volunteerIds) {
+				if (!volunteerIds || volunteerIds.length === 0 || !this.selectedCampaignId) return;
+				this.inviteLoading = true;
+				try {
+					const res = await api.post(`/chien-dich/${this.selectedCampaignId}/moi-tinh-nguyen-vien`, {
+						volunteer_ids: volunteerIds,
+					});
+					this.toast?.showToast('success', this.$t('common.success'), res.data?.message || this.$t('coordinationScreen.inviteSuccess'));
+					this.applyInviteState(volunteerIds, 'da_dang_ky');
+					this.selectedInviteIds = this.selectedInviteIds.filter((id) => !volunteerIds.includes(id));
+					const invitedCount = Number(res.data?.data?.invited_count || 0);
+					if (invitedCount > 0) {
+						this.allocationSummary = {
+							...this.allocationSummary,
+							so_dang_ky_hien_tai: Number(this.allocationSummary.so_dang_ky_hien_tai || 0) + invitedCount,
+						};
+					}
+				} catch (error) {
 				this.toast?.showToast('error', this.$t('common.error'), error.response?.data?.message || this.$t('coordinationScreen.inviteError'));
 			} finally {
 				this.inviteLoading = false;

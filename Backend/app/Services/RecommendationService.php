@@ -149,6 +149,8 @@ class RecommendationService
                 'kyNangs:id,ten',
                 'khuVucs:id,ten',
                 'lichRanhs:id,nguoi_dung_id,thu_trong_tuan',
+                'kinhNghiems:id,nguoi_dung_id',
+                'chungChis:id,nguoi_dung_id',
             ])
             ->get();
 
@@ -205,6 +207,8 @@ class RecommendationService
                 'warnings' => $match['warnings'],
                 'reliability' => $reliabilityStats,
                 'registration_status' => $existingRegistration?->trang_thai,
+                'experience_count' => $match['experience_count'],
+                'certificate_count' => $match['certificate_count'],
             ];
         }
 
@@ -401,6 +405,8 @@ class RecommendationService
         $campaignSkillIds = $campaign->kyNangs->pluck('id')->map(fn ($id) => (int) $id)->all();
         $volunteerAreaIds = $volunteer->khuVucs->pluck('id')->map(fn ($id) => (int) $id)->all();
         $volunteerDays = $volunteer->lichRanhs->pluck('thu_trong_tuan')->filter()->values()->all();
+        $experienceCount = $volunteer->kinhNghiems->count();
+        $certificateCount = $volunteer->chungChis->count();
         $campaignWeekDays = $this->matchingScoreService->extractCampaignWeekdays($campaign);
         $matchedSkillCount = count(array_intersect($volunteerSkillIds, $campaignSkillIds));
         $distanceKm = $this->distanceService->haversine(
@@ -424,6 +430,7 @@ class RecommendationService
                 'time_preference' => $volunteer->khung_gio_uu_tien,
             ]),
             'reliability' => $this->matchingScoreService->calculateReliabilityScore($reliabilityStats),
+            'profile_strength' => $this->matchingScoreService->calculateProfileStrengthScore($experienceCount, $certificateCount),
         ];
 
         $finalScore = $this->matchingScoreService->calculateFinalScore($breakdown);
@@ -454,8 +461,19 @@ class RecommendationService
             'score_breakdown' => $breakdown,
             'warnings' => $warnings,
             'campaign_reasons' => $this->buildCampaignReasons($campaign, $campaignSkillIds, $volunteerSkillIds, $distanceKm, $breakdown['availability']),
-            'volunteer_reasons' => $this->buildVolunteerReasons($campaign, $campaignSkillIds, $volunteerSkillIds, $distanceKm, $breakdown['availability'], $reliabilityStats),
+            'volunteer_reasons' => $this->buildVolunteerReasons(
+                $campaign,
+                $campaignSkillIds,
+                $volunteerSkillIds,
+                $distanceKm,
+                $breakdown['availability'],
+                $reliabilityStats,
+                $experienceCount,
+                $certificateCount
+            ),
             'volunteer_days' => $volunteerDays,
+            'experience_count' => $experienceCount,
+            'certificate_count' => $certificateCount,
         ];
     }
 
@@ -509,7 +527,16 @@ class RecommendationService
         return array_values(array_unique($badges));
     }
 
-    private function buildVolunteerReasons(ChienDich $campaign, array $campaignSkillIds, array $volunteerSkillIds, ?float $distanceKm, float $availabilityScore, array $reliabilityStats): array
+    private function buildVolunteerReasons(
+        ChienDich $campaign,
+        array $campaignSkillIds,
+        array $volunteerSkillIds,
+        ?float $distanceKm,
+        float $availabilityScore,
+        array $reliabilityStats,
+        int $experienceCount,
+        int $certificateCount
+    ): array
     {
         $reasons = [];
         $matchedSkillCount = count(array_intersect($campaignSkillIds, $volunteerSkillIds));
@@ -530,6 +557,10 @@ class RecommendationService
 
         if (($reliabilityStats['avg_rating'] ?? 0) > 0) {
             $reasons[] = 'Có đánh giá tích cực từ các chiến dịch trước.';
+        }
+
+        if ($experienceCount > 0 || $certificateCount > 0) {
+            $reasons[] = "Hồ sơ có {$experienceCount} kinh nghiệm và {$certificateCount} chứng chỉ hỗ trợ thêm cho mức độ phù hợp.";
         }
 
         return array_slice($reasons, 0, 4);
@@ -693,6 +724,8 @@ class RecommendationService
             'warnings' => $match['warnings'] ?? [],
             'reliability' => $reliabilityStats,
             'registration_status' => $registrationStatus,
+            'experience_count' => $match['experience_count'] ?? 0,
+            'certificate_count' => $match['certificate_count'] ?? 0,
             'reason' => $reason,
         ];
     }
