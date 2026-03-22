@@ -6,7 +6,7 @@
 			icon="fa-solid fa-chart-line"
 			:breadcrumbs="[{ label: $t('common.home'), to: '/'}, { label: $t('coordinator.campaignManagement'), to: '/quan-ly-chien-dich'}, { label: $t('coordinator.monitoringReport') }]">
 			<template #actions>
-				<button class="btn btn-outline-success shadow-sm btn-sm" @click="exportReport">
+				<button class="btn btn-outline-success shadow-sm btn-sm" @click="exportReport" :disabled="!canManageReportMonitoring">
 					<i class="fa-solid fa-file-export me-1"></i>{{ $t('coordinator.exportReportBtn') }}
 				</button>
 			</template>
@@ -91,7 +91,7 @@
 							</select>
 						</div>
 						<div class="col-md-5 text-end">
-							<button class="btn btn-sm btn-outline-success rounded-pill px-3" @click="sendBulkEmail" :disabled="selectedVolunteers.length === 0">
+							<button class="btn btn-sm btn-outline-success rounded-pill px-3" @click="sendBulkEmail" :disabled="!canManageReportMonitoring || selectedVolunteers.length === 0">
 								<i class="fa-solid fa-envelope me-1"></i>{{ $t('coordinator.sendEmailBtn') }} <span v-if="selectedVolunteers.length > 0">({{ selectedVolunteers.length }})</span>
 							</button>
 						</div>
@@ -155,8 +155,8 @@
 												<i class="fa-solid fa-ellipsis-vertical small"></i>
 											</button>
 											<ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2">
-												<li><a class="dropdown-item small py-2" href="#" @click.prevent="openEmailModal(v)"><i class="fa-solid fa-envelope me-2 text-primary"></i>{{ $t('coordinator.sendEmailBtn') }}</a></li>
-												<li><a class="dropdown-item small py-2" href="#" @click.prevent="openRatingModal(v)"><i class="fa-solid fa-star me-2 text-warning"></i>{{ $t('campaignDetail.ratingAction') }}</a></li>
+												<li v-if="canManageReportMonitoring"><a class="dropdown-item small py-2" href="#" @click.prevent="openEmailModal(v)"><i class="fa-solid fa-envelope me-2 text-primary"></i>{{ $t('coordinator.sendEmailBtn') }}</a></li>
+												<li v-if="canManageReportMonitoring"><a class="dropdown-item small py-2" href="#" @click.prevent="openRatingModal(v)"><i class="fa-solid fa-star me-2 text-warning"></i>{{ $t('campaignDetail.ratingAction') }}</a></li>
 											</ul>
 										</div>
 									</td>
@@ -218,7 +218,7 @@
 										</span>
 									</td>
 									<td class="text-center">
-										<button class="btn btn-sm btn-primary rounded-pill px-3" @click="saveRating(v)" :disabled="!v.rating">
+										<button class="btn btn-sm btn-primary rounded-pill px-3" @click="saveRating(v)" :disabled="!canManageReportMonitoring || !v.rating">
 											<i class="fa-solid fa-save me-1"></i>{{ $t('coordinator.saveBtn') }}
 										</button>
 									</td>
@@ -236,7 +236,7 @@
 				<div class="card-footer bg-white border-top py-3 d-flex flex-wrap gap-2 justify-content-between align-items-center" v-if="attendedVolunteers.length > 0">
 					<span class="text-muted small">{{ $t('coordinator.ratedCountLabel') }} <strong>{{ attendedVolunteers.filter(v => v.rated).length }}</strong> / {{ attendedVolunteers.length }} {{ $t('campaignDetail.volunteerCol') }}</span>
 					<div class="d-flex gap-2">
-						<button class="btn btn-sm btn-outline-warning rounded-pill px-3" @click="sendRatingEmails">
+						<button class="btn btn-sm btn-outline-warning rounded-pill px-3" @click="sendRatingEmails" :disabled="!canManageReportMonitoring">
 							<i class="fa-solid fa-envelope me-1"></i>{{ $t('coordinator.sendResultEmailBtn') }}
 						</button>
 					</div>
@@ -310,7 +310,7 @@
 										<span class="fw-bold small text-success">{{ Math.round(activeCampaign.confirmed / activeCampaign.totalVolunteers * 100) }}%</span>
 									</div>
 									<hr class="my-1">
-									<button class="btn btn-success btn-sm w-100 rounded-pill" @click="exportReport">
+									<button class="btn btn-success btn-sm w-100 rounded-pill" @click="exportReport" :disabled="!canManageReportMonitoring">
 										<i class="fa-solid fa-download me-1"></i>{{ $t('coordinator.downloadPdfBtn') }}
 									</button>
 								</div>
@@ -361,7 +361,7 @@
 					</div>
 					<div class="modal-footer border-0 pt-0">
 						<button type="button" class="btn btn-light rounded-pill px-4" @click="showRatingModal = false">{{ $t('common.cancel') }}</button>
-						<button type="button" class="btn btn-primary rounded-pill px-4" @click="confirmModalRating" :disabled="!modalRating">
+						<button type="button" class="btn btn-primary rounded-pill px-4" @click="confirmModalRating" :disabled="!canManageReportMonitoring || !modalRating">
 							<i class="fa-solid fa-save me-1"></i>{{ $t('coordinator.saveRatingBtn') }}
 						</button>
 					</div>
@@ -394,7 +394,7 @@
 					</div>
 					<div class="modal-footer border-0 pt-0">
 						<button type="button" class="btn btn-light rounded-pill px-4" @click="showEmailModal = false">{{ $t('common.cancel') }}</button>
-						<button type="button" class="btn btn-primary rounded-pill px-4" @click="confirmSendEmail">
+						<button type="button" class="btn btn-primary rounded-pill px-4" @click="confirmSendEmail" :disabled="!canManageReportMonitoring">
 							<i class="fa-solid fa-paper-plane me-1"></i>{{ $t('coordinator.sendEmailBtn') }}
 						</button>
 					</div>
@@ -408,6 +408,7 @@
 <script>
 import PageHeader from '../../components/PageHeader.vue'
 import StatCards from '../../components/StatCards.vue'
+import { hasPermission } from '../../utils/permissions'
 
 export default {
 	name: 'GiamSatBaoCao',
@@ -437,6 +438,14 @@ export default {
 		}
 	},
 	computed: {
+		canManageReportMonitoring() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'campaign_report_monitoring.manage');
+			} catch (_error) {
+				return false;
+			}
+		},
 		isAllSelected() {
 			if (this.filteredTracking.length === 0) return false;
 			return this.filteredTracking.every(v => this.selectedVolunteers.includes(v.id));

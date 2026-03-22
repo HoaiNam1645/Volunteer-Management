@@ -7,9 +7,14 @@
 				</h4>
 				<p class="text-muted mb-0 small">{{ $t('admin.userManagement.subtitle') }}</p>
 			</div>
-			<button class="btn btn-primary rounded-pill px-4" @click="openAddModal">
-				<i class="fa-solid fa-user-plus me-2"></i>{{ $t('admin.userManagement.addUser') }}
-			</button>
+			<div class="d-flex align-items-center gap-2 flex-wrap">
+				<router-link v-if="canViewPermissions" to="/admin/phan-quyen" class="btn btn-outline-primary rounded-pill px-4">
+					<i class="fa-solid fa-shield-halved me-2"></i>{{ $t('admin.userManagement.permissionButton') }}
+				</router-link>
+				<button v-if="canManageUsers" class="btn btn-primary rounded-pill px-4" @click="openAddModal">
+					<i class="fa-solid fa-user-plus me-2"></i>{{ $t('admin.userManagement.addUser') }}
+				</button>
+			</div>
 		</div>
 
 		<ul class="nav nav-tabs admin-tabs mb-4">
@@ -127,11 +132,11 @@
 										<button class="btn btn-sm btn-outline-primary" :title="$t('admin.userManagement.actions.view')" @click="viewUser(user)">
 											<i class="fa-solid fa-eye"></i>
 										</button>
-										<button class="btn btn-sm btn-outline-secondary" :title="$t('admin.userManagement.actions.edit')" @click="openEditModal(user)">
+										<button v-if="canManageUsers" class="btn btn-sm btn-outline-secondary" :title="$t('admin.userManagement.actions.edit')" @click="openEditModal(user)">
 											<i class="fa-solid fa-pen"></i>
 										</button>
 										<button
-											v-if="user.trang_thai === 'cho_duyet'"
+											v-if="canManageUsers && user.trang_thai === 'cho_duyet'"
 											class="btn btn-sm btn-outline-success"
 											:title="$t('admin.userManagement.actions.approve')"
 											@click="confirmStatusChange(user, 'hoat_dong')"
@@ -139,7 +144,7 @@
 											<i class="fa-solid fa-check"></i>
 										</button>
 										<button
-											v-if="user.trang_thai === 'hoat_dong'"
+											v-if="canManageUsers && user.trang_thai === 'hoat_dong'"
 											class="btn btn-sm btn-outline-warning"
 											:title="$t('admin.userManagement.actions.lock')"
 											@click="confirmStatusChange(user, 'bi_khoa')"
@@ -148,7 +153,7 @@
 											<i class="fa-solid fa-lock"></i>
 										</button>
 										<button
-											v-if="user.trang_thai === 'bi_khoa'"
+											v-if="canManageUsers && user.trang_thai === 'bi_khoa'"
 											class="btn btn-sm btn-outline-info"
 											:title="$t('admin.userManagement.actions.unlock')"
 											@click="confirmStatusChange(user, 'hoat_dong')"
@@ -156,6 +161,7 @@
 											<i class="fa-solid fa-lock-open"></i>
 										</button>
 										<button
+											v-if="canManageUsers"
 											class="btn btn-sm btn-outline-danger"
 											:title="$t('admin.userManagement.actions.delete')"
 											@click="confirmDelete(user)"
@@ -369,6 +375,7 @@
 <script>
 import api from '../../services/api';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import { hasPermission } from '../../utils/permissions';
 
 export default {
 	name: 'QuanLyNguoiDung',
@@ -389,6 +396,7 @@ export default {
 			editingUserId: null,
 			viewingUser: null,
 			users: [],
+			currentUser: null,
 			currentUserId: null,
 			stats: { tong: 0, cho_duyet: 0, bi_khoa: 0, hoat_dong: 0 },
 			pagination: {
@@ -416,6 +424,12 @@ export default {
 		};
 	},
 	computed: {
+		canManageUsers() {
+			return hasPermission(this.currentUser, 'user_management.manage');
+		},
+		canViewPermissions() {
+			return hasPermission(this.currentUser, 'permission_management.view');
+		},
 		pages() {
 			const total = this.pagination.lastPage || 1;
 			const current = this.pagination.currentPage || 1;
@@ -464,8 +478,10 @@ export default {
 		loadCurrentUser() {
 			try {
 				const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+				this.currentUser = currentUser;
 				this.currentUserId = currentUser?.id || null;
 			} catch (_error) {
+				this.currentUser = null;
 				this.currentUserId = null;
 			}
 		},

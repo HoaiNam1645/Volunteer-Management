@@ -109,7 +109,7 @@
 							<i class="fa-solid fa-user-clock text-warning me-2"></i>{{ $t('admin.dashboard.approval.title') }}
 							<span class="badge bg-warning text-dark ms-2">5</span>
 						</h6>
-						<router-link to="/admin/nguoi-dung" class="btn btn-sm btn-outline-primary rounded-pill">{{ $t('admin.dashboard.approval.viewAll') }}</router-link>
+						<router-link v-if="canViewUsers" to="/admin/nguoi-dung" class="btn btn-sm btn-outline-primary rounded-pill">{{ $t('admin.dashboard.approval.viewAll') }}</router-link>
 					</div>
 					<div class="card-body p-0">
 						<div class="approval-item d-flex align-items-center gap-3 p-3 border-bottom" v-for="user in pendingUsers" :key="user.id">
@@ -120,7 +120,7 @@
 								<h6 class="mb-0 small fw-bold">{{ user.name }}</h6>
 								<span class="text-muted" style="font-size: 12px;">{{ user.email }} · {{ user.time }}</span>
 							</div>
-							<div class="d-flex gap-1">
+							<div v-if="canManageUsers" class="d-flex gap-1">
 								<button class="btn btn-sm btn-success rounded-pill px-3" @click="approveUser(user)">
 									<i class="fa-solid fa-check me-1"></i>{{ $t('admin.dashboard.approval.approve') }}
 								</button>
@@ -160,6 +160,8 @@
 </template>
 
 <script>
+import { hasPermission } from '../../utils/permissions';
+
 export default {
 	name: 'AdminDashboard',
 	props: {
@@ -167,6 +169,7 @@ export default {
 	},
 	data() {
 		return {
+			currentUser: null,
 			stats: [
 				{ labelKey: 'admin.dashboard.stats.totalUsers', value: '1,248', trend: '+12.5%', trendType: 'text', trendIcon: 'fa-arrow-up', trendClass: 'bg-success-subtle text-success', icon: 'fa-solid fa-users', bgClass: 'bg-primary-subtle text-primary' },
 				{ labelKey: 'admin.dashboard.stats.activeCampaigns', value: '24', trend: '+3', trendType: 'text', trendIcon: 'fa-arrow-up', trendClass: 'bg-success-subtle text-success', icon: 'fa-solid fa-flag', bgClass: 'bg-success-subtle text-success' },
@@ -203,7 +206,25 @@ export default {
 			]
 		}
 	},
+	created() {
+		this.loadCurrentUser();
+	},
+	computed: {
+		canManageUsers() {
+			return hasPermission(this.currentUser, 'user_management.manage');
+		},
+		canViewUsers() {
+			return hasPermission(this.currentUser, 'user_management.view');
+		},
+	},
 	methods: {
+		loadCurrentUser() {
+			try {
+				this.currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+			} catch (_error) {
+				this.currentUser = null;
+			}
+		},
 		getTrendText(stat) {
 			if (stat.trendType === 'i18nWeek') {
 				return this.$t('admin.dashboard.stats.thisWeekCount', { count: stat.trendCount });

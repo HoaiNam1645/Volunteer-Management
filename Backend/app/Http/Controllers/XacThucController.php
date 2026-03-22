@@ -275,10 +275,15 @@ class XacThucController extends Controller
             'status'  => 1,
             'message' => 'Đăng nhập thành công!',
             'data'    => [
-                'ho_ten'   => $nguoi_dung->ho_ten,
-                'email'    => $nguoi_dung->email,
-                'vai_tro'  => $nguoi_dung->vai_tro,
+                'id'           => $nguoi_dung->id,
+                'ho_ten'       => $nguoi_dung->ho_ten,
+                'email'        => $nguoi_dung->email,
+                'vai_tro'      => $nguoi_dung->vai_tro,
+                'trang_thai'   => $nguoi_dung->trang_thai,
                 'anh_dai_dien' => $nguoi_dung->anh_dai_dien,
+                'quyen_han'    => $nguoi_dung->layTatCaQuyen(),
+                'permissions'  => $nguoi_dung->layTatCaQuyen(),
+                'su_dung_mac_dinh' => $nguoi_dung->dangDungQuyenMacDinh(),
             ],
             'token'   => $token,
         ])->cookie($cookie);
@@ -325,6 +330,9 @@ class XacThucController extends Controller
                 'gioi_tinh'    => $user->gioi_tinh,
                 'vai_tro'      => $user->vai_tro,
                 'trang_thai'   => $user->trang_thai,
+                'quyen_han'    => $user->layTatCaQuyen(),
+                'permissions'  => $user->layTatCaQuyen(),
+                'su_dung_mac_dinh' => $user->dangDungQuyenMacDinh(),
             ],
         ]);
     }

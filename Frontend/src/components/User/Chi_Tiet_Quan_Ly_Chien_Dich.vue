@@ -13,7 +13,7 @@
 				<router-link to="/quan-ly-chien-dich" class="btn btn-outline-secondary btn-sm">
 					<i class="fa-solid fa-arrow-left me-1"></i>{{ $t('common.back') }}
 				</router-link>
-				<button class="btn btn-primary btn-sm" @click="isEditing = true" v-if="!isEditing">
+				<button class="btn btn-primary btn-sm" @click="isEditing = true" v-if="!isEditing && canManageCampaigns">
 					<i class="fa-regular fa-pen-to-square me-1"></i>{{ $t('common.edit') }}
 				</button>
 			</template>
@@ -317,13 +317,13 @@
 					<div class="card-body p-4">
 						<h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bolt me-2 text-warning"></i>{{ $t('campaignDetail.quickActions') }}</h6>
 						<div class="d-grid gap-2">
-							<button v-if="campaign.status === 'approved'" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('dang_dien_ra')">
+							<button v-if="canManageCampaigns && campaign.status === 'approved'" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('dang_dien_ra')">
 								<i class="fa-solid fa-play" style="width:16px"></i><span>{{ $t('coordinator.startCampaignBtn') }}</span>
 							</button>
-							<button v-if="campaign.status === 'active'" class="btn btn-outline-success btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('hoan_thanh')">
+							<button v-if="canManageCampaigns && campaign.status === 'active'" class="btn btn-outline-success btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('hoan_thanh')">
 								<i class="fa-solid fa-flag-checkered" style="width:16px"></i><span>{{ $t('coordinator.completeCampaignBtn') }}</span>
 							</button>
-							<button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push({ path: '/dieu-phoi-nhan-su', query: { campaign_id: String(campaign.id) } })">
+							<button v-if="canViewCoordination" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push({ path: '/dieu-phoi-nhan-su', query: { campaign_id: String(campaign.id) } })">
 								<i class="fa-solid fa-people-arrows" style="width:16px"></i><span>Đi đến màn điều phối</span>
 							</button>
 							<button class="btn btn-outline-success btn-sm d-flex align-items-center gap-2">
@@ -401,6 +401,7 @@
 import PageHeader from '../../components/PageHeader.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
 import api from '../../services/api'
+import { hasPermission } from '../../utils/permissions'
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
 const STATUS_MAP = { cho_duyet: 'pending', tu_choi: 'rejected', da_duyet: 'approved', dang_dien_ra: 'active', hoan_thanh: 'completed', da_huy: 'cancelled', yeu_cau_huy: 'pending_cancel', nhap: 'draft' };
@@ -466,10 +467,26 @@ export default {
 		},
 		progressPercent() { return this.campaign.maxVolunteers ? Math.round(this.campaign.registered / this.campaign.maxVolunteers * 100) : 0; },
 		ratedCount() { return this.volunteers.filter(v => v.rating > 0).length; },
-			statusAlertClass() {
+		canManageCampaigns() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'volunteer_campaigns.manage');
+			} catch (_error) {
+				return false;
+			}
+		},
+		canViewCoordination() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'campaign_coordination.view');
+			} catch (_error) {
+				return false;
+			}
+		},
+		statusAlertClass() {
 				const m = { approved: 'alert-info', active: 'alert-success', pending: 'alert-warning', pending_cancel: 'alert-danger', completed: 'alert-secondary', cancelled: 'alert-danger', rejected: 'alert-dark', draft: 'alert-light' };
 				return m[this.campaign.status] || 'alert-info';
-			}
+		}
 	},
 	methods: {
 		getCategoryLabel(cat) {

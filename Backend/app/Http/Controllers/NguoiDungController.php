@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\NguoiDung;
+use App\Support\PermissionRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class NguoiDungController extends Controller
 {
@@ -62,6 +64,7 @@ class NguoiDungController extends Controller
     public function taoQuanLy(Request $request)
     {
         $payload = $this->validateAdminUser($request);
+        $payload['quyen_han'] = null;
 
         $user = NguoiDung::create($payload);
         $user->loadCount(['dangKyThamGias', 'chienDichs']);
@@ -85,6 +88,19 @@ class NguoiDungController extends Controller
         }
 
         $payload = $this->validateAdminUser($request, $user);
+
+        $vaiTroMoi = $payload['vai_tro'];
+        $trangThaiMoi = $payload['trang_thai'];
+        $quyenMoi = $vaiTroMoi !== $user->vai_tro
+            ? PermissionRegistry::defaultsForRole($vaiTroMoi)
+            : $user->layTatCaQuyen();
+
+        $this->assertSystemPermissionCoverage($user, $quyenMoi, $vaiTroMoi, $trangThaiMoi);
+
+        if ($vaiTroMoi !== $user->vai_tro) {
+            $payload['quyen_han'] = null;
+        }
+
         $user->update($payload);
         $user->loadCount(['dangKyThamGias', 'chienDichs']);
 
@@ -109,6 +125,8 @@ class NguoiDungController extends Controller
                 'message' => 'Bạn không thể tự khóa tài khoản của chính mình.',
             ], 422);
         }
+
+        $this->assertSystemPermissionCoverage($user, $user->layTatCaQuyen(), $user->vai_tro, $request->trang_thai);
 
         $updates = ['trang_thai' => $request->trang_thai];
         if ($request->trang_thai === 'hoat_dong' && !$user->xac_thuc_email_luc) {
@@ -136,6 +154,8 @@ class NguoiDungController extends Controller
             ], 422);
         }
 
+        $this->assertSystemPermissionCoverage($user, [], 'tinh_nguyen_vien', 'bi_khoa');
+
         $user->update([
             'xoa_luc' => now(),
         ]);
@@ -143,6 +163,119 @@ class NguoiDungController extends Controller
         return response()->json([
             'status'  => 1,
             'message' => 'Xóa người dùng thành công.',
+        ]);
+    }
+
+    public function danhSachPhanQuyen(Request $request)
+    {
+        $scopeConfig = $this->resolvePermissionScopeConfig($request->input('pham_vi'));
+        $query = NguoiDung::query()
+            ->whereNull('xoa_luc')
+            ->whereIn('vai_tro', $scopeConfig['roles']);
+
+        if ($request->filled('tu_khoa')) {
+            $tuKhoa = trim((string) $request->tu_khoa);
+            $query->where(function ($q) use ($tuKhoa) {
+                $q->where('ho_ten', 'like', "%{$tuKhoa}%")
+                    ->orWhere('email', 'like', "%{$tuKhoa}%")
+                    ->orWhere('so_dien_thoai', 'like', "%{$tuKhoa}%");
+            });
+        }
+
+        if ($request->filled('vai_tro')) {
+            $query->where('vai_tro', $request->vai_tro);
+        }
+
+        if ($request->filled('trang_thai')) {
+            $query->where('trang_thai', $request->trang_thai);
+        }
+
+        $users = $query
+            ->orderByDesc('vai_tro')
+            ->orderBy('ho_ten')
+            ->get()
+            ->map(fn (NguoiDung $user) => $this->permissionUserPayload($user, $scopeConfig['scope']));
+
+        if ($request->filled('che_do_quyen')) {
+            if ($request->che_do_quyen === 'mac_dinh') {
+                $users = $users->where('su_dung_mac_dinh_pham_vi', true);
+            }
+
+            if ($request->che_do_quyen === 'tuy_chinh') {
+                $users = $users->where('su_dung_mac_dinh_pham_vi', false);
+            }
+        }
+
+        $users = $users->values();
+
+        $statsBaseQuery = NguoiDung::query()
+            ->whereNull('xoa_luc')
+            ->whereIn('vai_tro', $scopeConfig['roles']);
+
+        $statsUsers = $statsBaseQuery
+            ->get()
+            ->map(fn (NguoiDung $user) => $this->permissionUserPayload($user, $scopeConfig['scope']));
+
+        return response()->json([
+            'status'  => 1,
+            'message' => 'Láº¥y danh sÃ¡ch phÃ¢n quyá»n thÃ nh cÃ´ng.',
+            'data'    => $users,
+            'meta'    => [
+                'stats' => [
+                    'tong'       => (clone $statsBaseQuery)->count(),
+                    'admin'      => (clone $statsBaseQuery)->where('vai_tro', 'quan_tri_vien')->count(),
+                    'kiem_duyet' => (clone $statsBaseQuery)->where('vai_tro', 'kiem_duyet_vien')->count(),
+                    'tinh_nguyen_vien' => (clone $statsBaseQuery)->where('vai_tro', 'tinh_nguyen_vien')->count(),
+                    'mac_dinh'   => $statsUsers->where('su_dung_mac_dinh_pham_vi', true)->count(),
+                    'tuy_chinh'  => $statsUsers->where('su_dung_mac_dinh_pham_vi', false)->count(),
+                ],
+                'scope'                 => $scopeConfig['scope'],
+                'available_permissions' => PermissionRegistry::permissionsForScope($scopeConfig['scope']),
+            ],
+        ]);
+    }
+
+    public function capNhatPhanQuyen(Request $request, int $id)
+    {
+        $scopeConfig = $this->resolvePermissionScopeConfig($request->input('pham_vi'));
+        $scopePermissions = PermissionRegistry::permissionsForScope($scopeConfig['scope']);
+
+        $user = NguoiDung::query()
+            ->whereNull('xoa_luc')
+            ->whereIn('vai_tro', $scopeConfig['roles'])
+            ->findOrFail($id);
+
+        $validated = $request->validate([
+            'su_dung_mac_dinh' => 'nullable|boolean',
+            'quyen_han'        => 'nullable|array',
+            'quyen_han.*'      => ['string', Rule::in($scopePermissions)],
+        ]);
+
+        $suDungMacDinh = (bool) ($validated['su_dung_mac_dinh'] ?? false);
+        $quyenTheoPhamVi = $suDungMacDinh
+            ? PermissionRegistry::defaultPermissionsForRoleAndScope($user->vai_tro, $scopeConfig['scope'])
+            : PermissionRegistry::permissionsForScopeFromList($validated['quyen_han'] ?? [], $scopeConfig['scope']);
+
+        $quyenNgoaiPhamVi = array_values(array_diff($user->layTatCaQuyen(), $scopePermissions));
+        $quyenHan = PermissionRegistry::normalize(array_merge($quyenNgoaiPhamVi, $quyenTheoPhamVi));
+
+        $this->assertSystemPermissionCoverage($user, $quyenHan, $user->vai_tro, $user->trang_thai);
+
+        $suDungMacDinhToanBo = $this->samePermissions(
+            $quyenHan,
+            PermissionRegistry::defaultsForRole($user->vai_tro)
+        );
+
+        $user->update([
+            'quyen_han' => $suDungMacDinhToanBo ? null : $quyenHan,
+        ]);
+
+        return response()->json([
+            'status'  => 1,
+            'message' => $suDungMacDinh
+                ? 'ÄÃ£ khÃ´i phá»¥c gá»‘i quyá»n máº·c Ä‘á»‹nh theo vai trÃ².'
+                : 'Cáº­p nháº­t phÃ¢n quyá»n thÃ nh cÃ´ng.',
+            'data'    => $this->permissionUserPayload($user->fresh(), $scopeConfig['scope']),
         ]);
     }
 
@@ -183,6 +316,7 @@ class NguoiDungController extends Controller
         $campaignCount = $user->vai_tro === 'tinh_nguyen_vien'
             ? (int) ($user->dang_ky_tham_gias_count ?? 0)
             : (int) ($user->chien_dichs_count ?? 0);
+        $permissions = $user->layTatCaQuyen();
 
         return [
             'id'                => $user->id,
@@ -196,13 +330,100 @@ class NguoiDungController extends Controller
             'da_xac_thuc_email' => !is_null($user->xac_thuc_email_luc),
             'tao_luc'           => $user->tao_luc,
             'campaign_count'    => $campaignCount,
+            'quyen_han'         => $permissions,
+            'permissions'       => $permissions,
+            'so_luong_quyen'    => count($permissions),
+            'su_dung_mac_dinh'  => $user->dangDungQuyenMacDinh(),
         ];
     }
 
     // ======================== LẤY THÔNG TIN CÁ NHÂN ========================
+    private function permissionUserPayload(NguoiDung $user, string $scope = 'admin'): array
+    {
+        $permissions = $user->layTatCaQuyen();
+        $scopePermissions = PermissionRegistry::permissionsForScopeFromList($permissions, $scope);
+        $scopeDefaultPermissions = PermissionRegistry::defaultPermissionsForRoleAndScope($user->vai_tro, $scope);
+
+        return [
+            'id'                => $user->id,
+            'ho_ten'            => $user->ho_ten,
+            'email'             => $user->email,
+            'so_dien_thoai'     => $user->so_dien_thoai,
+            'vai_tro'           => $user->vai_tro,
+            'trang_thai'        => $user->trang_thai,
+            'anh_dai_dien'      => $user->anh_dai_dien,
+            'xac_thuc_email_luc'=> $user->xac_thuc_email_luc,
+            'da_xac_thuc_email' => !is_null($user->xac_thuc_email_luc),
+            'quyen_han'         => $permissions,
+            'permissions'       => $permissions,
+            'quyen_mac_dinh'    => PermissionRegistry::defaultsForRole($user->vai_tro),
+            'scope'             => $scope,
+            'scope_permissions' => $scopePermissions,
+            'scope_default_permissions' => $scopeDefaultPermissions,
+            'su_dung_mac_dinh'  => $user->dangDungQuyenMacDinh(),
+            'su_dung_mac_dinh_pham_vi' => $this->samePermissions($scopePermissions, $scopeDefaultPermissions),
+            'so_luong_quyen'    => count($permissions),
+            'tao_luc'           => $user->tao_luc,
+        ];
+    }
+
+    private function samePermissions(array $left, array $right): bool
+    {
+        $normalize = fn (array $permissions) => collect($permissions)->sort()->values()->all();
+
+        return $normalize($left) === $normalize($right);
+    }
+
+    private function resolvePermissionScopeConfig(?string $scope): array
+    {
+        $scope = PermissionRegistry::normalizeScope($scope);
+
+        return [
+            'scope' => $scope,
+            'roles' => $scope === 'user'
+                ? ['tinh_nguyen_vien', 'kiem_duyet_vien', 'quan_tri_vien']
+                : ['kiem_duyet_vien', 'quan_tri_vien'],
+        ];
+    }
+
+    private function assertSystemPermissionCoverage(
+        ?NguoiDung $targetUser,
+        array $permissions,
+        string $role,
+        string $status
+    ): void {
+        $requiredPermission = 'permission_management.manage';
+
+        $targetStillHasPermission = $status !== 'bi_khoa'
+            && in_array($role, ['kiem_duyet_vien', 'quan_tri_vien'], true)
+            && in_array($requiredPermission, $permissions, true);
+
+        if ($targetStillHasPermission) {
+            return;
+        }
+
+        $otherUsers = NguoiDung::query()
+            ->whereNull('xoa_luc')
+            ->where('trang_thai', '!=', 'bi_khoa')
+            ->whereIn('vai_tro', ['kiem_duyet_vien', 'quan_tri_vien'])
+            ->when($targetUser, fn ($query) => $query->where('id', '!=', $targetUser->id))
+            ->get();
+
+        $hasCoverage = $otherUsers->contains(
+            fn (NguoiDung $user) => in_array($requiredPermission, $user->layTatCaQuyen(), true)
+        );
+
+        if (!$hasCoverage) {
+            throw ValidationException::withMessages([
+                'quyen_han' => ['Hệ thống cần ít nhất một tài khoản đang hoạt động có quyền phân quyền.'],
+            ]);
+        }
+    }
+
     public function layThongTin(Request $request)
     {
         $user = auth('api')->user();
+        $permissions = $user->layTatCaQuyen();
 
         return response()->json([
             'status'  => 1,
@@ -223,6 +444,10 @@ class NguoiDungController extends Controller
                 'vi_do'           => $user->vi_do,
                 'kinh_do'         => $user->kinh_do,
                 'vai_tro'         => $user->vai_tro,
+                'trang_thai'      => $user->trang_thai,
+                'quyen_han'       => $permissions,
+                'permissions'     => $permissions,
+                'su_dung_mac_dinh'=> $user->dangDungQuyenMacDinh(),
                 'tuy_chon_thong_bao' => $user->tuy_chon_thong_bao,
             ],
         ]);

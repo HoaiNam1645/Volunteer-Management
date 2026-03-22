@@ -21,7 +21,7 @@
 				<div class="nav-section">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.overview') }}</span>
 					<ul class="nav flex-column">
-						<li class="nav-item" v-if="!isReviewer">
+						<li class="nav-item" v-if="can('dashboard.view')">
 							<router-link to="/admin" class="nav-link" :class="{ active: $route.path === '/admin' }">
 								<i class="fa-solid fa-gauge-high"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.dashboard') }}</span>
@@ -30,16 +30,22 @@
 					</ul>
 				</div>
 
-				<div class="nav-section">
+				<div class="nav-section" v-if="can('user_management.view') || can('campaign_review.view') || can('category_management.view')">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.management') }}</span>
 					<ul class="nav flex-column">
-						<li class="nav-item" v-if="!isReviewer">
+						<li class="nav-item" v-if="can('user_management.view')">
 							<router-link to="/admin/nguoi-dung" class="nav-link" :class="{ active: $route.path.startsWith('/admin/nguoi-dung') }">
 								<i class="fa-solid fa-users"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.users') }}</span>
 							</router-link>
 						</li>
-						<li class="nav-item" v-if="!isReviewer">
+						<li class="nav-item" v-if="can('campaign_review.view')">
+							<router-link to="/admin/chien-dich" class="nav-link" :class="{ active: $route.path.startsWith('/admin/chien-dich') }">
+								<i class="fa-solid fa-flag"></i>
+								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.campaigns') }}</span>
+							</router-link>
+						</li>
+						<li class="nav-item" v-if="can('category_management.view')">
 							<router-link to="/admin/danh-muc" class="nav-link" :class="{ active: $route.path.startsWith('/admin/danh-muc') }">
 								<i class="fa-solid fa-layer-group"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.categories') }}</span>
@@ -48,7 +54,7 @@
 					</ul>
 				</div>
 
-				<div class="nav-section" v-if="!isReviewer">
+				<div class="nav-section" v-if="can('ai_management.view')">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.aiSystem') }}</span>
 					<ul class="nav flex-column">
 						<li class="nav-item">
@@ -61,13 +67,31 @@
 					</ul>
 				</div>
 
-				<div class="nav-section" v-if="!isReviewer">
+				<div class="nav-section" v-if="can('statistics.view')">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.reports') }}</span>
 					<ul class="nav flex-column">
 						<li class="nav-item">
 							<router-link to="/admin/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/admin/thong-ke') }">
 								<i class="fa-solid fa-chart-pie"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.statistics') }}</span>
+							</router-link>
+						</li>
+					</ul>
+				</div>
+
+				<div class="nav-section" v-if="can('permission_management.view')">
+					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.permissionSection') }}</span>
+					<ul class="nav flex-column">
+						<li class="nav-item">
+							<router-link to="/admin/phan-quyen" class="nav-link" :class="{ active: $route.path === '/admin/phan-quyen' }">
+								<i class="fa-solid fa-shield-keyhole"></i>
+								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.permissions') }}</span>
+							</router-link>
+						</li>
+						<li class="nav-item">
+							<router-link to="/admin/phan-quyen-nguoi-dung" class="nav-link" :class="{ active: $route.path === '/admin/phan-quyen-nguoi-dung' }">
+								<i class="fa-solid fa-user-lock"></i>
+								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.userPermissions') }}</span>
 							</router-link>
 						</li>
 					</ul>
@@ -111,8 +135,8 @@
 						</button>
 						<ul class="dropdown-menu dropdown-menu-end p-0 shadow overflow-hidden" style="width: 300px;">
 							<li class="bg-light p-3 border-bottom d-flex justify-content-between align-items-center">
-								<h6 class="mb-0 fw-bold">Thông báo</h6>
-								<small class="text-primary cursor-pointer">Đánh dấu tất cả đã đọc</small>
+								<h6 class="mb-0 fw-bold">{{ $t('admin.layout.notifications.title') }}</h6>
+								<small class="text-primary cursor-pointer">{{ $t('admin.layout.notifications.markAllRead') }}</small>
 							</li>
 							<li>
 								<a class="dropdown-item p-3 border-bottom text-wrap" href="#">
@@ -121,8 +145,8 @@
 											<i class="fa-solid fa-flag"></i>
 										</div>
 										<div>
-											<p class="mb-1 fw-medium small">Chiến dịch Mùa hè xanh chờ xét duyệt</p>
-											<p class="mb-0 text-muted" style="font-size: 11px;">10 phút trước</p>
+											<p class="mb-1 fw-medium small">{{ $t('admin.layout.notifications.pendingCampaign') }}</p>
+											<p class="mb-0 text-muted" style="font-size: 11px;">{{ $t('admin.layout.notifications.pendingCampaignTime') }}</p>
 										</div>
 									</div>
 								</a>
@@ -134,13 +158,13 @@
 											<i class="fa-solid fa-user-plus"></i>
 										</div>
 										<div>
-											<p class="mb-1 fw-medium small">Có 5 đăng ký TNV mới</p>
-											<p class="mb-0 text-muted" style="font-size: 11px;">1 giờ trước</p>
+											<p class="mb-1 fw-medium small">{{ $t('admin.layout.notifications.newRegistrations') }}</p>
+											<p class="mb-0 text-muted" style="font-size: 11px;">{{ $t('admin.layout.notifications.newRegistrationsTime') }}</p>
 										</div>
 									</div>
 								</a>
 							</li>
-							<li><a class="dropdown-item text-center text-primary py-2 small fw-bold bg-light" href="#">Xem tất cả thông báo</a></li>
+							<li><a class="dropdown-item text-center text-primary py-2 small fw-bold bg-light" href="#">{{ $t('admin.layout.notifications.viewAll') }}</a></li>
 						</ul>
 					</div>
 					<router-link to="/" class="btn btn-outline-primary btn-sm rounded-pill px-3">
@@ -157,9 +181,9 @@
 							<li><a class="dropdown-item" href="#"><i class="fa-solid fa-gear me-2"></i>{{ $t('admin.layout.settings') }}</a></li>
 							<li><hr class="dropdown-divider"></li>
 							<li>
-								<router-link class="dropdown-item text-danger" to="/dang-nhap">
+								<button type="button" class="dropdown-item text-danger" @click="handleLogout">
 									<i class="fa-solid fa-right-from-bracket me-2"></i>{{ $t('admin.layout.logout') }}
-								</router-link>
+								</button>
 							</li>
 						</ul>
 					</div>
@@ -183,6 +207,8 @@
 <script>
 import ToastNotification from '../../components/ToastNotification.vue';
 import LanguageSwitcher from '../../components/LanguageSwitcher.vue';
+import api from '../../services/api';
+import { hasPermission } from '../../utils/permissions';
 
 export default {
 	name: 'BoCucAdmin',
@@ -202,7 +228,7 @@ export default {
 			return this.currentUser?.ho_ten || this.$t('admin.layout.admin');
 		},
 		profileRole() {
-			return this.isReviewer ? 'Kiểm duyệt viên' : this.$t('admin.layout.adminRole');
+			return this.isReviewer ? this.$t('admin.layout.reviewerRole') : this.$t('admin.layout.adminRole');
 		}
 	},
 	provide() {
@@ -220,9 +246,30 @@ export default {
 		this.loadCurrentUser();
 	},
 	mounted() {
-		// keeping mounted just in case, though toastRef is not needed anymore
+		window.addEventListener('user-updated', this.handleUserUpdated);
+	},
+	beforeUnmount() {
+		window.removeEventListener('user-updated', this.handleUserUpdated);
 	},
 	methods: {
+		can(permission) {
+			return hasPermission(this.currentUser, permission);
+		},
+		handleUserUpdated() {
+			this.loadCurrentUser();
+		},
+		async handleLogout() {
+			try {
+				await api.post('/xac-thuc/dang-xuat');
+			} catch (_error) {
+				// Ignore logout API errors and clear client state anyway.
+			}
+			localStorage.removeItem('token');
+			localStorage.removeItem('user');
+			this.currentUser = null;
+			window.dispatchEvent(new CustomEvent('user-updated'));
+			this.$router.replace('/dang-nhap');
+		},
 		loadCurrentUser() {
 			try {
 				this.currentUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -258,6 +305,9 @@ export default {
 .admin-wrapper {
 	display: flex;
 	min-height: 100vh;
+	width: 100%;
+	max-width: 100%;
+	overflow-x: hidden;
 	background: #f0f2f5;
 }
 
@@ -416,15 +466,21 @@ export default {
 
 /* ===== Main Content ===== */
 .admin-main {
-	flex-grow: 1;
+	flex: 0 0 calc(100% - 260px);
+	width: calc(100% - 260px);
+	max-width: calc(100% - 260px);
+	min-width: 0;
 	margin-left: 260px;
 	display: flex;
 	flex-direction: column;
-	transition: margin-left 0.3s ease;
+	transition: margin-left 0.3s ease, width 0.3s ease, max-width 0.3s ease;
 }
 
 .sidebar-collapsed .admin-main {
 	margin-left: 72px;
+	flex-basis: calc(100% - 72px);
+	width: calc(100% - 72px);
+	max-width: calc(100% - 72px);
 }
 
 /* ===== Header ===== */
@@ -434,6 +490,7 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	min-width: 0;
 	border-bottom: 1px solid #e9ecef;
 	position: sticky;
 	top: 0;
@@ -475,6 +532,9 @@ export default {
 .admin-content {
 	flex-grow: 1;
 	padding: 24px;
+	min-width: 0;
+	max-width: 100%;
+	overflow-x: hidden;
 }
 
 /* ===== Mobile Overlay ===== */
@@ -495,6 +555,9 @@ export default {
 
 	.admin-main {
 		margin-left: 0 !important;
+		flex-basis: 100%;
+		width: 100%;
+		max-width: 100%;
 	}
 
 	.sidebar-overlay {

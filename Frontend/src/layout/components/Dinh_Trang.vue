@@ -132,7 +132,7 @@
 					</div>
 				</a>
 				<ul class="dropdown-menu dropdown-menu-end">
-					<li><router-link class="dropdown-item" to="/thong-tin-ca-nhan"><i class="bx bx-user"></i><span>{{ $t('header.myProfile') }}</span></router-link></li>
+					<li v-if="can('account_center.view')"><router-link class="dropdown-item" to="/thong-tin-ca-nhan"><i class="bx bx-user"></i><span>{{ $t('header.myProfile') }}</span></router-link></li>
 					<li><a class="dropdown-item" href="javascript:;"><i class="bx bx-cog"></i><span>{{ $t('header.settings') }}</span></a></li>
 					<li><div class="dropdown-divider mb-0"></div></li>
 					<li>
@@ -158,6 +158,7 @@
 <script>
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import api from '@/services/api.js';
+import { hasPermission } from '@/utils/permissions';
 
 export default {
 	components: {
@@ -188,14 +189,19 @@ export default {
 	},
 	mounted() {
 		document.addEventListener('click', this.handleOutsideClick);
+		window.addEventListener('user-updated', this.loadUser);
 	},
 	beforeUnmount() {
 		document.removeEventListener('click', this.handleOutsideClick);
+		window.removeEventListener('user-updated', this.loadUser);
 		if (this.searchDebounceTimer) {
 			clearTimeout(this.searchDebounceTimer);
 		}
 	},
 	methods: {
+		can(permission) {
+			return hasPermission(this.currentUser, permission);
+		},
 		loadUser() {
 			const userData = localStorage.getItem('user');
 			if (userData) {

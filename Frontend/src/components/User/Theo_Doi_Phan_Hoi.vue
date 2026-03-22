@@ -200,10 +200,10 @@
 				<button type="button" class="list-group-item list-group-item-action small py-2 text-start" @click="handleViewDetailFromMenu">
 					<i class="fa-regular fa-eye me-2 text-primary"></i>{{ $t('feedback.actions.viewDetail') }}
 				</button>
-				<button v-if="actionMenu.item.co_the_danh_gia_chien_dich" type="button" class="list-group-item list-group-item-action small py-2 text-start" @click="handleFeedbackFromMenu">
+				<button v-if="canManageFeedback && actionMenu.item.co_the_danh_gia_chien_dich" type="button" class="list-group-item list-group-item-action small py-2 text-start" @click="handleFeedbackFromMenu">
 					<i class="fa-solid fa-comment me-2 text-success"></i>{{ $t('feedback.actions.sendFeedback') }}
 				</button>
-				<button v-if="actionMenu.item.co_the_report" type="button" class="list-group-item list-group-item-action small py-2 text-start text-danger" @click="handleReportFromMenu">
+				<button v-if="canManageFeedback && actionMenu.item.co_the_report" type="button" class="list-group-item list-group-item-action small py-2 text-start text-danger" @click="handleReportFromMenu">
 					<i class="fa-solid fa-flag me-2"></i>{{ $t('feedback.actions.reportCampaign') }}
 				</button>
 			</div>
@@ -241,7 +241,7 @@
 					</div>
 					<div class="modal-footer border-0 pt-0">
 						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeFeedbackModal">{{ $t('common.cancel') }}</button>
-						<button type="button" class="btn btn-primary rounded-pill px-4" @click="submitFeedback" :disabled="submittingFeedback || !feedbackRating">
+						<button type="button" class="btn btn-primary rounded-pill px-4" @click="submitFeedback" :disabled="!canManageFeedback || submittingFeedback || !feedbackRating">
 							<i class="fa-solid fa-paper-plane me-1"></i>{{ submittingFeedback ? $t('common.processing') : $t('feedback.actions.submit') }}
 						</button>
 					</div>
@@ -277,7 +277,7 @@
 					</div>
 					<div class="modal-footer border-0 pt-0">
 						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeReportModal">{{ $t('common.cancel') }}</button>
-						<button type="button" class="btn btn-danger rounded-pill px-4" @click="submitReport" :disabled="submittingReport">
+						<button type="button" class="btn btn-danger rounded-pill px-4" @click="submitReport" :disabled="!canManageFeedback || submittingReport">
 							<i class="fa-solid fa-paper-plane me-1"></i>{{ submittingReport ? $t('common.processing') : $t('feedback.actions.submit') }}
 						</button>
 					</div>
@@ -292,6 +292,7 @@
 import api from '@/services/api.js';
 import PageHeader from '../../components/PageHeader.vue';
 import StatCards from '../../components/StatCards.vue';
+import { hasPermission } from '@/utils/permissions';
 
 export default {
 	name: 'TheoDoiPhanHoi',
@@ -377,6 +378,14 @@ export default {
 				list = list.filter((h) => h.trang_thai_dang_ky === this.historyFilter);
 			}
 			return list;
+		},
+		canManageFeedback() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'feedback_tracking.manage');
+			} catch (_error) {
+				return false;
+			}
 		},
 	},
 	async mounted() {

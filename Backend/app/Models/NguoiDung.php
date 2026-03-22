@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PermissionRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -27,6 +28,7 @@ class NguoiDung extends Authenticatable implements JWTSubject
         'so_cccd',
         'gioi_thieu',
         'vai_tro',
+        'quyen_han',
         'trang_thai',
         'xac_thuc_email_luc',
         'xoa_luc',
@@ -50,6 +52,7 @@ class NguoiDung extends Authenticatable implements JWTSubject
         return [
             'xac_thuc_email_luc' => 'datetime',
             'mat_khau'           => 'hashed',
+            'quyen_han'          => 'array',
             'tao_luc'            => 'datetime',
             'cap_nhat_luc'       => 'datetime',
             'xoa_luc'            => 'datetime',
@@ -92,7 +95,32 @@ class NguoiDung extends Authenticatable implements JWTSubject
     {
         return [
             'vai_tro' => $this->vai_tro,
+            'quyen_han' => $this->layTatCaQuyen(),
         ];
+    }
+
+    public function dangDungQuyenMacDinh(): bool
+    {
+        return is_null($this->getRawOriginal('quyen_han'));
+    }
+
+    public function layQuyenMacDinhTheoVaiTro(): array
+    {
+        return PermissionRegistry::defaultsForRole($this->vai_tro);
+    }
+
+    public function layTatCaQuyen(): array
+    {
+        if ($this->dangDungQuyenMacDinh()) {
+            return $this->layQuyenMacDinhTheoVaiTro();
+        }
+
+        return PermissionRegistry::normalize($this->quyen_han ?? []);
+    }
+
+    public function coQuyen(string $permission): bool
+    {
+        return in_array($permission, $this->layTatCaQuyen(), true);
     }
 
     // ======================== RELATIONSHIPS ========================

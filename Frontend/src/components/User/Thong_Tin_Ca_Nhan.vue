@@ -229,7 +229,7 @@
 							<button type="button" class="btn btn-light rounded-pill px-4" @click="resetForm">
 								<i class="fa-solid fa-rotate-left me-1"></i>{{ $t('common.reset') }}
 							</button>
-							<button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" @click="savePersonalInfo" :disabled="savingPersonal">
+							<button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" @click="savePersonalInfo" :disabled="!canManageAccount || savingPersonal">
 								<i class="fa-solid fa-save me-1"></i>{{ savingPersonal ? $t('settings.saving') : $t('settings.saveInfo') }}
 							</button>
 						</div>
@@ -301,7 +301,7 @@
 											</div>
 										</div>
 
-										<button type="button" class="btn btn-warning rounded-pill px-4 w-100 shadow-sm" @click="changePassword" :disabled="!canChangePassword || savingPassword">
+										<button type="button" class="btn btn-warning rounded-pill px-4 w-100 shadow-sm" @click="changePassword" :disabled="!canManageAccount || !canChangePassword || savingPassword">
 											<i class="fa-solid fa-shield-halved me-1"></i>{{ savingPassword ? $t('settings.processing') : $t('settings.changePasswordBtn') }}
 										</button>
 									</div>
@@ -332,7 +332,7 @@
 									</div>
 								</div>
 								<div class="mt-4 text-end">
-									<button class="btn btn-primary rounded-pill px-4 shadow-sm" @click="saveNotifications">
+									<button class="btn btn-primary rounded-pill px-4 shadow-sm" @click="saveNotifications" :disabled="!canManageAccount">
 										<i class="fa-solid fa-save me-1"></i>{{ $t('settings.saveNoti') }}
 									</button>
 								</div>
@@ -348,6 +348,7 @@
 <script>
 import PageHeader from '../../components/PageHeader.vue';
 import api from '@/services/api.js';
+import { hasPermission } from '@/utils/permissions';
 
 const createInitialForm = () => ({
 	fullName: '',
@@ -479,6 +480,14 @@ export default {
 				&& this.passwordForm.newPassword.length >= 8
 				&& this.passwordForm.confirm === this.passwordForm.newPassword
 				&& this.passwordForm.newPassword !== this.passwordForm.current;
+		},
+		canManageAccount() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'account_center.manage');
+			} catch (_error) {
+				return false;
+			}
 		},
 	},
 	async mounted() {

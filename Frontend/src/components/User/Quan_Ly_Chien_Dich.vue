@@ -6,7 +6,7 @@
 			icon="fa-solid fa-flag"
 			:breadcrumbs="[{ label: $t('common.home'), to: '/'}, { label: $t('coordinator.campaignManagement') }]">
 			<template #actions>
-				<button class="btn btn-primary shadow-sm" @click="openCreateModal">
+				<button v-if="canManageCampaigns" class="btn btn-primary shadow-sm" @click="openCreateModal">
 					<i class="fa-solid fa-plus me-1 d-none d-sm-inline"></i>{{ $t('coordinator.createCampaign') }}
 				</button>
 			</template>
@@ -117,16 +117,16 @@
 										<button type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.viewDetailsMenu')" @click.prevent="viewCampaign(campaign)">
 											<i class="fa-regular fa-eye text-primary fs-6"></i>
 										</button>
-										<button type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.editMenu')" @click.prevent="editCampaign(campaign)">
+										<button v-if="canManageCampaigns" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.editMenu')" @click.prevent="editCampaign(campaign)">
 											<i class="fa-regular fa-pen-to-square text-warning fs-6"></i>
 										</button>
-										<button v-if="campaign.status === 'approved'" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.startCampaignMenu')" @click.prevent="confirmStatusChange(campaign, 'dang_dien_ra')">
+										<button v-if="canManageCampaigns && campaign.status === 'approved'" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.startCampaignMenu')" @click.prevent="confirmStatusChange(campaign, 'dang_dien_ra')">
 											<i class="fa-solid fa-play text-success fs-6"></i>
 										</button>
-										<button v-if="campaign.status === 'active'" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.completeCampaignMenu')" @click.prevent="confirmStatusChange(campaign, 'hoan_thanh')">
+										<button v-if="canManageCampaigns && campaign.status === 'active'" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.completeCampaignMenu')" @click.prevent="confirmStatusChange(campaign, 'hoan_thanh')">
 											<i class="fa-solid fa-flag-checkered text-success fs-6"></i>
 										</button>
-										<button type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.cancelCampaignMenu')" @click.prevent="confirmCancel(campaign)">
+										<button v-if="canManageCampaigns" type="button" class="btn btn-sm btn-light border-0 bg-transparent shadow-none" :title="$t('coordinator.cancelCampaignMenu')" @click.prevent="confirmCancel(campaign)">
 											<i class="fa-regular fa-trash-can text-danger fs-6"></i>
 										</button>
 									</div>
@@ -171,19 +171,19 @@
 								</div>
 							</div>
 							<div class="card-footer bg-transparent border-top py-2 d-flex gap-2">
-								<button class="btn btn-sm btn-outline-primary flex-fill d-flex align-items-center justify-content-center gap-1" @click="editCampaign(campaign)">
+								<button v-if="canManageCampaigns" class="btn btn-sm btn-outline-primary flex-fill d-flex align-items-center justify-content-center gap-1" @click="editCampaign(campaign)">
 									<i class="fa-regular fa-pen-to-square" style="font-size:12px"></i><span>{{ $t('coordinator.editBtn') }}</span>
 								</button>
 								<button class="btn btn-sm btn-outline-secondary flex-fill d-flex align-items-center justify-content-center gap-1" @click="viewCampaign(campaign)">
 									<i class="fa-regular fa-eye" style="font-size:12px"></i><span>{{ $t('coordinator.detailsBtn') }}</span>
 								</button>
-								<button v-if="campaign.status === 'approved'" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 10px;" :title="$t('coordinator.startCampaignMenu')" @click="confirmStatusChange(campaign, 'dang_dien_ra')">
+								<button v-if="canManageCampaigns && campaign.status === 'approved'" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 10px;" :title="$t('coordinator.startCampaignMenu')" @click="confirmStatusChange(campaign, 'dang_dien_ra')">
 									<i class="fa-solid fa-play" style="font-size:12px"></i>
 								</button>
-								<button v-else-if="campaign.status === 'active'" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 10px;" :title="$t('coordinator.completeCampaignMenu')" @click="confirmStatusChange(campaign, 'hoan_thanh')">
+								<button v-else-if="canManageCampaigns && campaign.status === 'active'" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 10px;" :title="$t('coordinator.completeCampaignMenu')" @click="confirmStatusChange(campaign, 'hoan_thanh')">
 									<i class="fa-solid fa-flag-checkered" style="font-size:12px"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 12px;" @click="confirmCancel(campaign)">
+								<button v-if="canManageCampaigns" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="width: 34px;height: 34px;padding-left: 12px;" @click="confirmCancel(campaign)">
 									<i class="fa-regular fa-circle-xmark" style="font-size:12px"></i>
 								</button>
 							</div>
@@ -377,7 +377,7 @@
 					</div>
 					<div class="modal-footer bg-light border-0 px-4">
 						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ $t('coordinator.cancelBtn') }}</button>
-						<button type="button" class="btn btn-primary shadow-sm" @click="saveCampaign">
+						<button type="button" class="btn btn-primary shadow-sm" @click="saveCampaign" :disabled="!canManageCampaigns">
 							<i class="fa-solid fa-paper-plane me-1"></i>{{ isEditing ? $t('coordinator.updateBtn') : $t('coordinator.submitBtn') }}
 						</button>
 					</div>
@@ -433,6 +433,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import StatCards from '../../components/StatCards.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
 import api from '../../services/api'
+import { hasPermission } from '../../utils/permissions'
 
 // Priority mapping: DB enum ↔ frontend key
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
@@ -515,6 +516,14 @@ export default {
 				name: this.$t(`skillNames.${i + 1}`),
 				icon: ['fa-solid fa-calendar-check','fa-solid fa-boxes-stacked','fa-solid fa-kit-medical','fa-solid fa-bullhorn','fa-solid fa-chalkboard-teacher','fa-solid fa-laptop-code','fa-solid fa-utensils','fa-solid fa-truck','fa-solid fa-brain','fa-solid fa-camera'][i]
 			}));
+		},
+		canManageCampaigns() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'volunteer_campaigns.manage');
+			} catch (_error) {
+				return false;
+			}
 		},
 		myCampaigns() {
 			return this.campaigns;

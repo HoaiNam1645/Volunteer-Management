@@ -7,7 +7,7 @@
 				icon="fa-solid fa-id-card-clip"
 				:breadcrumbs="[{ label: $t('common.home'), to: '/'}, { label: $t('profile.title') }]">
 				<template #actions>
-					<button class="btn btn-primary shadow-sm" @click="saveProfile" :disabled="saving">
+					<button class="btn btn-primary shadow-sm" @click="saveProfile" :disabled="!canManageProfile || saving">
 						<i class="fa-solid fa-save me-1"></i>{{ saving ? $t('profile.saving') : $t('profile.saveChanges') }}
 					</button>
 				</template>
@@ -270,6 +270,7 @@
 <script>
 import PageHeader from '../../components/PageHeader.vue'
 import api from '@/services/api.js'
+import { hasPermission } from '@/utils/permissions'
 
 export default {
 	name: 'HoSoNangLuc',
@@ -326,6 +327,14 @@ export default {
 			if (this.profile.experiences.length === 0) hints.push(this.$t('profile.incompleteExp'));
 			if (this.profile.certificates.length === 0) hints.push(this.$t('profile.incompleteCert'));
 			return hints;
+		},
+		canManageProfile() {
+			try {
+				const user = JSON.parse(localStorage.getItem('user') || 'null');
+				return hasPermission(user, 'competency_profile.manage');
+			} catch (_error) {
+				return false;
+			}
 		}
 	},
 	async mounted() {

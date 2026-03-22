@@ -1,7 +1,7 @@
 <template>
 	<div class="bg-light min-vh-100 pb-5">
 		<div class="container pt-4">
-			<div v-if="recommendationLoading" class="card border-0 shadow-sm mb-4">
+			<div v-if="canLoadRecommendations && recommendationLoading" class="card border-0 shadow-sm mb-4">
 				<div class="card-body p-4 d-flex align-items-center gap-3">
 					<div class="spinner-border text-primary" role="status"></div>
 					<div>
@@ -11,7 +11,7 @@
 				</div>
 			</div>
 
-			<div v-else-if="recommendedCampaigns.length > 0" class="card border-0 shadow-sm mb-4 recommendation-panel overflow-hidden">
+			<div v-else-if="canLoadRecommendations && recommendedCampaigns.length > 0" class="card border-0 shadow-sm mb-4 recommendation-panel overflow-hidden">
 				<div class="card-body p-4 p-lg-5">
 					<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
 						<div>
@@ -468,6 +468,7 @@
 
 <script>
 import api from '@/services/api.js';
+import { hasPermission } from '@/utils/permissions';
 
 export default {
 	name: 'DanhSachChienDich',
@@ -529,7 +530,9 @@ export default {
 			}
 		},
 		canLoadRecommendations() {
-			return !!localStorage.getItem('token') && this.currentUser?.vai_tro === 'tinh_nguyen_vien';
+			return !!localStorage.getItem('token')
+				&& this.currentUser?.vai_tro === 'tinh_nguyen_vien'
+				&& hasPermission(this.currentUser, 'ai_recommendation.view');
 		},
 		compareSkillSummary() {
 			if (!this.compareCampaign || !this.volunteerProfile) return { matched: [], missing: [], noRequirement: false };

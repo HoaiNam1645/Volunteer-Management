@@ -176,16 +176,16 @@
 									<button v-if="!isLoggedIn" class="btn btn-primary btn-lg fw-bold rounded-pill" @click="goToLogin">
 										{{ $t('campaignRegistration.loginToRegister') }}
 									</button>
-									<button v-else-if="campaign.canRegister" class="btn btn-primary btn-lg fw-bold rounded-pill" @click="openActionModal('register')">
+									<button v-else-if="canManageParticipation && campaign.canRegister" class="btn btn-primary btn-lg fw-bold rounded-pill" @click="openActionModal('register')">
 										{{ $t('campaignDetail.registerNow') }}
 									</button>
-									<button v-else-if="campaign.canConfirm" class="btn btn-success btn-lg fw-bold rounded-pill" @click="openActionModal('confirm')">
+									<button v-else-if="canManageParticipation && campaign.canConfirm" class="btn btn-success btn-lg fw-bold rounded-pill" @click="openActionModal('confirm')">
 										{{ $t('campaignRegistration.confirmJoin') }}
 									</button>
-									<button v-if="isLoggedIn && campaign.canCancelRegistration" class="btn btn-outline-danger btn-lg fw-bold rounded-pill" @click="openActionModal('cancel')">
+									<button v-if="isLoggedIn && canManageParticipation && campaign.canCancelRegistration" class="btn btn-outline-danger btn-lg fw-bold rounded-pill" @click="openActionModal('cancel')">
 										{{ $t('campaignRegistration.cancelRegistration') }}
 									</button>
-									<button v-if="isLoggedIn && !campaign.canRegister && !campaign.canConfirm && !campaign.canCancelRegistration" class="btn btn-light btn-lg fw-bold rounded-pill" disabled>
+									<button v-if="isLoggedIn && (!canManageParticipation || (!campaign.canRegister && !campaign.canConfirm && !campaign.canCancelRegistration))" class="btn btn-light btn-lg fw-bold rounded-pill" disabled>
 										{{ actionStateLabel }}
 									</button>
 								</div>
@@ -235,6 +235,7 @@
 
 <script>
 import api from '@/services/api.js';
+import { hasPermission } from '@/utils/permissions';
 
 export default {
 	name: 'ChiTietChienDichPublic',
@@ -295,6 +296,9 @@ export default {
 		},
 		isLoggedIn() {
 			return !!localStorage.getItem('token') && !!this.currentUser;
+		},
+		canManageParticipation() {
+			return hasPermission(this.currentUser, 'campaign_participation.manage');
 		},
 		creatorInitial() {
 			return (this.campaign.creatorName || this.$t('campaignDetail.creatorInitialFallback')).charAt(0).toUpperCase();

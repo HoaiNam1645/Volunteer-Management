@@ -148,60 +148,6 @@
 			</div>
 		</section>
 
-		<!-- Bài viết mới nhất -->
-		<section class="py-5">
-			<div class="container">
-				<div class="d-flex align-items-center justify-content-between mb-4">
-					<div>
-						<h4 class="fw-bold mb-1"><i class="fa-solid fa-newspaper text-primary me-2"></i>{{ $t('home.latestArticles') }}</h4>
-						<p class="text-muted mb-0">{{ $t('home.latestArticlesDesc') }}</p>
-					</div>
-					<router-link to="/bai-viet" class="btn btn-outline-primary btn-sm">{{ $t('common.viewAll') }} <i class="fa-solid fa-arrow-right ms-1"></i></router-link>
-				</div>
-				<div class="row g-4">
-					<div class="col-lg-6">
-						<div class="card h-100 article-card article-featured">
-							<div class="card-img-top article-banner bg-primary" :style="{ backgroundImage: articles[0].image ? `url(${articles[0].image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-								<div class="article-banner-overlay">
-									<span class="badge bg-warning text-dark mb-2">{{ $t('common.featured') }}</span>
-									<h4 class="text-white fw-bold mb-2">{{ articles[0].title }}</h4>
-									<p class="text-white-50 mb-3 small">{{ articles[0].summary }}</p>
-									<div class="d-flex gap-3 text-white-50 small">
-										<span><i class="fa-regular fa-clock me-1"></i>{{ articles[0].date }}</span>
-										<span><i class="fa-regular fa-eye me-1"></i>{{ articles[0].views }} {{ $t('common.views') }}</span>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="col-lg-6">
-						<div class="row g-4">
-							<div class="col-12" v-for="(article, index) in articles.slice(1)" :key="index">
-								<div class="card article-card article-small">
-									<div class="card-body">
-										<div class="d-flex gap-3">
-											<div class="article-thumb" :style="{ background: article.color }">
-												<i :class="article.icon" class="text-white"></i>
-											</div>
-											<div class="flex-grow-1">
-												<span class="badge mb-1" :class="article.badgeClass">{{ article.tag }}</span>
-												<h6 class="fw-bold mb-1">{{ article.title }}</h6>
-												<p class="text-muted small mb-2">{{ article.summary }}</p>
-												<div class="d-flex gap-3 text-muted small">
-													<span><i class="fa-regular fa-clock me-1"></i>{{ article.date }}</span>
-													<span><i class="fa-regular fa-eye me-1"></i>{{ article.views }} {{ $t('common.views') }}</span>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-
 		<!-- Quy trình tham gia -->
 		<section class="py-5">
 			<div class="container">
@@ -309,49 +255,6 @@ export default {
 					progressClass: 'bg-danger',
 					registered: 15,
 					total: 30,
-				}
-			],
-			articles: [
-				{
-					title: 'Chiến dịch "Mùa hè xanh" 2026 chính thức khởi động',
-					summary: 'Hàng nghìn sinh viên trên toàn quốc đã sẵn sàng tham gia chiến dịch tình nguyện lớn nhất trong năm.',
-					date: '05/03/2026',
-					views: '1.2K',
-					icon: 'fa-solid fa-sun',
-					color: '#0d6efd',
-					image: 'https://images.unsplash.com/photo-1529390079861-591de354faf5?w=800&q=80',
-					tag: this.$t('common.featured'),
-					badgeClass: 'bg-primary'
-				},
-				{
-					title: 'Câu chuyện TNV: Từ sinh viên đến kiểm duyệt viên',
-					summary: 'Hành trình đầy cảm hứng của bạn Minh Anh từ một tình nguyện viên mới đến người điều phối.',
-					date: '02/03/2026',
-					views: '890',
-					icon: 'fa-solid fa-heart',
-					color: '#dc3545',
-					tag: 'Câu chuyện',
-					badgeClass: 'bg-danger'
-				},
-				{
-					title: 'Kết quả chiến dịch "Trồng rừng phía Bắc" vượt mong đợi',
-					summary: 'Hơn 5.000 cây xanh đã được trồng thành công tại các tỉnh miền núi phía Bắc.',
-					date: '28/02/2026',
-					views: '654',
-					icon: 'fa-solid fa-tree',
-					color: '#198754',
-					tag: 'Kết quả',
-					badgeClass: 'bg-success'
-				},
-				{
-					title: 'Hướng dẫn đăng ký tham gia chiến dịch cho TNV mới',
-					summary: 'Bài viết hướng dẫn chi tiết cách tạo tài khoản, khai báo kỹ năng và đăng ký chiến dịch.',
-					date: '25/02/2026',
-					views: '432',
-					icon: 'fa-solid fa-circle-info',
-					color: '#0dcaf0',
-					tag: 'Hướng dẫn',
-					badgeClass: 'bg-info'
 				}
 			]
 		}
@@ -508,47 +411,6 @@ export default {
 	color: white;
 }
 
-/* ===== Articles ===== */
-.article-card {
-	border: 1px solid #e9ecef;
-	border-radius: 12px;
-	overflow: hidden;
-	transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.article-card:hover {
-	transform: translateY(-3px);
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.article-featured .article-banner {
-	height: 100%;
-	min-height: 380px;
-	display: flex;
-	align-items: flex-end;
-	border-radius: 12px;
-}
-
-.article-banner-overlay {
-	padding: 30px;
-	width: 100%;
-	background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-	border-radius: 0 0 12px 12px;
-}
-
-.article-thumb {
-	width: 60px;
-	height: 60px;
-	min-width: 60px;
-	border-radius: 12px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 22px;
-}
-
-.article-small { cursor: pointer; }
-
 /* ===== Steps ===== */
 .step-card {
 	border: 1px solid #e9ecef;
@@ -594,6 +456,5 @@ export default {
 
 @media (max-width: 991px) {
 	.hero-title { font-size: 28px; }
-	.article-featured .article-banner { min-height: 260px; }
 }
 </style>

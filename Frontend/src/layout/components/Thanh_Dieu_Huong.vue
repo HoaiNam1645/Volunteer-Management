@@ -33,7 +33,7 @@
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.campaignList') }}
 							</a>
 						</li>
-						<li v-if="userRole === 'tinh_nguyen_vien'">
+						<li v-if="can('volunteer_campaigns.view')">
 							<a class="dropdown-item" href="/quan-ly-chien-dich">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.myCampaigns') }}
 							</a>
@@ -42,19 +42,19 @@
 				</li>
 
 				<!-- Menu mở rộng cho tình nguyện viên -->
-				<li class="nav-item dropdown" v-if="userRole === 'tinh_nguyen_vien'">
+				<li class="nav-item dropdown" v-if="can('campaign_coordination.view') || can('campaign_report_monitoring.view')">
 					<a href="javascript:;" class="nav-link dropdown-toggle dropdown-toggle-nocaret"
 						data-bs-toggle="dropdown">
 						<div class="parent-icon"><i class="fa-solid fa-people-arrows"></i></div>
 						<div class="menu-title">{{ $t('nav.coordination') }}</div>
 					</a>
 					<ul class="dropdown-menu">
-						<li>
+						<li v-if="can('campaign_coordination.view')">
 							<a class="dropdown-item" href="/dieu-phoi-nhan-su">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.hrCoordination') }}
 							</a>
 						</li>
-						<li>
+						<li v-if="can('campaign_report_monitoring.view')">
 							<a class="dropdown-item" href="/giam-sat-bao-cao">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.monitorReport') }}
 							</a>
@@ -62,46 +62,25 @@
 					</ul>
 				</li>
 
-				<!-- Bài viết (always visible) -->
-				<li class="nav-item dropdown">
-					<a href="javascript:;" class="nav-link dropdown-toggle dropdown-toggle-nocaret"
-						data-bs-toggle="dropdown">
-						<div class="parent-icon"><i class="fa-solid fa-newspaper"></i></div>
-						<div class="menu-title">{{ $t('nav.articles') }}</div>
-					</a>
-					<ul class="dropdown-menu">
-						<li>
-							<a class="dropdown-item" href="/bai-viet">
-								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.articleList') }}
-							</a>
-						</li>
-						<li v-if="isLoggedIn">
-							<a class="dropdown-item" href="javascript:;">
-								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.newArticle') }}
-							</a>
-						</li>
-					</ul>
-				</li>
-
 				<!-- Hồ sơ (chỉ khi đã đăng nhập) -->
-				<li class="nav-item dropdown" v-if="isLoggedIn">
+				<li class="nav-item dropdown" v-if="isLoggedIn && hasProfileMenu">
 					<a href="javascript:;" class="nav-link dropdown-toggle dropdown-toggle-nocaret"
 						data-bs-toggle="dropdown">
 						<div class="parent-icon"><i class="fa-solid fa-id-card"></i></div>
 						<div class="menu-title">{{ $t('nav.profile') }}</div>
 					</a>
 					<ul class="dropdown-menu">
-						<li>
+						<li v-if="can('account_center.view')">
 							<a class="dropdown-item" href="/thong-tin-ca-nhan">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.accountSettings') }}
 							</a>
 						</li>
-						<li v-if="userRole === 'tinh_nguyen_vien'">
+						<li v-if="can('competency_profile.view')">
 							<a class="dropdown-item" href="/ho-so-nang-luc">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.competencyProfile') }}
 							</a>
 						</li>
-						<li v-if="userRole === 'tinh_nguyen_vien'">
+						<li v-if="can('feedback_tracking.view')">
 							<a class="dropdown-item" href="/theo-doi-phan-hoi">
 								<i class="bx bx-right-arrow-alt"></i>{{ $t('nav.trackingFeedback') }}
 							</a>
@@ -113,6 +92,8 @@
 	</div>
 </template>
 <script>
+import { hasPermission } from '../../utils/permissions';
+
 export default {
 	data() {
 		return {
@@ -125,12 +106,26 @@ export default {
 		},
 		userRole() {
 			return this.currentUser ? this.currentUser.vai_tro : null;
+		},
+		hasProfileMenu() {
+			return this.can('account_center.view')
+				|| this.can('competency_profile.view')
+				|| this.can('feedback_tracking.view');
 		}
 	},
 	created() {
 		this.loadUser();
 	},
+	mounted() {
+		window.addEventListener('user-updated', this.loadUser);
+	},
+	beforeUnmount() {
+		window.removeEventListener('user-updated', this.loadUser);
+	},
 	methods: {
+		can(permission) {
+			return hasPermission(this.currentUser, permission);
+		},
 		loadUser() {
 			const userData = localStorage.getItem('user');
 			if (userData) {

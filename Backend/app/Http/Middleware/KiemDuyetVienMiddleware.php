@@ -11,7 +11,11 @@ class KiemDuyetVienMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         $user = auth('api')->user();
-        if ($user && $user instanceof \App\Models\NguoiDung && $user->vai_tro == 'kiem_duyet_vien') {
+        if (
+            $user
+            && $user instanceof \App\Models\NguoiDung
+            && in_array($user->vai_tro, ['kiem_duyet_vien', 'quan_tri_vien'], true)
+        ) {
             return $next($request);
         }
         return response()->json([

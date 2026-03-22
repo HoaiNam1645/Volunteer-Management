@@ -10,7 +10,6 @@
 						<ul class="list-unstyled footer-links">
 							<li><router-link to="/">{{ $t('footer.home') }}</router-link></li>
 							<li><router-link to="/danh-sach-chien-dich">{{ $t('footer.campaigns') }}</router-link></li>
-							<li><router-link to="/bai-viet">{{ $t('footer.articles') }}</router-link></li>
 							<li><a href="#">{{ $t('footer.aboutUs') }}</a></li>
 						</ul>
 					</div>

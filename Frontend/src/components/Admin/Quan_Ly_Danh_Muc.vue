@@ -13,7 +13,7 @@
 					<div class="card-header bg-white border-bottom py-3">
 						<div class="d-flex align-items-center justify-content-between">
 							<h6 class="fw-bold mb-0"><i class="fa-solid fa-tools text-primary me-2"></i>{{ $t('admin.categories.skills.title') }}</h6>
-							<button class="btn btn-primary btn-sm rounded-pill px-3" @click="openAddModal('ky-nang')">
+							<button v-if="canManageCategories" class="btn btn-primary btn-sm rounded-pill px-3" @click="openAddModal('ky-nang')">
 								<i class="fa-solid fa-plus"></i>
 							</button>
 						</div>
@@ -37,7 +37,7 @@
 									{{ $t('admin.categories.skills.campaignsCount', { count: skill.chien_dich_count }) }}
 								</span>
 							</div>
-							<div class="btn-group btn-group-sm opacity-hover">
+							<div v-if="canManageCategories" class="btn-group btn-group-sm opacity-hover">
 								<button class="btn btn-outline-secondary btn-sm" @click="openEditModal('ky-nang', skill)">
 									<i class="fa-solid fa-pen"></i>
 								</button>
@@ -65,7 +65,7 @@
 					<div class="card-header bg-white border-bottom py-3">
 						<div class="d-flex align-items-center justify-content-between">
 							<h6 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-success me-2"></i>{{ $t('admin.categories.regions.title') }}</h6>
-							<button class="btn btn-success btn-sm rounded-pill px-3" @click="openAddModal('khu-vuc')">
+							<button v-if="canManageCategories" class="btn btn-success btn-sm rounded-pill px-3" @click="openAddModal('khu-vuc')">
 								<i class="fa-solid fa-plus"></i>
 							</button>
 						</div>
@@ -91,7 +91,7 @@
 									{{ $t('admin.categories.regions.campaignsCount', { count: region.chien_dich_count }) }}
 								</span>
 							</div>
-							<div class="btn-group btn-group-sm opacity-hover">
+							<div v-if="canManageCategories" class="btn-group btn-group-sm opacity-hover">
 								<button class="btn btn-outline-secondary btn-sm" @click="openEditModal('khu-vuc', region)">
 									<i class="fa-solid fa-pen"></i>
 								</button>
@@ -119,7 +119,7 @@
 					<div class="card-header bg-white border-bottom py-3">
 						<div class="d-flex align-items-center justify-content-between">
 							<h6 class="fw-bold mb-0"><i class="fa-solid fa-tags text-warning me-2"></i>{{ $t('admin.categories.types.title') }}</h6>
-							<button class="btn btn-warning btn-sm rounded-pill px-3 text-dark" @click="openAddModal('loai-chien-dich')">
+							<button v-if="canManageCategories" class="btn btn-warning btn-sm rounded-pill px-3 text-dark" @click="openAddModal('loai-chien-dich')">
 								<i class="fa-solid fa-plus"></i>
 							</button>
 						</div>
@@ -140,7 +140,7 @@
 								<p class="text-muted mb-1 small">{{ type.bieu_tuong || $t('admin.categories.common.noIcon') }}</p>
 								<span class="text-muted meta-text">{{ $t('admin.categories.types.campaignsCount', { count: type.chien_dich_count }) }}</span>
 							</div>
-							<div class="btn-group btn-group-sm opacity-hover">
+							<div v-if="canManageCategories" class="btn-group btn-group-sm opacity-hover">
 								<button class="btn btn-outline-secondary btn-sm" @click="openEditModal('loai-chien-dich', type)">
 									<i class="fa-solid fa-pen"></i>
 								</button>
@@ -217,7 +217,7 @@
 					</div>
 					<div class="modal-footer border-0 pt-0">
 						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeModal">{{ $t('admin.categories.form.cancelBtn') }}</button>
-						<button type="button" class="btn rounded-pill px-4" :class="getCategorySaveClass()" @click="saveCategoryItem">
+						<button v-if="canManageCategories" type="button" class="btn rounded-pill px-4" :class="getCategorySaveClass()" @click="saveCategoryItem">
 							<i :class="isEditing ? 'fa-solid fa-save' : 'fa-solid fa-plus'" class="me-1"></i>
 							{{ isEditing ? $t('admin.categories.form.updateBtn') : $t('admin.categories.form.addBtn') }}
 						</button>
@@ -245,6 +245,7 @@
 <script>
 import api from '../../services/api';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import { hasPermission } from '../../utils/permissions';
 
 export default {
 	name: 'QuanLyDanhMuc',
@@ -252,6 +253,7 @@ export default {
 	inject: ['toast'],
 	data() {
 		return {
+			currentUser: null,
 			searchSkills: '',
 			searchRegions: '',
 			searchTypes: '',
@@ -278,6 +280,9 @@ export default {
 		};
 	},
 	computed: {
+		canManageCategories() {
+			return hasPermission(this.currentUser, 'category_management.manage');
+		},
 		filteredSkills() {
 			if (!this.searchSkills) return this.skills;
 			return this.skills.filter((item) => item.ten.toLowerCase().includes(this.searchSkills.toLowerCase()));
@@ -292,9 +297,17 @@ export default {
 		},
 	},
 	created() {
+		this.loadCurrentUser();
 		this.fetchCategories();
 	},
 	methods: {
+		loadCurrentUser() {
+			try {
+				this.currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+			} catch (_error) {
+				this.currentUser = null;
+			}
+		},
 		defaultCategoryData() {
 			return {
 				ten: '',

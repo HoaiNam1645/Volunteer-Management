@@ -93,10 +93,10 @@
 							<div class="text-muted small">{{ $t('coordinationScreen.allocationDesc') }}</div>
 						</div>
 						<div class="d-flex gap-2">
-							<button class="btn btn-outline-primary btn-sm" :disabled="inviteLoading || selectedInviteIds.length === 0" @click="inviteSelectedVolunteers">
+							<button class="btn btn-outline-primary btn-sm" :disabled="!canManageCoordination || inviteLoading || selectedInviteIds.length === 0" @click="inviteSelectedVolunteers">
 								<i class="fa-solid fa-envelope me-1"></i>{{ $t('coordinationScreen.sendSelectedEmails', { count: selectedInviteIds.length }) }}
 							</button>
-							<button class="btn btn-success btn-sm" :disabled="inviteLoading || allocationPrimary.length === 0" @click="invitePrimaryGroup">
+							<button class="btn btn-success btn-sm" :disabled="!canManageCoordination || inviteLoading || allocationPrimary.length === 0" @click="invitePrimaryGroup">
 								<i class="fa-solid fa-paper-plane me-1"></i>{{ $t('coordinationScreen.inviteTop') }}
 							</button>
 						</div>
@@ -177,7 +177,7 @@
 												</div>
 												<div class="d-flex gap-2 flex-shrink-0">
 													<button class="btn btn-sm btn-light border rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.primaryGroup'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-													<button class="btn btn-sm btn-outline-primary rounded-pill px-3" :disabled="inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">{{ getInviteButtonLabel(volunteer) }}</button>
+													<button class="btn btn-sm btn-outline-primary rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">{{ getInviteButtonLabel(volunteer) }}</button>
 											</div>
 										</div>
 										<div class="mt-2">
@@ -245,7 +245,7 @@
 									</div>
 										<div class="d-flex gap-2 flex-shrink-0">
 											<button class="btn btn-sm btn-light border rounded-pill px-3" @click="openVolunteerDetail(mapExcludedVolunteerForUi(item), $t('coordinationScreen.excludedGroup'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-											<button class="btn btn-sm btn-primary rounded-pill px-3" :disabled="inviteLoading || !canInviteVolunteer(item)" @click="inviteVolunteers([item.id])">
+											<button class="btn btn-sm btn-primary rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(item)" @click="inviteVolunteers([item.id])">
 												{{ getInviteButtonLabel(item) }}
 											</button>
 										</div>
@@ -322,7 +322,7 @@
 										<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.recommendedVolunteers'))">
 										{{ $t('coordinationScreen.viewDetail') }}
 									</button>
-									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
+									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
 										{{ getInviteButtonLabel(volunteer) }}
 									</button>
 								</div>
@@ -379,7 +379,7 @@
 								</div>
 								<div class="d-flex gap-2 flex-shrink-0">
 									<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.profileHighlightTitle'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
+									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
 										{{ getInviteButtonLabel(volunteer) }}
 									</button>
 								</div>
@@ -604,11 +604,11 @@
 								<button
 									v-if="selectedVolunteerDetail.id"
 									type="button"
-								class="btn btn-primary rounded-pill px-4"
-								:disabled="inviteLoading || !canInviteVolunteer(selectedVolunteerDetail)"
-								@click="inviteVolunteers([selectedVolunteerDetail.id])">
-								{{ getInviteButtonLabel(selectedVolunteerDetail) }}
-							</button>
+									class="btn btn-primary rounded-pill px-4"
+									:disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(selectedVolunteerDetail)"
+									@click="inviteVolunteers([selectedVolunteerDetail.id])">
+									{{ getInviteButtonLabel(selectedVolunteerDetail) }}
+								</button>
 					</div>
 				</div>
 			</div>
@@ -621,6 +621,7 @@
 import PageHeader from '../../components/PageHeader.vue'
 import StatCards from '../../components/StatCards.vue'
 import api from '../../services/api'
+import { hasPermission } from '../../utils/permissions'
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
 
@@ -656,6 +657,14 @@ export default {
 			};
 		},
 		computed: {
+			canManageCoordination() {
+				try {
+					const user = JSON.parse(localStorage.getItem('user') || 'null');
+					return hasPermission(user, 'campaign_coordination.manage');
+				} catch (_error) {
+					return false;
+				}
+			},
 			activeCampaign() {
 				return this.campaigns.find((campaign) => String(campaign.id) === String(this.selectedCampaignId)) || null;
 			},
