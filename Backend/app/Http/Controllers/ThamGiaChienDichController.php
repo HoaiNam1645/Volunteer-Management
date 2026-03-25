@@ -320,7 +320,7 @@ class ThamGiaChienDichController extends Controller
 
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
-                'so_xac_nhan' => $campaign->dangKyThamGias()->where('trang_thai', 'da_xac_nhan')->count(),
+                'so_xac_nhan' => $campaign->dangKyThamGias()->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
             ]);
 
             $this->taoThongBaoChoDangKy(
@@ -401,7 +401,7 @@ class ThamGiaChienDichController extends Controller
 
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
-                'so_xac_nhan' => $campaign->dangKyThamGias()->where('trang_thai', 'da_xac_nhan')->count(),
+                'so_xac_nhan' => $campaign->dangKyThamGias()->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
             ]);
 
             $this->taoThongBaoChoDangKy(
@@ -477,7 +477,7 @@ class ThamGiaChienDichController extends Controller
 
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
-                'so_xac_nhan' => $campaign->dangKyThamGias()->where('trang_thai', 'da_xac_nhan')->count(),
+                'so_xac_nhan' => $campaign->dangKyThamGias()->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
             ]);
 
             $this->taoThongBaoChoDangKy(
@@ -677,7 +677,7 @@ class ThamGiaChienDichController extends Controller
             return false;
         }
 
-        return in_array($dangKy->trang_thai, ['da_dang_ky', 'da_xac_nhan'], true);
+        return in_array($dangKy->trang_thai, ['da_dang_ky', 'da_duyet', 'da_xac_nhan'], true);
     }
 
     private function coTheXacNhanThamGia(ChienDich $campaign, DangKyThamGia $dangKy): bool

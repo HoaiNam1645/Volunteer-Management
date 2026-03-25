@@ -23,6 +23,8 @@ class ChienDich extends Model
         'kinh_do',
         'ngay_bat_dau',
         'ngay_ket_thuc',
+        'thoi_gian_bat_dau_thuc_te',
+        'thoi_gian_ket_thuc_thuc_te',
         'han_dang_ky',
         'so_luong_toi_da',
         'so_luong_toi_thieu',
@@ -40,6 +42,8 @@ class ChienDich extends Model
         return [
             'ngay_bat_dau'  => 'date',
             'ngay_ket_thuc' => 'date',
+            'thoi_gian_bat_dau_thuc_te' => 'datetime',
+            'thoi_gian_ket_thuc_thuc_te' => 'datetime',
             'han_dang_ky'   => 'date',
             'duyet_luc'     => 'datetime',
             'tao_luc'       => 'datetime',

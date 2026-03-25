@@ -10,7 +10,16 @@
 					</div>
 					<h5 class="fw-bold mb-2">{{ title || $t('common.confirm') }}</h5>
 					<p class="text-muted mb-1" v-if="message">{{ message }}</p>
-					<p class="fw-semibold text-dark mb-4" v-if="detail">"{{ detail }}"</p>
+					<p class="fw-semibold text-dark mb-4" v-if="detail && !hasDetailList">"{{ detail }}"</p>
+					<div v-if="hasDetailList" class="confirm-detail-card text-start mb-4">
+						<div class="confirm-detail-title">{{ detailListTitle || 'Các lưu ý cần biết' }}</div>
+						<ul class="confirm-detail-list mb-0">
+							<li v-for="(item, index) in detailList" :key="`${modalId}-detail-${index}`">
+								<i class="fa-solid fa-circle-exclamation text-warning"></i>
+								<span>{{ item }}</span>
+							</li>
+						</ul>
+					</div>
 
 					<slot name="warning"></slot>
 
@@ -44,6 +53,8 @@ export default {
 		title: { type: String, default: '' },
 		message: { type: String, default: '' },
 		detail: { type: String, default: '' },
+		detailList: { type: Array, default: () => [] },
+		detailListTitle: { type: String, default: '' },
 		icon: { type: String, default: 'fa-solid fa-triangle-exclamation' },
 		variant: { type: String, default: 'danger' },
 		confirmText: { type: String, default: '' },
@@ -61,6 +72,9 @@ export default {
 	computed: {
 		sizeClass() {
 			return this.size ? `modal-${this.size}` : '';
+		},
+		hasDetailList() {
+			return Array.isArray(this.detailList) && this.detailList.length > 0;
 		}
 	},
 	mounted() {
@@ -94,3 +108,37 @@ export default {
 	}
 }
 </script>
+
+<style scoped>
+.confirm-detail-card {
+	background: rgba(255, 193, 7, 0.08);
+	border: 1px solid rgba(255, 193, 7, 0.22);
+	border-radius: 1rem;
+	padding: 1rem 1.1rem;
+}
+
+.confirm-detail-title {
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #856404;
+	margin-bottom: 0.75rem;
+}
+
+.confirm-detail-list {
+	list-style: none;
+	padding: 0;
+}
+
+.confirm-detail-list li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+	color: #495057;
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.confirm-detail-list li + li {
+	margin-top: 0.65rem;
+}
+</style>

@@ -170,7 +170,7 @@ class RecommendationService
                 $nearbyOnly
             );
 
-            if ($existingRegistration && in_array($existingRegistration->trang_thai, ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'], true)) {
+            if ($existingRegistration && in_array($existingRegistration->trang_thai, ['da_duyet', 'dang_tham_gia', 'hoan_thanh'], true)) {
                 continue;
             }
 
@@ -352,7 +352,7 @@ class RecommendationService
 
         return [
             'total' => $registrations->count(),
-            'confirmed' => $registrations->whereIn('trang_thai', ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'])->count(),
+            'confirmed' => $registrations->whereIn('trang_thai', ['da_xac_nhan', 'da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
             'cancelled' => $registrations->where('trang_thai', 'da_huy')->count(),
             'avg_rating' => $avgRating ? round((float) $avgRating, 2) : 0,
         ];
@@ -362,7 +362,7 @@ class RecommendationService
     {
         return DangKyThamGia::query()
             ->where('nguoi_dung_id', $volunteerId)
-            ->whereIn('trang_thai', ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'])
+            ->whereIn('trang_thai', ['da_xac_nhan', 'da_duyet', 'dang_tham_gia', 'hoan_thanh'])
             ->whereHas('chienDich', fn (Builder $query) => $query->whereNotNull('loai_chien_dich_id'))
             ->with('chienDich:id,loai_chien_dich_id')
             ->get()
@@ -377,7 +377,7 @@ class RecommendationService
     {
         return DangKyThamGia::query()
             ->where('nguoi_dung_id', $volunteerId)
-            ->whereIn('trang_thai', ['da_dang_ky', 'da_xac_nhan', 'dang_tham_gia'])
+            ->whereIn('trang_thai', ['da_dang_ky', 'da_duyet', 'da_xac_nhan', 'dang_tham_gia'])
             ->whereHas('chienDich', function (Builder $query) use ($campaign) {
                 $query->whereNull('xoa_luc')
                     ->where('id', '!=', $campaign->id)

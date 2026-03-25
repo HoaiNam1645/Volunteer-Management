@@ -10,7 +10,7 @@
 @php
     $loai = $data['loai'] ?? 'xac_nhan_dang_ky';
     $themes = [
-        'xac_nhan_dang_ky' => ['bg' => '#EFF6FF', 'accent' => '#2563EB', 'title' => 'Đăng ký chiến dịch thành công', 'message' => 'Bạn đã đăng ký thành công. Hãy xác nhận tham gia khi đã sẵn sàng.'],
+        'xac_nhan_dang_ky' => ['bg' => '#EFF6FF', 'accent' => '#2563EB', 'title' => 'Đăng ký chiến dịch thành công', 'message' => 'Bạn đã đăng ký thành công. Hãy chờ chủ chiến dịch duyệt trước, sau đó xác nhận tham gia khi đã sẵn sàng.'],
         'xac_nhan_tham_gia' => ['bg' => '#ECFDF5', 'accent' => '#059669', 'title' => 'Xác nhận tham gia thành công', 'message' => 'Bạn đã xác nhận tham gia chiến dịch. Hệ thống đã ghi nhận thông tin của bạn.'],
         'huy_dang_ky' => ['bg' => '#FEF2F2', 'accent' => '#DC2626', 'title' => 'Hủy đăng ký thành công', 'message' => 'Đăng ký tham gia của bạn đã được hủy thành công.'],
         'loi_moi_tham_gia' => ['bg' => '#EEF2FF', 'accent' => '#4F46E5', 'title' => 'Thư mời xác nhận tham gia chiến dịch', 'message' => 'Bạn đang được người điều phối mời tham gia chiến dịch này. Nếu phù hợp, hãy mở chi tiết chiến dịch và xác nhận tham gia để hệ thống ghi nhận chính thức.'],

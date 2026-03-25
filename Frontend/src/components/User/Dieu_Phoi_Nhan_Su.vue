@@ -1047,18 +1047,20 @@ export default {
 			return {
 				da_dang_ky: this.$t('coordinationScreen.registrationPending'),
 				da_xac_nhan: this.$t('coordinationScreen.registrationConfirmed'),
+				da_duyet: this.$t('campaignRegistration.statuses.da_duyet'),
 				dang_tham_gia: this.$t('coordinationScreen.registrationParticipating'),
 				hoan_thanh: this.$t('coordinationScreen.registrationCompleted'),
 			}[status] || '';
 		},
 		canInviteVolunteer(volunteer) {
 			const status = volunteer?.registrationStatus || volunteer?.registration_status || '';
-			return !['da_dang_ky', 'da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'].includes(status);
+			return !['da_dang_ky', 'da_xac_nhan', 'da_duyet', 'dang_tham_gia', 'hoan_thanh'].includes(status);
 		},
 		getInviteButtonLabel(volunteer) {
 			const status = volunteer?.registrationStatus || volunteer?.registration_status || '';
 			if (status === 'da_dang_ky') return this.$t('coordinationScreen.invitePending');
 			if (status === 'da_xac_nhan') return this.$t('coordinationScreen.inviteConfirmed');
+			if (status === 'da_duyet') return this.$t('campaignRegistration.statuses.da_duyet');
 			if (status === 'dang_tham_gia') return this.$t('coordinationScreen.inviteParticipating');
 			if (status === 'hoan_thanh') return this.$t('coordinationScreen.inviteCompleted');
 			return this.$t('coordinationScreen.invite');

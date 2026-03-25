@@ -419,6 +419,8 @@
 			:title="statusConfirmConfig.title"
 			:message="statusConfirmConfig.message"
 			:detail="statusConfirmConfig.detail"
+			:detailList="statusConfirmConfig.detailList"
+			:detailListTitle="statusConfirmConfig.detailListTitle"
 			:icon="statusConfirmConfig.icon"
 			:variant="statusConfirmConfig.variant"
 			:confirmText="statusConfirmConfig.confirmText"
@@ -464,6 +466,8 @@ export default {
 				title: '',
 				message: '',
 				detail: '',
+				detailList: [],
+				detailListTitle: '',
 				icon: '',
 				variant: '',
 				confirmText: '',
@@ -828,6 +832,8 @@ export default {
 				detail: nextStatus === 'dang_dien_ra'
 					? this.$t('coordinator.startCampaignDetail')
 					: this.$t('coordinator.completeCampaignDetail'),
+				detailList: [],
+				detailListTitle: '',
 				icon: nextStatus === 'dang_dien_ra' ? 'fa-solid fa-play-circle' : 'fa-solid fa-flag-checkered',
 				variant: nextStatus === 'dang_dien_ra' ? 'warning' : 'success',
 				confirmText: nextStatus === 'dang_dien_ra' ? this.$t('coordinator.startCampaignBtn') : this.$t('coordinator.completeCampaignBtn'),
@@ -850,18 +856,42 @@ export default {
 				}
 			} catch (err) {
 				const warning = err.response?.data?.warning;
-				if (warning?.code === 'insufficient_confirmed_volunteers' && this.nextStatusTarget === 'dang_dien_ra') {
+				if (warning && this.nextStatusTarget === 'dang_dien_ra') {
 					shouldResetState = false;
 					this.statusForceProceed = true;
-					this.statusConfirmConfig = {
-						title: this.$t('coordinator.startCampaignWarningTitle'),
-						message: this.$t('coordinator.startCampaignWarningMsg', {
+					const detailParts = [];
+					(warning?.warning_items || []).forEach((item) => {
+						if (item?.message) {
+							detailParts.push(item.message);
+						}
+					});
+					if (warning?.so_luong_toi_thieu && Number.isFinite(Number(warning?.so_xac_nhan))) {
+						detailParts.push(this.$t('coordinator.startCampaignWarningMsg', {
 							confirmed: warning.so_xac_nhan ?? 0,
 							minimum: warning.so_luong_toi_thieu ?? 0,
-						}),
-						detail: this.$t('coordinator.startCampaignWarningDetail', {
+						}));
+					}
+					if (warning?.so_chua_xac_nhan) {
+						detailParts.push(this.$t('coordinator.startCampaignWarningDetail', {
 							pending: warning.so_chua_xac_nhan ?? 0,
-						}),
+						}));
+					}
+					if (warning?.bat_dau_som_hon_du_kien && warning?.ngay_bat_dau_du_kien) {
+						detailParts.push(this.$t('coordinator.startCampaignEarlyWarningDetail', {
+							date: warning.ngay_bat_dau_du_kien,
+						}));
+					}
+					if (warning?.chi_tiet) {
+						detailParts.push(warning.chi_tiet);
+					}
+					this.statusConfirmConfig = {
+						title: warning?.bat_dau_som_hon_du_kien
+							? this.$t('coordinator.startCampaignEarlyWarningTitle')
+							: this.$t('coordinator.startCampaignWarningTitle'),
+						message: warning?.message || this.$t('coordinator.startCampaignWarningTitle'),
+						detail: '',
+						detailList: detailParts,
+						detailListTitle: 'Các cảnh báo cần lưu ý',
 						icon: 'fa-solid fa-triangle-exclamation',
 						variant: 'warning',
 						confirmText: this.$t('coordinator.startCampaignProceedBtn'),

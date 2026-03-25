@@ -20,7 +20,7 @@ class TheoDoiPhanHoiController extends Controller
         $dangKys = DangKyThamGia::query()
             ->where('nguoi_dung_id', $user->id)
             ->with([
-                'chienDich:id,tieu_de,dia_diem,ngay_bat_dau,ngay_ket_thuc,trang_thai,nguoi_tao_id',
+                'chienDich:id,tieu_de,dia_diem,ngay_bat_dau,ngay_ket_thuc,thoi_gian_bat_dau_thuc_te,thoi_gian_ket_thuc_thuc_te,trang_thai,nguoi_tao_id,tao_luc',
                 'chienDich.nguoiTao:id,ho_ten,email',
             ])
             ->orderByDesc('dang_ky_luc')
@@ -79,8 +79,11 @@ class TheoDoiPhanHoiController extends Controller
                     'id' => $chienDich->id,
                     'tieu_de' => $chienDich->tieu_de,
                     'dia_diem' => $chienDich->dia_diem,
+                    'tao_luc' => optional($chienDich->tao_luc)->format('Y-m-d H:i:s'),
                     'ngay_bat_dau' => optional($chienDich->ngay_bat_dau)->format('Y-m-d'),
                     'ngay_ket_thuc' => optional($chienDich->ngay_ket_thuc)->format('Y-m-d'),
+                    'thoi_gian_bat_dau_thuc_te' => optional($chienDich->thoi_gian_bat_dau_thuc_te)->format('Y-m-d H:i:s'),
+                    'thoi_gian_ket_thuc_thuc_te' => optional($chienDich->thoi_gian_ket_thuc_thuc_te)->format('Y-m-d H:i:s'),
                     'nguoi_tao' => $chienDich->nguoiTao ? [
                         'id' => $chienDich->nguoiTao->id,
                         'ho_ten' => $chienDich->nguoiTao->ho_ten,
@@ -124,7 +127,7 @@ class TheoDoiPhanHoiController extends Controller
             'data' => [
                 'thong_ke' => [
                     'so_chien_dich_hoan_thanh' => $dangKys->where('trang_thai', 'hoan_thanh')->count(),
-                    'so_chien_dich_dang_tham_gia' => $dangKys->filter(fn ($dangKy) => in_array($dangKy->trang_thai, ['da_xac_nhan', 'dang_tham_gia'], true))->count(),
+                    'so_chien_dich_dang_tham_gia' => $dangKys->filter(fn ($dangKy) => in_array($dangKy->trang_thai, ['da_duyet', 'dang_tham_gia'], true))->count(),
                     'diem_danh_gia_trung_binh' => $avgRating,
                     'tong_luot_danh_gia' => $danhGias->count(),
                     'tong_bao_cao' => $baoCaos->count(),
@@ -180,7 +183,7 @@ class TheoDoiPhanHoiController extends Controller
         if (!$dangKy || !$this->coTheBaoCao($dangKy)) {
             return response()->json([
                 'status' => 0,
-                'message' => 'Bạn chỉ có thể báo cáo khi đã xác nhận tham gia hoặc đã tham gia chiến dịch.',
+                'message' => 'Bạn chỉ có thể báo cáo khi đã được duyệt tham gia hoặc đang tham gia chiến dịch.',
             ], 422);
         }
 
@@ -315,7 +318,7 @@ class TheoDoiPhanHoiController extends Controller
 
     private function coTheBaoCao(DangKyThamGia $dangKy): bool
     {
-        return in_array($dangKy->trang_thai, ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'], true);
+        return in_array($dangKy->trang_thai, ['da_duyet', 'dang_tham_gia', 'hoan_thanh'], true);
     }
 
     private function coTheDanhGiaChienDich(DangKyThamGia $dangKy, ?PhanHoiTnv $phanHoi = null): bool

@@ -176,7 +176,7 @@ class RecommendationController extends Controller
                     'nguoi_dung_id' => $volunteerId,
                 ]);
 
-                if ($dangKy->exists && in_array($dangKy->trang_thai, ['da_dang_ky', 'da_xac_nhan'], true)) {
+                if ($dangKy->exists && in_array($dangKy->trang_thai, ['da_dang_ky', 'da_duyet', 'da_xac_nhan'], true)) {
                     $skippedCount++;
                     continue;
                 }
@@ -184,6 +184,7 @@ class RecommendationController extends Controller
                 $dangKy->fill([
                     'trang_thai' => 'da_dang_ky',
                     'dang_ky_luc' => $dangKy->dang_ky_luc ?: now(),
+                    'duyet_luc' => null,
                     'xac_nhan_luc' => null,
                     'huy_luc' => null,
                     'ly_do_huy' => null,
@@ -205,7 +206,7 @@ class RecommendationController extends Controller
 
             $campaign->update([
                 'so_dang_ky' => $campaign->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
-                'so_xac_nhan' => $campaign->dangKyThamGias()->where('trang_thai', 'da_xac_nhan')->count(),
+                'so_xac_nhan' => $campaign->dangKyThamGias()->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
             ]);
         });
 

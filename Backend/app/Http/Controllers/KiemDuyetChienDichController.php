@@ -575,7 +575,7 @@ class KiemDuyetChienDichController extends Controller
         $cd->refresh();
         $cd->update([
             'so_dang_ky' => $cd->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
-            'so_xac_nhan' => $cd->dangKyThamGias()->whereIn('trang_thai', ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'])->count(),
+            'so_xac_nhan' => $cd->dangKyThamGias()->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
         ]);
     }
 

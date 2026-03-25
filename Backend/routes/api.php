@@ -68,6 +68,7 @@ Route::middleware(['auth:api', 'tinhNguyenVien'])->group(function () {
         Route::post('/tinh-nguyen-vien/chien-dich', [ChienDichController::class, 'taoMoi']);
         Route::put('/tinh-nguyen-vien/chien-dich/{id}', [ChienDichController::class, 'capNhat']);
         Route::put('/tinh-nguyen-vien/chien-dich/{id}/trang-thai', [ChienDichController::class, 'capNhatTrangThai']);
+        Route::put('/tinh-nguyen-vien/chien-dich/{id}/dang-ky/{registrationId}/trang-thai', [ChienDichController::class, 'capNhatTrangThaiDangKy']);
         Route::put('/tinh-nguyen-vien/chien-dich/{id}/huy', [ChienDichController::class, 'huyChienDich']);
     });
 

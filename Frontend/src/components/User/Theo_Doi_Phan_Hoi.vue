@@ -70,6 +70,9 @@
 											<div class="min-w-0">
 												<div class="fw-bold text-dark small text-truncate">{{ h.chien_dich?.tieu_de }}</div>
 												<div class="text-muted small text-truncate d-none d-sm-block">{{ h.chien_dich?.nguoi_tao?.ho_ten || $t('common.notAvailable') }}</div>
+												<div class="text-muted" style="font-size: 11px;">
+													{{ $t('feedback.timeline.createdAt') }}: {{ formatDateTime(h.chien_dich?.tao_luc) }}
+												</div>
 											</div>
 										</div>
 									</td>
@@ -77,7 +80,9 @@
 										<span class="text-muted small"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ h.chien_dich?.dia_diem || $t('common.notAvailable') }}</span>
 									</td>
 									<td class="d-none d-lg-table-cell">
-										<span class="text-muted small"><i class="fa-regular fa-calendar me-1"></i>{{ formatCampaignDateRange(h.chien_dich) }}</span>
+										<div class="text-muted small"><i class="fa-regular fa-calendar me-1"></i>{{ formatCampaignDateRange(h.chien_dich) }}</div>
+										<div class="text-muted" style="font-size: 11px;">{{ $t('feedback.timeline.actualStart') }}: {{ formatDateTime(h.chien_dich?.thoi_gian_bat_dau_thuc_te) }}</div>
+										<div class="text-muted" style="font-size: 11px;">{{ $t('feedback.timeline.actualEnd') }}: {{ formatDateTime(h.chien_dich?.thoi_gian_ket_thuc_thuc_te) }}</div>
 									</td>
 									<td class="text-center">
 										<span class="badge rounded-pill" :class="getHistoryStatusClass(h.trang_thai_dang_ky)">
@@ -362,6 +367,7 @@ export default {
 			return [
 				'da_dang_ky',
 				'da_xac_nhan',
+				'da_duyet',
 				'dang_tham_gia',
 				'hoan_thanh',
 				'da_huy',
@@ -415,6 +421,7 @@ export default {
 			return {
 				da_dang_ky: 'bg-info-subtle text-info',
 				da_xac_nhan: 'bg-primary-subtle text-primary',
+				da_duyet: 'bg-success-subtle text-success',
 				dang_tham_gia: 'bg-warning-subtle text-warning',
 				hoan_thanh: 'bg-success-subtle text-success',
 				da_huy: 'bg-secondary-subtle text-secondary',
@@ -425,6 +432,7 @@ export default {
 			return {
 				da_dang_ky: 'fa-solid fa-clipboard-check',
 				da_xac_nhan: 'fa-solid fa-circle-check',
+				da_duyet: 'fa-solid fa-badge-check',
 				dang_tham_gia: 'fa-solid fa-person-running',
 				hoan_thanh: 'fa-solid fa-check-double',
 				da_huy: 'fa-solid fa-ban',

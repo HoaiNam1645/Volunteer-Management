@@ -29,16 +29,18 @@ class DistanceService
             return 0;
         }
 
-        if ($distanceKm <= 3) {
-            return 100;
+        // Giảm lợi thế của yếu tố khoảng cách: dưới 5km vẫn là gần,
+        // nhưng chỉ nên mang lại mức điểm trên 80 thay vì gần như tuyệt đối.
+        if ($distanceKm <= 5) {
+            return $this->interpolate($distanceKm, 0, 5, 92, 82);
         }
 
         if ($distanceKm <= 10) {
-            return $this->interpolate($distanceKm, 3, 10, 100, 70);
+            return $this->interpolate($distanceKm, 5, 10, 80, 65);
         }
 
         if ($distanceKm <= 20) {
-            return $this->interpolate($distanceKm, 10, 20, 70, 40);
+            return $this->interpolate($distanceKm, 10, 20, 65, 40);
         }
 
         return 10;

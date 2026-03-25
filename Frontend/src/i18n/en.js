@@ -366,6 +366,8 @@ export default {
         skillsCol: 'Skills',
         areaCol: 'Area',
         statusCol: 'Status',
+        actionCol: 'Action',
+        saveStatusBtn: 'Save',
         noVolunteers: 'No volunteers registered yet',
         rateVolunteers: 'Rate Volunteers',
         rateVolunteersTitle: 'Rate Volunteers',
@@ -547,6 +549,11 @@ export default {
         yourCommentTitle: 'Your Comment',
         commentPlaceholder: 'Share your thoughts...',
         whatToImproveTitle: 'What do you want to improve?',
+        timeline: {
+            createdAt: 'Created at',
+            actualStart: 'Actual start',
+            actualEnd: 'Actual end'
+        },
         stats: {
             joined: 'Joined Campaigns',
             attending: 'Currently Attending',
@@ -1879,8 +1886,8 @@ export default {
         confirmedSuccess: 'Participation confirmed successfully.',
         cancelledSuccess: 'Campaign registration cancelled successfully.',
         statuses: {
-            da_dang_ky: 'Pending confirmation',
-            da_xac_nhan: 'Participation confirmed',
+            da_dang_ky: 'Waiting for volunteer confirmation',
+            da_xac_nhan: 'Confirmed, awaiting approval',
             dang_tham_gia: 'Participating',
             hoan_thanh: 'Completed',
             da_huy: 'Registration cancelled',
@@ -1976,6 +1983,8 @@ export default {
         startCampaignWarningTitle: 'Confirmed volunteers are below the minimum',
         startCampaignWarningMsg: 'There are currently only {confirmed} confirmed volunteers, below the minimum requirement of {minimum}.',
         startCampaignWarningDetail: 'There are {pending} volunteers who registered but have not confirmed. If you continue, unconfirmed registrations will be closed automatically when the campaign starts.',
+        startCampaignEarlyWarningTitle: 'The campaign is being started earlier than planned',
+        startCampaignEarlyWarningDetail: 'The originally planned start date is {date}. The system will store the actual start time separately.',
         startCampaignProceedBtn: 'Start Campaign Anyway',
         completeCampaignTitle: 'Complete Campaign?',
         completeCampaignMsg: 'Are you sure you want to mark the campaign "{title}" as completed?',

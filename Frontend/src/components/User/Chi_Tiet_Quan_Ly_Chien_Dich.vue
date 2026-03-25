@@ -166,10 +166,11 @@
 										<th class="fw-semibold text-muted small text-uppercase py-3 border-0 d-none d-md-table-cell">{{ $t('campaignDetail.skillsCol') }}</th>
 										<th class="fw-semibold text-muted small text-uppercase py-3 border-0 d-none d-sm-table-cell">{{ $t('campaignDetail.areaCol') }}</th>
 										<th class="fw-semibold text-muted small text-uppercase py-3 border-0 text-center">{{ $t('campaignDetail.statusCol') }}</th>
+										<th v-if="canManageCampaigns" class="fw-semibold text-muted small text-uppercase py-3 pe-4 border-0 text-end">{{ $t('campaignDetail.actionCol') }}</th>
 									</tr>
 								</thead>
 								<tbody>
-									<tr v-for="vol in volunteers" :key="vol.id">
+									<tr v-for="vol in volunteers" :key="vol.registrationId">
 										<td class="ps-4">
 											<div class="d-flex align-items-center gap-2">
 												<div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center rounded-circle fw-bold shadow-sm" style="width:36px;height:36px;font-size:13px">
@@ -188,13 +189,34 @@
 										</td>
 										<td class="d-none d-sm-table-cell"><span class="text-muted small">{{ vol.area }}</span></td>
 										<td class="text-center">
-											<span class="badge rounded-pill" :class="vol.confirmed ? 'bg-success text-white' : 'bg-warning text-dark'">
-												{{ vol.confirmed ? $t('volunteerStatuses.confirmed') : $t('volunteerStatuses.pending') }}
+											<span class="badge rounded-pill" :class="getVolunteerStatusClass(vol.status)">
+												{{ getVolunteerStatusLabel(vol.status) }}
 											</span>
+											<div class="text-muted mt-1" style="font-size:11px" v-if="getVolunteerStatusTime(vol)">
+												{{ formatDateTime(getVolunteerStatusTime(vol)) }}
+											</div>
+										</td>
+										<td v-if="canManageCampaigns" class="text-end pe-4">
+											<div v-if="shouldShowVolunteerStatusSelect(vol)" class="d-flex justify-content-end align-items-center gap-2">
+												<select class="form-select form-select-sm volunteer-status-select" style="min-width: 180px;" v-model="vol.pendingStatus" :disabled="vol.updating || !canEditVolunteerStatus(vol)">
+													<option v-for="option in getVolunteerStatusOptions(vol)" :key="option.value" :value="option.value">
+														{{ option.label }}
+													</option>
+												</select>
+												<button
+													v-if="canEditVolunteerStatus(vol)"
+													class="btn btn-sm btn-outline-primary"
+													@click="updateVolunteerStatus(vol)"
+													:disabled="vol.updating || vol.pendingStatus === vol.status"
+												>
+													<i :class="vol.updating ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-floppy-disk'" class="me-1"></i>{{ $t('campaignDetail.saveStatusBtn') }}
+												</button>
+											</div>
+											<span v-else class="text-muted small">—</span>
 										</td>
 									</tr>
 									<tr v-if="volunteers.length === 0">
-										<td colspan="4" class="text-center py-4 text-muted">
+										<td :colspan="canManageCampaigns ? 5 : 4" class="text-center py-4 text-muted">
 											<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
 											{{ $t('campaignDetail.noVolunteers') }}
 										</td>
@@ -388,6 +410,8 @@
 			:title="statusConfirmConfig.title"
 			:message="statusConfirmConfig.message"
 			:detail="statusConfirmConfig.detail"
+			:detailList="statusConfirmConfig.detailList"
+			:detailListTitle="statusConfirmConfig.detailListTitle"
 			:icon="statusConfirmConfig.icon"
 			:variant="statusConfirmConfig.variant"
 			:confirmText="statusConfirmConfig.confirmText"
@@ -443,6 +467,8 @@ export default {
 				title: '',
 				message: '',
 				detail: '',
+				detailList: [],
+				detailListTitle: '',
 				icon: '',
 				variant: '',
 				confirmText: '',
@@ -508,6 +534,66 @@ export default {
 		getSkillName(id) { const s = this.availableSkills.find(s => s.id === id); return s ? s.name : ''; },
 		getSkillIcon(id) { const s = this.availableSkills.find(s => s.id === id); return s ? s.icon : ''; },
 		getRatingLabel(r) { return { 1: this.$t('ratings.1'), 2: this.$t('ratings.2'), 3: this.$t('ratings.3'), 4: this.$t('ratings.4'), 5: this.$t('ratings.5') }[r] || ''; },
+		getVolunteerStatusLabel(status) {
+			return this.$t(`campaignRegistration.statuses.${status}`);
+		},
+		getVolunteerStatusClass(status) {
+			return {
+				da_dang_ky: 'bg-warning text-dark',
+				da_duyet: 'bg-info text-white',
+				da_xac_nhan: 'bg-success text-white',
+				tu_choi: 'bg-danger text-white',
+				dang_tham_gia: 'bg-primary text-white',
+				hoan_thanh: 'bg-secondary text-white',
+				da_huy: 'bg-light text-muted border',
+			}[status] || 'bg-light text-muted border';
+		},
+		getVolunteerStatusTime(volunteer) {
+			if (volunteer.status === 'da_huy') return volunteer.cancelledAt || volunteer.registeredAt || null;
+			if (volunteer.status === 'tu_choi') return volunteer.cancelledAt || volunteer.reviewedAt || volunteer.registeredAt || null;
+			if (volunteer.status === 'da_duyet') return volunteer.reviewedAt || volunteer.registeredAt || null;
+			if (volunteer.status === 'da_xac_nhan') return volunteer.confirmedAt || volunteer.reviewedAt || volunteer.registeredAt || null;
+			return volunteer.reviewedAt || volunteer.registeredAt || null;
+		},
+		canEditVolunteerStatus(volunteer) {
+			if (!this.canManageCampaigns) return false;
+			if (!['approved', 'pending', 'draft'].includes(this.campaign.status)) return false;
+			return volunteer.status === 'da_xac_nhan';
+		},
+		shouldShowVolunteerStatusSelect(volunteer) {
+			if (!this.canManageCampaigns) return false;
+			if (!['approved', 'pending', 'draft'].includes(this.campaign.status)) return false;
+			return ['da_dang_ky', 'da_xac_nhan', 'tu_choi'].includes(volunteer.status);
+		},
+		getVolunteerStatusOptions(volunteer) {
+			const currentStatus = volunteer?.status || 'da_dang_ky';
+			const currentOption = {
+				value: currentStatus,
+				label: this.getVolunteerStatusLabel(currentStatus),
+			};
+
+			if (currentStatus !== 'da_xac_nhan') {
+				return [currentOption];
+			}
+
+			return [
+				currentOption,
+				...['da_duyet', 'tu_choi'].map((value) => ({
+					value,
+					label: this.getVolunteerStatusLabel(value),
+				})),
+			];
+		},
+		getDefaultPendingStatus(status) {
+			return status || 'da_dang_ky';
+		},
+		formatDateTime(value) {
+			if (!value) return '';
+			const normalized = String(value).replace(' ', 'T');
+			const date = new Date(normalized);
+			if (Number.isNaN(date.getTime())) return value;
+			return date.toLocaleString('vi-VN');
+		},
 		setVolRating(vol, star) { vol.rating = star; },
 		confirmStatusChange(nextStatus) {
 			this.statusTarget = this.campaign;
@@ -521,6 +607,8 @@ export default {
 				detail: nextStatus === 'dang_dien_ra'
 					? this.$t('coordinator.startCampaignDetail')
 					: this.$t('coordinator.completeCampaignDetail'),
+				detailList: [],
+				detailListTitle: '',
 				icon: nextStatus === 'dang_dien_ra' ? 'fa-solid fa-play-circle' : 'fa-solid fa-flag-checkered',
 				variant: nextStatus === 'dang_dien_ra' ? 'warning' : 'success',
 				confirmText: nextStatus === 'dang_dien_ra' ? this.$t('coordinator.startCampaignBtn') : this.$t('coordinator.completeCampaignBtn'),
@@ -542,18 +630,42 @@ export default {
 				}
 			} catch (err) {
 				const warning = err.response?.data?.warning;
-				if (warning?.code === 'insufficient_confirmed_volunteers' && this.nextStatusTarget === 'dang_dien_ra') {
+				if (warning && this.nextStatusTarget === 'dang_dien_ra') {
 					shouldResetState = false;
 					this.statusForceProceed = true;
-					this.statusConfirmConfig = {
-						title: this.$t('coordinator.startCampaignWarningTitle'),
-						message: this.$t('coordinator.startCampaignWarningMsg', {
+					const detailParts = [];
+					(warning?.warning_items || []).forEach((item) => {
+						if (item?.message) {
+							detailParts.push(item.message);
+						}
+					});
+					if (warning?.so_luong_toi_thieu && Number.isFinite(Number(warning?.so_xac_nhan))) {
+						detailParts.push(this.$t('coordinator.startCampaignWarningMsg', {
 							confirmed: warning.so_xac_nhan ?? 0,
 							minimum: warning.so_luong_toi_thieu ?? 0,
-						}),
-						detail: this.$t('coordinator.startCampaignWarningDetail', {
+						}));
+					}
+					if (warning?.so_chua_xac_nhan) {
+						detailParts.push(this.$t('coordinator.startCampaignWarningDetail', {
 							pending: warning.so_chua_xac_nhan ?? 0,
-						}),
+						}));
+					}
+					if (warning?.bat_dau_som_hon_du_kien && warning?.ngay_bat_dau_du_kien) {
+						detailParts.push(this.$t('coordinator.startCampaignEarlyWarningDetail', {
+							date: warning.ngay_bat_dau_du_kien,
+						}));
+					}
+					if (warning?.chi_tiet) {
+						detailParts.push(warning.chi_tiet);
+					}
+					this.statusConfirmConfig = {
+						title: warning?.bat_dau_som_hon_du_kien
+							? this.$t('coordinator.startCampaignEarlyWarningTitle')
+							: this.$t('coordinator.startCampaignWarningTitle'),
+						message: warning?.message || this.$t('coordinator.startCampaignWarningTitle'),
+						detail: '',
+						detailList: detailParts,
+						detailListTitle: 'Các cảnh báo cần lưu ý',
 						icon: 'fa-solid fa-triangle-exclamation',
 						variant: 'warning',
 						confirmText: this.$t('coordinator.startCampaignProceedBtn'),
@@ -570,6 +682,25 @@ export default {
 					this.nextStatusTarget = null;
 					this.statusForceProceed = false;
 				}
+			}
+		},
+		async updateVolunteerStatus(volunteer) {
+			if (!volunteer?.registrationId || volunteer.pendingStatus === volunteer.status) return;
+			volunteer.updating = true;
+			try {
+				const response = await api.put(`/tinh-nguyen-vien/chien-dich/${this.campaignId}/dang-ky/${volunteer.registrationId}/trang-thai`, {
+					trang_thai: volunteer.pendingStatus,
+				});
+				if (response.data.status === 1) {
+					this.toast?.showToast('success', this.$t('common.success'), response.data.message);
+					await this.loadCampaignDetail();
+				}
+			} catch (error) {
+				const message = error.response?.data?.message || 'Không thể cập nhật trạng thái tham gia.';
+				this.toast?.showToast('error', this.$t('common.error'), message);
+				volunteer.pendingStatus = volunteer.status;
+			} finally {
+				volunteer.updating = false;
 			}
 		},
 		openRateModal(vol) {
@@ -620,6 +751,8 @@ export default {
 						longitude: cd.kinh_do,
 						startDate: cd.ngay_bat_dau,
 						endDate: cd.ngay_ket_thuc,
+						actualStartAt: cd.thoi_gian_bat_dau_thuc_te,
+						actualEndAt: cd.thoi_gian_ket_thuc_thuc_te,
 						maxVolunteers: cd.so_luong_toi_da,
 						minVolunteers: cd.so_luong_toi_thieu || 1,
 						registered: cd.so_dang_ky || 0,
@@ -635,12 +768,20 @@ export default {
 						const nguoiDung = item.nguoi_dung || {};
 						return {
 							id: item.nguoi_dung_id || item.id,
+							registrationId: item.id,
 							name: nguoiDung.ho_ten || '—',
 							email: nguoiDung.email || '—',
 							skills: (nguoiDung.ky_nangs || []).map((kyNang) => kyNang.ten),
 							area: (nguoiDung.khu_vucs || []).map((khuVuc) => khuVuc.ten).join(', ') || '—',
-							confirmed: ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'].includes(item.trang_thai),
+							confirmed: ['da_duyet', 'dang_tham_gia', 'hoan_thanh'].includes(item.trang_thai),
 							status: item.trang_thai,
+							pendingStatus: this.getDefaultPendingStatus(item.trang_thai),
+							registeredAt: item.dang_ky_luc || null,
+							reviewedAt: item.duyet_luc || null,
+							confirmedAt: item.xac_nhan_luc || null,
+							cancelledAt: item.huy_luc || null,
+							note: item.ghi_chu || '',
+							updating: false,
 							rating: 0,
 							ratingComment: ''
 						};
@@ -798,6 +939,10 @@ export default {
 	height: 280px;
 	width: 100%;
 	z-index: 0;
+}
+
+.volunteer-status-select {
+	padding-right: 2.25rem;
 }
 
 .rating-star {

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SendMailJob;
 use App\Models\ChienDich;
-use App\Models\DangKyThamGia;
 use App\Models\LichSuKiemDuyetChienDich;
 use App\Models\LoaiChienDich;
 use App\Models\ThongBao;
@@ -12,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ChienDichController extends Controller
@@ -68,6 +68,8 @@ class ChienDichController extends Controller
                 'kinh_do'             => $cd->kinh_do,
                 'ngay_bat_dau'        => $cd->ngay_bat_dau?->format('Y-m-d'),
                 'ngay_ket_thuc'       => $cd->ngay_ket_thuc?->format('Y-m-d'),
+                'thoi_gian_bat_dau_thuc_te' => $cd->thoi_gian_bat_dau_thuc_te?->format('Y-m-d H:i:s'),
+                'thoi_gian_ket_thuc_thuc_te' => $cd->thoi_gian_ket_thuc_thuc_te?->format('Y-m-d H:i:s'),
                 'han_dang_ky'         => $cd->han_dang_ky?->format('Y-m-d'),
                 'so_luong_toi_da'     => $cd->so_luong_toi_da,
                 'so_luong_toi_thieu'  => $cd->so_luong_toi_thieu,
@@ -143,6 +145,8 @@ class ChienDichController extends Controller
                 'kinh_do'             => $cd->kinh_do,
                 'ngay_bat_dau'        => $cd->ngay_bat_dau?->format('Y-m-d'),
                 'ngay_ket_thuc'       => $cd->ngay_ket_thuc?->format('Y-m-d'),
+                'thoi_gian_bat_dau_thuc_te' => $cd->thoi_gian_bat_dau_thuc_te?->format('Y-m-d H:i:s'),
+                'thoi_gian_ket_thuc_thuc_te' => $cd->thoi_gian_ket_thuc_thuc_te?->format('Y-m-d H:i:s'),
                 'han_dang_ky'         => $cd->han_dang_ky?->format('Y-m-d'),
                 'so_luong_toi_da'     => $cd->so_luong_toi_da,
                 'so_luong_toi_thieu'  => $cd->so_luong_toi_thieu,
@@ -172,7 +176,11 @@ class ChienDichController extends Controller
                         'nguoi_dung_id' => $dangKy->nguoi_dung_id,
                         'trang_thai'    => $dangKy->trang_thai,
                         'dang_ky_luc'   => $dangKy->dang_ky_luc?->format('Y-m-d H:i:s'),
+                        'duyet_luc'     => $dangKy->duyet_luc?->format('Y-m-d H:i:s'),
                         'xac_nhan_luc'  => $dangKy->xac_nhan_luc?->format('Y-m-d H:i:s'),
+                        'huy_luc'       => $dangKy->huy_luc?->format('Y-m-d H:i:s'),
+                        'ly_do_huy'     => $dangKy->ly_do_huy,
+                        'ghi_chu'       => $dangKy->ghi_chu,
                         'nguoi_dung'    => $nguoiDung ? [
                             'id'        => $nguoiDung->id,
                             'ho_ten'    => $nguoiDung->ho_ten,
@@ -390,14 +398,37 @@ class ChienDichController extends Controller
             }
         }
 
-        DB::transaction(function () use ($cd, $user, $nextStatus, $ghiChu) {
+        $warningInfo = $nextStatus === 'dang_dien_ra'
+            ? $this->buildStartCampaignWarning($cd)
+            : null;
+        $thoiDiemThucTe = now();
+
+        DB::transaction(function () use ($cd, $user, $nextStatus, $ghiChu, $warningInfo, $thoiDiemThucTe) {
             $oldStatus = $cd->trang_thai;
 
-            $cd->update([
+            $capNhatChienDich = [
                 'trang_thai' => $nextStatus,
-            ]);
+            ];
+
+            if ($nextStatus === 'dang_dien_ra' && !$cd->thoi_gian_bat_dau_thuc_te) {
+                $capNhatChienDich['thoi_gian_bat_dau_thuc_te'] = $thoiDiemThucTe;
+            }
+
+            if ($nextStatus === 'hoan_thanh' && !$cd->thoi_gian_ket_thuc_thuc_te) {
+                $capNhatChienDich['thoi_gian_ket_thuc_thuc_te'] = $thoiDiemThucTe;
+            }
+
+            $cd->update($capNhatChienDich);
 
             $thongTinDongBo = $this->dongBoTrangThaiDangKyTheoTrangThaiChienDich($cd, $nextStatus);
+            $cd->refresh();
+
+            $duLieuBoSung = [
+                'nguoi_tao_id' => $user->id,
+                'canh_bao' => $warningInfo,
+                'thoi_gian_bat_dau_thuc_te' => $cd->thoi_gian_bat_dau_thuc_te?->format('Y-m-d H:i:s'),
+                'thoi_gian_ket_thuc_thuc_te' => $cd->thoi_gian_ket_thuc_thuc_te?->format('Y-m-d H:i:s'),
+            ];
 
             LichSuKiemDuyetChienDich::create([
                 'chien_dich_id' => $cd->id,
@@ -406,12 +437,11 @@ class ChienDichController extends Controller
                 'tu_trang_thai' => $oldStatus,
                 'den_trang_thai' => $nextStatus,
                 'ghi_chu' => $ghiChu,
-                'du_lieu_bo_sung' => [
-                    'nguoi_tao_id' => $user->id,
-                ],
+                'du_lieu_bo_sung' => $duLieuBoSung,
             ]);
 
             $this->guiThongBaoCapNhatTrangThai($cd, $user->id, $nextStatus, $ghiChu, $thongTinDongBo);
+            $this->ghiLogTrangThaiChienDich($cd, $user->id, $nextStatus, $warningInfo);
         });
 
         $this->forgetOwnerStartReminderCache($cd->id);
@@ -421,6 +451,133 @@ class ChienDichController extends Controller
             'message' => $nextStatus === 'dang_dien_ra'
                 ? 'Bắt đầu chiến dịch thành công.'
                 : 'Hoàn thành chiến dịch thành công.',
+        ]);
+    }
+
+    public function capNhatTrangThaiDangKy(Request $request, int $id, int $registrationId)
+    {
+        $request->validate([
+            'trang_thai' => 'required|in:da_duyet,tu_choi',
+            'ghi_chu' => 'nullable|string|max:1000',
+        ]);
+
+        $user = auth('api')->user();
+
+        $cd = ChienDich::query()
+            ->where('id', $id)
+            ->where('nguoi_tao_id', $user->id)
+            ->whereNull('xoa_luc')
+            ->with('dangKyThamGias.nguoiDung:id,ho_ten,email')
+            ->first();
+
+        if (!$cd) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Không tìm thấy chiến dịch.',
+            ], 404);
+        }
+
+        if (!in_array($cd->trang_thai, ['da_duyet', 'cho_duyet', 'nhap'], true)) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Chỉ có thể cập nhật trạng thái tham gia khi chiến dịch chưa bắt đầu.',
+            ], 422);
+        }
+
+        $dangKy = $cd->dangKyThamGias->firstWhere('id', $registrationId);
+
+        if (!$dangKy) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Không tìm thấy đăng ký tham gia.',
+            ], 404);
+        }
+
+        if (in_array($dangKy->trang_thai, ['dang_tham_gia', 'hoan_thanh', 'da_huy'], true)) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Không thể đổi trạng thái của đăng ký này ở thời điểm hiện tại.',
+            ], 422);
+        }
+
+        if ($dangKy->trang_thai !== 'da_xac_nhan') {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Chỉ có thể duyệt hoặc từ chối khi tình nguyện viên đã xác nhận tham gia.',
+            ], 422);
+        }
+
+        $trangThaiCu = $dangKy->trang_thai;
+        $trangThaiMoi = $request->string('trang_thai')->value();
+        $ghiChu = trim((string) $request->input('ghi_chu', ''));
+
+        if ($trangThaiCu === $trangThaiMoi && $ghiChu === trim((string) ($dangKy->ghi_chu ?? ''))) {
+            return response()->json([
+                'status' => 1,
+                'message' => 'Trạng thái tham gia không thay đổi.',
+                'data' => [
+                    'dang_ky_id' => $dangKy->id,
+                    'trang_thai' => $dangKy->trang_thai,
+                ],
+            ]);
+        }
+
+        DB::transaction(function () use ($cd, $dangKy, $trangThaiCu, $trangThaiMoi, $ghiChu, $user) {
+            $payload = [
+                'trang_thai' => $trangThaiMoi,
+                'ghi_chu' => $ghiChu !== '' ? $ghiChu : null,
+                'duyet_luc' => now(),
+            ];
+
+            if ($trangThaiMoi === 'da_duyet') {
+                $payload['huy_luc'] = null;
+                $payload['ly_do_huy'] = null;
+            }
+
+            if ($trangThaiMoi === 'tu_choi') {
+                $payload['huy_luc'] = now();
+                $payload['ly_do_huy'] = $ghiChu !== '' ? $ghiChu : 'Chủ chiến dịch từ chối xác nhận tham gia.';
+            }
+
+            $dangKy->update($payload);
+            $cd->refresh();
+            $this->dongBoSoLuongDangKy($cd);
+
+            $this->taoThongBaoCapNhatTrangThaiChienDich(
+                $dangKy->nguoi_dung_id,
+                $user->id,
+                $this->layTieuDeThongBaoTrangThaiDangKy($trangThaiMoi),
+                $this->layNoiDungThongBaoTrangThaiDangKy($cd, $trangThaiMoi, $ghiChu),
+                $cd->id
+            );
+
+            Log::info('Chu chien dich cap nhat trang thai tham gia.', [
+                'chien_dich_id' => $cd->id,
+                'dang_ky_id' => $dangKy->id,
+                'nguoi_dung_id' => $dangKy->nguoi_dung_id,
+                'nguoi_thuc_hien_id' => $user->id,
+                'tu_trang_thai' => $trangThaiCu,
+                'den_trang_thai' => $trangThaiMoi,
+            ]);
+        });
+
+        $cd->refresh();
+        $dangKy->refresh();
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Cập nhật trạng thái tham gia thành công.',
+            'data' => [
+                'dang_ky_id' => $dangKy->id,
+                'trang_thai' => $dangKy->trang_thai,
+                'duyet_luc' => optional($dangKy->duyet_luc)->format('Y-m-d H:i:s'),
+                'xac_nhan_luc' => optional($dangKy->xac_nhan_luc)->format('Y-m-d H:i:s'),
+                'huy_luc' => optional($dangKy->huy_luc)->format('Y-m-d H:i:s'),
+                'ghi_chu' => $dangKy->ghi_chu,
+                'ly_do_huy' => $dangKy->ly_do_huy,
+                'so_dang_ky' => (int) $cd->so_dang_ky,
+                'so_xac_nhan' => (int) $cd->so_xac_nhan,
+            ],
         ]);
     }
 
@@ -644,7 +801,7 @@ class ChienDichController extends Controller
 
         if ($trangThaiMoi === 'dang_dien_ra') {
             $dangThamGiaIds = $cd->dangKyThamGias()
-                ->where('trang_thai', 'da_xac_nhan')
+                ->where('trang_thai', 'da_duyet')
                 ->pluck('id')
                 ->all();
 
@@ -657,7 +814,7 @@ class ChienDichController extends Controller
             $ketQua['dang_tham_gia_ids'] = $dangThamGiaIds;
 
             $tuDongTuChoiIds = $cd->dangKyThamGias()
-                ->where('trang_thai', 'da_dang_ky')
+                ->whereIn('trang_thai', ['da_dang_ky', 'da_xac_nhan'])
                 ->pluck('id')
                 ->all();
 
@@ -686,10 +843,7 @@ class ChienDichController extends Controller
         }
 
         $cd->refresh();
-        $cd->update([
-            'so_dang_ky' => $cd->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
-            'so_xac_nhan' => $cd->dangKyThamGias()->whereIn('trang_thai', ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'])->count(),
-        ]);
+        $this->dongBoSoLuongDangKy($cd);
 
         return $ketQua;
     }
@@ -697,26 +851,120 @@ class ChienDichController extends Controller
     private function buildStartCampaignWarning(ChienDich $cd): ?array
     {
         $soXacNhan = $cd->dangKyThamGias()
-            ->whereIn('trang_thai', ['da_xac_nhan', 'dang_tham_gia', 'hoan_thanh'])
+            ->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])
             ->count();
 
         $soChuaXacNhan = $cd->dangKyThamGias()
-            ->where('trang_thai', 'da_dang_ky')
+            ->whereIn('trang_thai', ['da_dang_ky', 'da_xac_nhan'])
             ->count();
 
         $soLuongToiThieu = (int) ($cd->so_luong_toi_thieu ?? 0);
 
+        $batDauSomHonDuKien = $cd->ngay_bat_dau
+            ? now()->lt($cd->ngay_bat_dau->copy()->startOfDay())
+            : false;
+
+        $warningItems = [];
+
         if ($soLuongToiThieu > 0 && $soXacNhan < $soLuongToiThieu) {
-            return [
+            $warningItems[] = [
                 'code' => 'insufficient_confirmed_volunteers',
-                'message' => 'Số lượng tình nguyện viên đã xác nhận hiện chưa đạt mức tối thiểu. Bạn vẫn có thể bắt đầu chiến dịch nếu chấp nhận tiếp tục.',
+                'message' => 'Số lượng tình nguyện viên đã xác nhận hiện chưa đạt mức tối thiểu.',
+            ];
+        }
+
+        if ($soChuaXacNhan > 0) {
+            $warningItems[] = [
+                'code' => 'pending_volunteer_confirmations',
+                'message' => 'Vẫn còn tình nguyện viên đang chờ xác nhận hoặc chờ được duyệt.',
+            ];
+        }
+
+        if ($batDauSomHonDuKien) {
+            $warningItems[] = [
+                'code' => 'starting_before_planned_date',
+                'message' => 'Chiến dịch đang được bắt đầu sớm hơn ngày dự kiến ban đầu.',
+            ];
+        }
+
+        if (!empty($warningItems)) {
+            $warningCodes = collect($warningItems)->pluck('code')->all();
+
+            return [
+                'code' => in_array('insufficient_confirmed_volunteers', $warningCodes, true)
+                    ? 'insufficient_confirmed_volunteers'
+                    : 'starting_before_planned_date',
+                'message' => 'Có cảnh báo trước khi bắt đầu chiến dịch. Bạn vẫn có thể tiếp tục nếu chấp nhận các thay đổi sẽ được áp dụng ngay.',
+                'warning_items' => $warningItems,
                 'so_xac_nhan' => $soXacNhan,
                 'so_luong_toi_thieu' => $soLuongToiThieu,
                 'so_chua_xac_nhan' => $soChuaXacNhan,
+                'bat_dau_som_hon_du_kien' => $batDauSomHonDuKien,
+                'ngay_bat_dau_du_kien' => $cd->ngay_bat_dau?->format('Y-m-d'),
+                'chi_tiet' => $batDauSomHonDuKien
+                    ? 'Hệ thống sẽ ghi nhận thời gian bắt đầu thực tế riêng để không phụ thuộc vào ngày bắt đầu khi tạo chiến dịch.'
+                    : null,
             ];
         }
 
         return null;
+    }
+
+    private function dongBoSoLuongDangKy(ChienDich $cd): void
+    {
+        $cd->update([
+            'so_dang_ky' => $cd->dangKyThamGias()->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])->count(),
+            'so_xac_nhan' => $cd->dangKyThamGias()->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])->count(),
+        ]);
+    }
+
+    private function ghiLogTrangThaiChienDich(
+        ChienDich $cd,
+        int $nguoiThucHienId,
+        string $trangThaiMoi,
+        ?array $warningInfo = null
+    ): void {
+        $context = [
+            'chien_dich_id' => $cd->id,
+            'nguoi_thuc_hien_id' => $nguoiThucHienId,
+            'trang_thai_moi' => $trangThaiMoi,
+            'ngay_bat_dau_du_kien' => $cd->ngay_bat_dau?->format('Y-m-d'),
+            'ngay_ket_thuc_du_kien' => $cd->ngay_ket_thuc?->format('Y-m-d'),
+            'thoi_gian_bat_dau_thuc_te' => $cd->thoi_gian_bat_dau_thuc_te?->format('Y-m-d H:i:s'),
+            'thoi_gian_ket_thuc_thuc_te' => $cd->thoi_gian_ket_thuc_thuc_te?->format('Y-m-d H:i:s'),
+            'warning' => $warningInfo,
+        ];
+
+        if (!empty($warningInfo)) {
+            Log::warning('Cap nhat trang thai chien dich co canh bao.', $context);
+            return;
+        }
+
+        Log::info('Cap nhat vong doi chien dich thanh cong.', $context);
+    }
+
+    private function layTieuDeThongBaoTrangThaiDangKy(string $trangThaiMoi): string
+    {
+        return match ($trangThaiMoi) {
+            'da_duyet' => 'Chủ chiến dịch đã duyệt xác nhận tham gia của bạn',
+            'tu_choi' => 'Chủ chiến dịch đã từ chối xác nhận tham gia',
+            default => 'Trạng thái tham gia chiến dịch đã được cập nhật',
+        };
+    }
+
+    private function layNoiDungThongBaoTrangThaiDangKy(ChienDich $cd, string $trangThaiMoi, string $ghiChu = ''): string
+    {
+        $noiDung = match ($trangThaiMoi) {
+            'da_duyet' => 'Chủ chiến dịch đã duyệt xác nhận tham gia của bạn cho chiến dịch "' . $cd->tieu_de . '". Bạn đã ở trong danh sách chính thức của chiến dịch.',
+            'tu_choi' => 'Chủ chiến dịch đã từ chối đăng ký tham gia chiến dịch "' . $cd->tieu_de . '".',
+            default => 'Trạng thái đăng ký tham gia chiến dịch "' . $cd->tieu_de . '" đã được cập nhật.',
+        };
+
+        if ($ghiChu !== '') {
+            $noiDung .= ' Ghi chú: ' . $ghiChu;
+        }
+
+        return $noiDung;
     }
 
     private function taoThongBaoCapNhatTrangThaiChienDich(int $nguoiDungId, int $nguoiGuiId, string $tieuDe, string $noiDung, int $campaignId): void

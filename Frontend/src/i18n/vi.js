@@ -365,6 +365,8 @@ export default {
         skillsCol: 'Kỹ năng',
         areaCol: 'Khu vực',
         statusCol: 'Trạng thái',
+        actionCol: 'Thao tác',
+        saveStatusBtn: 'Lưu',
         noVolunteers: 'Chưa có TNV nào đăng ký',
         rateVolunteers: 'Đánh giá tình nguyện viên',
         rateVolunteersTitle: 'Đánh giá tình nguyện viên',
@@ -546,6 +548,11 @@ export default {
         yourCommentTitle: 'Nhận xét của bạn',
         commentPlaceholder: 'Chia sẻ cảm nhận của bạn...',
         whatToImproveTitle: 'Bạn muốn cải thiện điều gì?',
+        timeline: {
+            createdAt: 'Tạo lúc',
+            actualStart: 'Bắt đầu thực tế',
+            actualEnd: 'Kết thúc thực tế'
+        },
         stats: {
             joined: 'Chiến dịch đã tham gia',
             attending: 'Đang tham gia',
@@ -1878,8 +1885,8 @@ export default {
         confirmedSuccess: 'Xác nhận tham gia thành công.',
         cancelledSuccess: 'Hủy đăng ký tham gia thành công.',
         statuses: {
-            da_dang_ky: 'Chờ xác nhận',
-            da_xac_nhan: 'Đã xác nhận tham gia',
+            da_dang_ky: 'Chờ TNV xác nhận',
+            da_xac_nhan: 'Đã xác nhận, chờ duyệt',
             dang_tham_gia: 'Đang tham gia',
             hoan_thanh: 'Đã hoàn thành',
             da_huy: 'Đã hủy đăng ký',
@@ -1975,6 +1982,8 @@ export default {
         startCampaignWarningTitle: 'Số lượng xác nhận chưa đạt mức tối thiểu',
         startCampaignWarningMsg: 'Hiện chỉ có {confirmed} tình nguyện viên xác nhận, thấp hơn mức tối thiểu là {minimum}.',
         startCampaignWarningDetail: 'Có {pending} tình nguyện viên đã đăng ký nhưng chưa xác nhận. Nếu tiếp tục, các đăng ký chưa xác nhận sẽ tự động đóng lại khi chiến dịch bắt đầu.',
+        startCampaignEarlyWarningTitle: 'Chiến dịch đang được bắt đầu sớm hơn dự kiến',
+        startCampaignEarlyWarningDetail: 'Ngày bắt đầu dự kiến ban đầu là {date}. Hệ thống sẽ ghi nhận thời gian bắt đầu thực tế riêng.',
         startCampaignProceedBtn: 'Vẫn bắt đầu chiến dịch',
         completeCampaignTitle: 'Hoàn thành chiến dịch?',
         completeCampaignMsg: 'Bạn có chắc muốn đánh dấu chiến dịch "{title}" là đã hoàn thành không?',
