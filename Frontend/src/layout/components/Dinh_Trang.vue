@@ -123,8 +123,14 @@
 			<div v-if="isLoggedIn" class="user-box dropdown px-3">
 				<a class="d-flex align-items-center nav-link dropdown-toggle dropdown-toggle-nocaret" href="#"
 					role="button" data-bs-toggle="dropdown" aria-expanded="false">
-					<div class="user-avatar bg-primary">
-						<i class="fa-solid fa-user text-white"></i>
+					<div class="user-avatar bg-primary overflow-hidden">
+						<img
+							v-if="currentUser?.anh_dai_dien"
+							:src="currentUser.anh_dai_dien"
+							:alt="currentUser?.ho_ten || 'Avatar'"
+							class="user-avatar-image"
+						>
+						<span v-else class="user-avatar-fallback text-white">{{ userInitials }}</span>
 					</div>
 					<div class="user-info ps-3">
 						<p class="user-name mb-0">{{ currentUser.ho_ten }}</p>
@@ -178,6 +184,17 @@ export default {
 	computed: {
 		isLoggedIn() {
 			return !!this.currentUser;
+		},
+		userInitials() {
+			const fullName = (this.currentUser?.ho_ten || '').trim();
+			if (!fullName) {
+				return 'U';
+			}
+			return fullName
+				.split(/\s+/)
+				.slice(0, 2)
+				.map((word) => word.charAt(0).toUpperCase())
+				.join('');
 		},
 		shouldShowSuggestions() {
 			return this.isSearchFocused && this.searchKeyword.trim().length >= this.minKeywordLength;
@@ -376,6 +393,20 @@ export default {
 	align-items: center;
 	justify-content: center;
 	font-size: 15px;
+	flex-shrink: 0;
+}
+
+.user-avatar-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.user-avatar-fallback {
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
 }
 
 .search-suggestion-panel {

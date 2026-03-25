@@ -201,6 +201,148 @@ class ChienDichController extends Controller
         ]);
     }
 
+    public function giamSatBaoCao(Request $request, $id)
+    {
+        $user = auth('api')->user();
+
+        $cd = ChienDich::where('id', $id)
+            ->where('nguoi_tao_id', $user->id)
+            ->whereNull('xoa_luc')
+            ->with([
+                'loaiChienDich:id,ten,bieu_tuong,mau_sac',
+                'nguoiTao:id,ho_ten,email',
+                'dangKyThamGias.nguoiDung:id,ho_ten,email,anh_dai_dien',
+                'feedbacks.nguoiDung:id,ho_ten,email',
+                'feedbacks.thePhanHois:id,ten',
+                'baoCaos.nguoiGui:id,ho_ten,email',
+                'baoCaos.nguoiXuLy:id,ho_ten,email',
+            ])
+            ->first();
+
+        if (!$cd) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Không tìm thấy chiến dịch.',
+            ], 404);
+        }
+
+        $dangKyThamGia = $cd->dangKyThamGias
+            ->sortByDesc(fn ($dangKy) => $dangKy->xac_nhan_luc ?? $dangKy->dang_ky_luc)
+            ->values();
+
+        $tongDangKyHopLe = $dangKyThamGia
+            ->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])
+            ->count();
+
+        $tongDaDuyet = $dangKyThamGia
+            ->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia', 'hoan_thanh'])
+            ->count();
+
+        $tongDangThamGia = $dangKyThamGia->where('trang_thai', 'dang_tham_gia')->count();
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Lấy dữ liệu giám sát báo cáo thành công.',
+            'data' => [
+                'chien_dich' => [
+                    'id' => $cd->id,
+                    'tieu_de' => $cd->tieu_de,
+                    'dia_diem' => $cd->dia_diem,
+                    'ngay_bat_dau' => $cd->ngay_bat_dau?->format('Y-m-d'),
+                    'ngay_ket_thuc' => $cd->ngay_ket_thuc?->format('Y-m-d'),
+                    'thoi_gian_bat_dau_thuc_te' => $cd->thoi_gian_bat_dau_thuc_te?->format('Y-m-d H:i:s'),
+                    'thoi_gian_ket_thuc_thuc_te' => $cd->thoi_gian_ket_thuc_thuc_te?->format('Y-m-d H:i:s'),
+                    'trang_thai' => $cd->trang_thai,
+                    'so_luong_toi_da' => $cd->so_luong_toi_da,
+                    'so_luong_toi_thieu' => $cd->so_luong_toi_thieu,
+                    'so_dang_ky' => $cd->so_dang_ky,
+                    'so_xac_nhan' => $cd->so_xac_nhan,
+                    'nguoi_tao' => $cd->nguoiTao ? [
+                        'id' => $cd->nguoiTao->id,
+                        'ho_ten' => $cd->nguoiTao->ho_ten,
+                        'email' => $cd->nguoiTao->email,
+                    ] : null,
+                    'loai_chien_dich' => $cd->loaiChienDich ? [
+                        'id' => $cd->loaiChienDich->id,
+                        'ten' => $cd->loaiChienDich->ten,
+                    ] : null,
+                ],
+                'thong_ke' => [
+                    'tong_dang_ky_hop_le' => $tongDangKyHopLe,
+                    'tong_da_duyet' => $tongDaDuyet,
+                    'tong_dang_tham_gia' => $tongDangThamGia,
+                    'tong_phan_hoi' => $cd->feedbacks->count(),
+                    'tong_bao_cao' => $cd->baoCaos->count(),
+                    'bao_cao_chua_xu_ly' => $cd->baoCaos->whereIn('trang_thai', ['moi', 'dang_xu_ly'])->count(),
+                ],
+                'danh_sach_tham_gia' => $dangKyThamGia->map(function ($dangKy) {
+                    $nguoiDung = $dangKy->nguoiDung;
+
+                    return [
+                        'id' => $dangKy->id,
+                        'trang_thai' => $dangKy->trang_thai,
+                        'dang_ky_luc' => $dangKy->dang_ky_luc?->format('Y-m-d H:i:s'),
+                        'xac_nhan_luc' => $dangKy->xac_nhan_luc?->format('Y-m-d H:i:s'),
+                        'huy_luc' => $dangKy->huy_luc?->format('Y-m-d H:i:s'),
+                        'ly_do_huy' => $dangKy->ly_do_huy,
+                        'ghi_chu' => $dangKy->ghi_chu,
+                        'nguoi_dung' => $nguoiDung ? [
+                            'id' => $nguoiDung->id,
+                            'ho_ten' => $nguoiDung->ho_ten,
+                            'email' => $nguoiDung->email,
+                            'anh_dai_dien' => $nguoiDung->anh_dai_dien,
+                        ] : null,
+                    ];
+                })->values(),
+                'phan_hoi' => $cd->feedbacks
+                    ->sortByDesc('tao_luc')
+                    ->values()
+                    ->map(function ($feedback) {
+                        return [
+                            'id' => $feedback->id,
+                            'so_sao' => $feedback->so_sao,
+                            'nhan_xet' => $feedback->nhan_xet,
+                            'tao_luc' => $feedback->tao_luc?->format('Y-m-d H:i:s'),
+                            'nguoi_dung' => $feedback->nguoiDung ? [
+                                'id' => $feedback->nguoiDung->id,
+                                'ho_ten' => $feedback->nguoiDung->ho_ten,
+                                'email' => $feedback->nguoiDung->email,
+                            ] : null,
+                            'the_phan_hoi' => $feedback->thePhanHois->map(fn ($the) => [
+                                'id' => $the->id,
+                                'ten' => $the->ten,
+                            ])->values(),
+                        ];
+                    }),
+                'bao_cao' => $cd->baoCaos
+                    ->sortByDesc('tao_luc')
+                    ->values()
+                    ->map(function ($baoCao) {
+                        return [
+                            'id' => $baoCao->id,
+                            'phan_loai' => $baoCao->phan_loai,
+                            'tieu_de' => $baoCao->tieu_de,
+                            'noi_dung' => $baoCao->noi_dung,
+                            'trang_thai' => $baoCao->trang_thai,
+                            'phan_hoi_xu_ly' => $baoCao->phan_hoi_xu_ly,
+                            'tao_luc' => $baoCao->tao_luc?->format('Y-m-d H:i:s'),
+                            'xu_ly_luc' => $baoCao->xu_ly_luc?->format('Y-m-d H:i:s'),
+                            'nguoi_gui' => $baoCao->nguoiGui ? [
+                                'id' => $baoCao->nguoiGui->id,
+                                'ho_ten' => $baoCao->nguoiGui->ho_ten,
+                                'email' => $baoCao->nguoiGui->email,
+                            ] : null,
+                            'nguoi_xu_ly' => $baoCao->nguoiXuLy ? [
+                                'id' => $baoCao->nguoiXuLy->id,
+                                'ho_ten' => $baoCao->nguoiXuLy->ho_ten,
+                                'email' => $baoCao->nguoiXuLy->email,
+                            ] : null,
+                        ];
+                    }),
+            ],
+        ]);
+    }
+
     // ======================== TẠO CHIẾN DỊCH ========================
     public function taoMoi(Request $request)
     {

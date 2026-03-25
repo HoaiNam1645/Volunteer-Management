@@ -8,6 +8,7 @@ use App\Http\Controllers\KiemDuyetChienDichController;
 use App\Http\Controllers\ThamGiaChienDichController;
 use App\Http\Controllers\TheoDoiPhanHoiController;
 use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\TrangChuController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================== DANH MỤC (Public) ========================================
@@ -16,6 +17,7 @@ Route::get('/danh-muc/khu-vuc', [DanhMucController::class, 'getKhuVuc']);
 Route::get('/danh-muc/tinh-thanh', [DanhMucController::class, 'getTinhThanh']);
 Route::get('/danh-muc/phuong-xa', [DanhMucController::class, 'getPhuongXa']);
 Route::get('/danh-muc/loai-chien-dich', [ChienDichController::class, 'danhSachLoai']);
+Route::get('/trang-chu', [TrangChuController::class, 'thongTin']);
 Route::get('/chien-dich/bo-loc', [ThamGiaChienDichController::class, 'boLoc']);
 Route::get('/chien-dich/tim-kiem', [ThamGiaChienDichController::class, 'timKiem']);
 Route::get('/chien-dich', [ThamGiaChienDichController::class, 'danhSach']);
@@ -62,6 +64,7 @@ Route::middleware(['auth:api', 'tinhNguyenVien'])->group(function () {
     Route::middleware('permission:volunteer_campaigns.view,campaign_coordination.view,campaign_report_monitoring.view')->group(function () {
         Route::get('/tinh-nguyen-vien/chien-dich', [ChienDichController::class, 'danhSach']);
         Route::get('/tinh-nguyen-vien/chien-dich/{id}', [ChienDichController::class, 'chiTiet']);
+        Route::get('/tinh-nguyen-vien/chien-dich/{id}/giam-sat-bao-cao', [ChienDichController::class, 'giamSatBaoCao']);
     });
 
     Route::middleware('permission:volunteer_campaigns.manage')->group(function () {

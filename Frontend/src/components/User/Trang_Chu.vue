@@ -19,15 +19,15 @@
 						</div>
 						<div class="row mt-5 hero-counters">
 							<div class="col-auto">
-								<h3 class="mb-0 text-warning fw-bold">2,500+</h3>
+								<h3 class="mb-0 text-warning fw-bold">{{ formatCompactNumber(heroStats.volunteerCount) }}+</h3>
 								<small class="text-white">{{ $t('home.counterVolunteers') }}</small>
 							</div>
 							<div class="col-auto border-start border-light border-opacity-50">
-								<h3 class="mb-0 text-white fw-bold">150+</h3>
+								<h3 class="mb-0 text-white fw-bold">{{ formatCompactNumber(heroStats.campaignCount) }}+</h3>
 								<small class="text-white">{{ $t('home.counterCampaigns') }}</small>
 							</div>
 							<div class="col-auto border-start border-light border-opacity-50">
-								<h3 class="mb-0 text-white fw-bold">50+</h3>
+								<h3 class="mb-0 text-white fw-bold">{{ formatCompactNumber(heroStats.provinceCount) }}+</h3>
 								<small class="text-white">{{ $t('home.counterProvinces') }}</small>
 							</div>
 						</div>
@@ -59,9 +59,9 @@
 						<h4 class="fw-bold mb-1"><i class="fa-solid fa-fire text-danger me-2"></i>{{ $t('home.featuredCampaigns') }}</h4>
 						<p class="text-muted mb-0">{{ $t('home.featuredCampaignsDesc') }}</p>
 					</div>
-					<a href="#" class="btn btn-outline-primary btn-sm">{{ $t('common.viewAll') }} <i class="fa-solid fa-arrow-right ms-1"></i></a>
+					<router-link to="/danh-sach-chien-dich" class="btn btn-outline-primary btn-sm">{{ $t('common.viewAll') }} <i class="fa-solid fa-arrow-right ms-1"></i></router-link>
 				</div>
-				<div class="row g-4">
+				<div v-if="campaigns.length" class="row g-4">
 					<div class="col-lg-4 col-md-6" v-for="(campaign, index) in campaigns" :key="index">
 						<div class="card h-100 campaign-card">
 							<div class="card-img-top campaign-banner" :style="{ backgroundImage: campaign.image ? `url(${campaign.image})` : campaign.color, backgroundSize: 'cover', backgroundPosition: 'center' }">
@@ -84,22 +84,29 @@
 									</div>
 									<div class="progress" style="height: 6px;">
 										<div class="progress-bar" role="progressbar"
-											:style="{ width: (campaign.registered / campaign.total * 100) + '%' }"
+											:style="{ width: getProgressWidth(campaign) + '%' }"
 											:class="campaign.progressClass"></div>
 									</div>
 								</div>
 							</div>
 							<div class="card-footer bg-transparent border-top">
 								<div class="d-flex gap-2">
-									<router-link to="/dang-ky" class="btn btn-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
+									<router-link to="/dang-sach-chien-dich" class="btn btn-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
 										{{ $t('common.apply') }}
 									</router-link>
-									<router-link to="#" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
+									<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
 										{{ $t('common.viewDetails') }}
 									</router-link>
 								</div>
 							</div>
 						</div>
+					</div>
+				</div>
+				<div v-else class="card border-0 shadow-sm">
+					<div class="card-body py-5 text-center text-muted">
+						<div v-if="isLoading" class="spinner-border text-primary mb-3" role="status"></div>
+						<i v-else class="fa-solid fa-fire-flame-curved d-block fs-1 mb-3 text-danger opacity-50"></i>
+						<p class="mb-0">Chưa có chiến dịch nổi bật để hiển thị.</p>
 					</div>
 				</div>
 			</div>
@@ -113,9 +120,9 @@
 						<h4 class="fw-bold mb-1"><i class="fa-solid fa-check-circle text-success me-2"></i>{{ $t('home.completedCampaigns') }}</h4>
 						<p class="text-muted mb-0">{{ $t('home.completedCampaignsDesc') }}</p>
 					</div>
-					<a href="#" class="btn btn-outline-success btn-sm">{{ $t('common.viewAll') }} <i class="fa-solid fa-arrow-right ms-1"></i></a>
+					<router-link to="/danh-sach-chien-dich?trang_thai=completed" class="btn btn-outline-success btn-sm">{{ $t('common.viewAll') }} <i class="fa-solid fa-arrow-right ms-1"></i></router-link>
 				</div>
-				<div class="row g-4">
+				<div v-if="completedCampaigns.length" class="row g-4">
 					<div class="col-lg-4 col-md-6" v-for="(campaign, index) in completedCampaigns" :key="index">
 						<div class="card h-100 campaign-card opacity-75">
 							<div class="card-img-top campaign-banner" :style="{ backgroundImage: campaign.image ? `url(${campaign.image})` : campaign.color, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(30%)' }">
@@ -137,12 +144,19 @@
 									<button class="btn btn-light btn-sm flex-fill text-muted d-flex align-items-center justify-content-center" disabled>
 										<i class="fa-solid fa-lock me-1"></i>{{ $t('common.closed') }}
 									</button>
-									<router-link to="#" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
+									<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
 										{{ $t('common.viewDetails') }}
 									</router-link>
 								</div>
 							</div>
 						</div>
+					</div>
+				</div>
+				<div v-else class="card border-0 shadow-sm">
+					<div class="card-body py-5 text-center text-muted">
+						<div v-if="isLoading" class="spinner-border text-success mb-3" role="status"></div>
+						<i v-else class="fa-solid fa-circle-check d-block fs-1 mb-3 text-success opacity-50"></i>
+						<p class="mb-0">Chưa có chiến dịch đã hoàn thành để hiển thị.</p>
 					</div>
 				</div>
 			</div>
@@ -177,86 +191,20 @@
 </template>
 
 <script>
+import api from '@/services/api';
+
 export default {
 	name: "TrangChu",
 	data() {
 		return {
-			completedCampaigns: [
-				{
-					icon: 'fa-solid fa-school',
-					title: 'Sơn sửa trường Hy Vọng',
-					description: 'Chiến dịch sơn lại toàn bộ trường dòng Hy Vọng tại ngoại ô thành phố, mang lại không gian học tập mới.',
-					location: 'Củ Chi, TP.HCM',
-					date: '10/01/2026',
-					tag: 'Hoàn thành',
-					color: 'linear-gradient(135deg, #6c757d, #adb5bd)',
-					image: 'https://images.unsplash.com/photo-1544256718-3bcf237f3974?w=600&q=80',
-					total: 120,
-				},
-				{
-					icon: 'fa-solid fa-utensils',
-					title: 'Bữa cơm nụ cười',
-					description: 'Nấu và phát 500 suất ăn miễn phí cho người vô gia cư tại trung tâm thành phố trong dịp Tết.',
-					location: 'Hà Nội',
-					date: '28/01/2026',
-					tag: 'Hoàn thành',
-					color: 'linear-gradient(135deg, #6c757d, #adb5bd)',
-					image: 'https://images.unsplash.com/photo-1593113565696-7bbef1caff91?w=600&q=80',
-					total: 65,
-				},
-				{
-					icon: 'fa-solid fa-water',
-					title: 'Nước sạch về làng',
-					description: 'Lắp đặt 3 hệ thống lọc nước sạch cho các hộ dân tại vùng bị ngập mặn ở Đồng Bằng Sông Cửu Long.',
-					location: 'Bến Tre',
-					date: '05/02/2026',
-					tag: 'Hoàn thành',
-					color: 'linear-gradient(135deg, #6c757d, #adb5bd)',
-					image: 'https://images.unsplash.com/photo-1519336305162-4b6e511c504e?w=600&q=80',
-					total: 40,
-				}
-			],
-			campaigns: [
-				{
-					icon: 'fa-solid fa-tree',
-					title: 'Trồng cây xanh TP.HCM',
-					description: 'Chiến dịch trồng 1000 cây xanh tại các tuyến đường trọng điểm TP.HCM, hướng tới thành phố xanh sạch đẹp.',
-					location: 'TP. Hồ Chí Minh',
-					date: '15/03/2026',
-					tag: 'Môi trường',
-					color: 'linear-gradient(135deg, #198754, #20c997)',
-					image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&q=80',
-					progressClass: 'bg-success',
-					registered: 45,
-					total: 80,
-				},
-				{
-					icon: 'fa-solid fa-book-open',
-					title: 'Dạy học cho trẻ em vùng cao',
-					description: 'Chương trình dạy tiếng Anh và kỹ năng sống cho trẻ em tại Sapa, Lào Cai trong 2 tuần.',
-					location: 'Lào Cai',
-					date: '20/03/2026',
-					tag: 'Giáo dục',
-					color: 'linear-gradient(135deg, #0d6efd, #6610f2)',
-					image: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&q=80',
-					progressClass: 'bg-primary',
-					registered: 28,
-					total: 40,
-				},
-				{
-					icon: 'fa-solid fa-hand-holding-medical',
-					title: 'Khám bệnh miễn phí',
-					description: 'Đoàn y bác sĩ khám và phát thuốc miễn phí cho bà con nghèo tại các xã vùng sâu.',
-					location: 'Đồng Nai',
-					date: '25/03/2026',
-					tag: 'Y tế',
-					color: 'linear-gradient(135deg, #dc3545, #e35d6a)',
-					image: 'https://images.unsplash.com/photo-1584515933487-779824d29309?w=600&q=80',
-					progressClass: 'bg-danger',
-					registered: 15,
-					total: 30,
-				}
-			]
+			heroStats: {
+				volunteerCount: 0,
+				campaignCount: 0,
+				provinceCount: 0,
+			},
+			completedCampaigns: [],
+			campaigns: [],
+			isLoading: false,
 		}
 	},
 	computed: {
@@ -267,8 +215,105 @@ export default {
 				{ icon: 'fa-solid fa-clipboard-check', title: 'Đăng ký tham gia', description: this.$t('home.step3Desc') },
 				{ icon: 'fa-solid fa-award', title: 'Nhận đánh giá', description: this.$t('home.step4Desc') }
 			]
-		}
-	}
+		},
+	},
+	created() {
+		this.fetchHomeData();
+	},
+	methods: {
+		async fetchHomeData() {
+			this.isLoading = true;
+			try {
+				const response = await api.get('/trang-chu');
+				const payload = response.data?.data || {};
+				this.heroStats = {
+					volunteerCount: Number(payload.hero?.volunteer_count || 0),
+					campaignCount: Number(payload.hero?.campaign_count || 0),
+					provinceCount: Number(payload.hero?.province_count || 0),
+				};
+				this.campaigns = Array.isArray(payload.featured_campaigns)
+					? payload.featured_campaigns.map((campaign) => this.mapCampaignForUi(campaign))
+					: [];
+				this.completedCampaigns = Array.isArray(payload.completed_campaigns)
+					? payload.completed_campaigns.map((campaign) => this.mapCampaignForUi(campaign, true))
+					: [];
+			} catch (_error) {
+				this.heroStats = {
+					volunteerCount: 0,
+					campaignCount: 0,
+					provinceCount: 0,
+				};
+				this.campaigns = [];
+				this.completedCampaigns = [];
+			} finally {
+				this.isLoading = false;
+			}
+		},
+		mapCampaignForUi(campaign, completed = false) {
+			const totalSlots = Number(campaign?.so_luong_toi_da || 0);
+			const registered = Number(campaign?.so_dang_ky || 0);
+			const confirmed = Number(campaign?.so_xac_nhan || 0);
+			return {
+				id: campaign.id,
+				icon: this.resolveCampaignIcon(campaign),
+				title: campaign.tieu_de,
+				description: campaign.mo_ta,
+				location: campaign.dia_diem || this.$t('common.notAvailable'),
+				date: this.formatDate(campaign.ngay_bat_dau),
+				tag: completed ? this.$t('common.completed') : (campaign?.loai_chien_dich?.ten || 'Chiến dịch'),
+				color: this.resolveCampaignGradient(campaign, completed),
+				image: campaign.anh_bia,
+				progressClass: this.resolveProgressClass(campaign?.muc_do_uu_tien),
+				registered,
+				total: totalSlots > 0 ? totalSlots : Math.max(registered, confirmed, 1),
+			};
+		},
+		resolveCampaignIcon(campaign) {
+			const icon = (campaign?.loai_chien_dich?.bieu_tuong || '').trim();
+			if (icon) {
+				return icon.startsWith('fa-') ? icon : `fa-solid ${icon}`;
+			}
+
+			const typeName = (campaign?.loai_chien_dich?.ten || '').toLowerCase();
+			if (typeName.includes('y tế')) return 'fa-solid fa-hand-holding-medical';
+			if (typeName.includes('giáo dục')) return 'fa-solid fa-book-open';
+			if (typeName.includes('môi trường')) return 'fa-solid fa-tree';
+			return 'fa-solid fa-hands-holding-circle';
+		},
+		resolveCampaignGradient(campaign, completed = false) {
+			if (completed) {
+				return 'linear-gradient(135deg, #6c757d, #adb5bd)';
+			}
+
+			const priority = campaign?.muc_do_uu_tien;
+			if (priority === 'khan_cap') return 'linear-gradient(135deg, #dc3545, #fd7e14)';
+			if (priority === 'cao') return 'linear-gradient(135deg, #0d6efd, #6610f2)';
+			if (priority === 'thap') return 'linear-gradient(135deg, #198754, #20c997)';
+			return 'linear-gradient(135deg, #0dcaf0, #0d6efd)';
+		},
+		resolveProgressClass(priority) {
+			if (priority === 'khan_cap') return 'bg-danger';
+			if (priority === 'cao') return 'bg-primary';
+			if (priority === 'thap') return 'bg-success';
+			return 'bg-info';
+		},
+		formatDate(date) {
+			if (!date) return this.$t('common.notAvailable');
+			const parsed = new Date(date);
+			if (Number.isNaN(parsed.getTime())) return date;
+			return parsed.toLocaleDateString('vi-VN');
+		},
+		formatCompactNumber(value) {
+			const numericValue = Number(value || 0);
+			return numericValue.toLocaleString('vi-VN');
+		},
+		getProgressWidth(campaign) {
+			if (!campaign?.total) {
+				return 0;
+			}
+			return Math.min(100, Math.round((campaign.registered / campaign.total) * 100));
+		},
+	},
 }
 </script>
 
