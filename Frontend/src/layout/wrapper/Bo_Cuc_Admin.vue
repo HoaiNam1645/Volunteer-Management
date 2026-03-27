@@ -21,10 +21,16 @@
 				<div class="nav-section">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.overview') }}</span>
 					<ul class="nav flex-column">
-						<li class="nav-item" v-if="can('dashboard.view')">
+						<li class="nav-item" v-if="can('dashboard.view') && !isReviewer">
 							<router-link to="/admin" class="nav-link" :class="{ active: $route.path === '/admin' }">
 								<i class="fa-solid fa-gauge-high"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.dashboard') }}</span>
+							</router-link>
+						</li>
+						<li class="nav-item" v-if="can('statistics.view')">
+							<router-link to="/admin/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/admin/thong-ke') || (isReviewer && $route.path === '/admin') }">
+								<i class="fa-solid fa-chart-pie"></i>
+								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.statistics') }}</span>
 							</router-link>
 						</li>
 					</ul>
@@ -49,31 +55,6 @@
 							<router-link to="/admin/danh-muc" class="nav-link" :class="{ active: $route.path.startsWith('/admin/danh-muc') }">
 								<i class="fa-solid fa-layer-group"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.categories') }}</span>
-							</router-link>
-						</li>
-					</ul>
-				</div>
-
-				<div class="nav-section" v-if="can('ai_management.view')">
-					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.aiSystem') }}</span>
-					<ul class="nav flex-column">
-						<li class="nav-item">
-							<router-link to="/admin/ai-goi-y" class="nav-link" :class="{ active: $route.path.startsWith('/admin/ai-goi-y') }">
-								<i class="fa-solid fa-robot"></i>
-								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.aiSuggest') }}</span>
-								<span class="nav-badge bg-info" v-show="!sidebarCollapsed">AI</span>
-							</router-link>
-						</li>
-					</ul>
-				</div>
-
-				<div class="nav-section" v-if="can('statistics.view')">
-					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.reports') }}</span>
-					<ul class="nav flex-column">
-						<li class="nav-item">
-							<router-link to="/admin/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/admin/thong-ke') }">
-								<i class="fa-solid fa-chart-pie"></i>
-								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.statistics') }}</span>
 							</router-link>
 						</li>
 					</ul>

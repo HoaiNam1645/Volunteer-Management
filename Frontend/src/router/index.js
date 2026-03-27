@@ -175,6 +175,10 @@ router.beforeEach((to, from, next) => {
     const isAdminRoute = to.path.startsWith('/admin');
     const hasRoutePermission = hasAnyPermission(currentUser, to.meta.permissions || []);
 
+    if (role === 'kiem_duyet_vien' && to.path === '/admin') {
+        return next('/admin/thong-ke');
+    }
+
     if (to.meta.guestOnly && isAuthenticated) {
         return next(getAuthenticatedHome(role));
     }

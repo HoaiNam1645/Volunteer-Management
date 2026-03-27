@@ -784,7 +784,7 @@ export default {
             aiSystem: 'AI SYSTEM',
             aiSuggest: 'AI Volunteers Suggestion',
             reports: 'REPORTS',
-            statistics: 'General Statistics',
+            statistics: 'Reviewer Dashboard',
             admin: 'Admin',
             adminRole: 'Administrator',
             reviewerRole: 'Reviewer',
@@ -1502,8 +1502,8 @@ export default {
             }
         },
         stats: {
-            title: 'General Statistics',
-            subtitle: 'Performance charts and system overview reports',
+            title: 'Reviewer Dashboard',
+            subtitle: 'Operational metrics for campaign review and supervision',
             period: {
                 week: 'Last 7 days',
                 month: 'Last 30 days',

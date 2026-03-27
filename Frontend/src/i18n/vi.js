@@ -783,7 +783,7 @@ export default {
             aiSystem: 'HỆ THỐNG AI',
             aiSuggest: 'AI Gợi ý TNV',
             reports: 'BÁO CÁO',
-            statistics: 'Thống kê tổng hợp',
+            statistics: 'Dashboard KDV',
             admin: 'Admin',
             adminRole: 'Quản trị viên',
             reviewerRole: 'Kiểm duyệt viên',
@@ -1501,8 +1501,8 @@ export default {
             }
         },
         stats: {
-            title: 'Thống kê tổng hợp',
-            subtitle: 'Biểu đồ hiệu suất và báo cáo tổng quan hệ thống',
+            title: 'Dashboard KDV',
+            subtitle: 'Tổng quan số liệu phục vụ kiểm duyệt chiến dịch',
             period: {
                 week: '7 ngày qua',
                 month: '30 ngày qua',

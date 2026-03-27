@@ -182,6 +182,10 @@ export function hasAnyPermission(user, permissions = []) {
 }
 
 export function getFirstAccessibleAdminRoute(user) {
+	if (user?.vai_tro === 'kiem_duyet_vien' && hasPermission(user, 'statistics.view')) {
+		return '/admin/thong-ke';
+	}
+
 	const match = ADMIN_ROUTE_PERMISSIONS.find((route) => hasPermission(user, route.permission));
 	return match?.path || '/';
 }

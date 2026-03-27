@@ -9,6 +9,7 @@ use App\Http\Controllers\ThamGiaChienDichController;
 use App\Http\Controllers\TheoDoiPhanHoiController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\TrangChuController;
+use App\Http\Controllers\ThongKeTongQuanController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================== DANH MỤC (Public) ========================================
@@ -97,6 +98,10 @@ Route::middleware(['auth:api', 'tinhNguyenVien'])->group(function () {
 
 // =========================================== KIỂM DUYỆT VIÊN =========================================
 Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
+    Route::middleware('permission:statistics.view')->group(function () {
+        Route::get('/kiem-duyet/thong-ke', [ThongKeTongQuanController::class, 'thongKeKiemDuyet']);
+    });
+
     Route::middleware('permission:campaign_review.view')->group(function () {
         Route::get('/kiem-duyet/chien-dich/bo-loc', [KiemDuyetChienDichController::class, 'boLoc']);
         Route::get('/kiem-duyet/chien-dich', [KiemDuyetChienDichController::class, 'danhSach']);
@@ -116,6 +121,10 @@ Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
 
 // =========================================== QUẢN TRỊ VIÊN ==========================================
 Route::middleware(['auth:api', 'quanTriVien'])->group(function () {
+    Route::middleware('permission:dashboard.view')->group(function () {
+        Route::get('/admin/dashboard', [ThongKeTongQuanController::class, 'dashboardAdmin']);
+    });
+
     Route::middleware('permission:user_management.view')->group(function () {
         Route::get('/admin/nguoi-dung', [NguoiDungController::class, 'danhSachQuanLy']);
     });

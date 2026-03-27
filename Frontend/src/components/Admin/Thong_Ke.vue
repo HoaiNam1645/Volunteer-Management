@@ -13,19 +13,16 @@
 					<option value="quarter">{{ $t('admin.stats.period.quarter') }}</option>
 					<option value="year">{{ $t('admin.stats.period.year') }}</option>
 				</select>
-				<button class="btn btn-outline-primary btn-sm rounded-pill px-3" @click="exportReport">
-					<i class="fa-solid fa-download me-1"></i>{{ $t('admin.stats.exportReport') }}
-				</button>
 			</div>
 		</div>
 
 		<!-- KPIs -->
 		<div class="row g-3 mb-4">
-			<div class="col-xl-3 col-sm-6" v-for="kpi in kpis" :key="kpi.labelKey">
+			<div class="col-xl-3 col-sm-6" v-for="kpi in kpis" :key="kpi.label">
 				<div class="card border-0 shadow-sm kpi-card">
 					<div class="card-body p-3">
 						<div class="d-flex align-items-center justify-content-between mb-2">
-							<span class="text-muted small">{{ $t(kpi.labelKey) }}</span>
+							<span class="text-muted small">{{ kpi.label }}</span>
 							<div class="kpi-icon" :style="{ background: kpi.bgColor, color: kpi.color }">
 								<i :class="kpi.icon"></i>
 							</div>
@@ -80,13 +77,13 @@
 						<h6 class="fw-bold mb-0"><i class="fa-solid fa-circle-nodes text-primary me-2"></i>{{ $t('admin.stats.charts.campaignStatus') }}</h6>
 					</div>
 					<div class="card-body">
-						<div class="status-item d-flex align-items-center gap-3 mb-3" v-for="item in campaignStatuses" :key="item.labelKey">
+						<div class="status-item d-flex align-items-center gap-3 mb-3" v-for="item in campaignStatuses" :key="item.label">
 							<div class="status-icon" :style="{ background: item.bgColor, color: item.color }">
 								<i :class="item.icon"></i>
 							</div>
 							<div class="flex-grow-1">
 								<div class="d-flex align-items-center justify-content-between mb-1">
-									<span class="small fw-bold">{{ $t(item.labelKey) }}</span>
+									<span class="small fw-bold">{{ item.label }}</span>
 									<span class="small fw-bold">{{ item.count }}</span>
 								</div>
 								<div class="progress" style="height: 6px;">
@@ -153,6 +150,8 @@
 </template>
 
 <script>
+import api from '../../services/api';
+
 export default {
 	name: 'ThongKeTongHop',
 	props: {
@@ -162,58 +161,57 @@ export default {
 		return {
 			period: 'month',
 			chartView: 'campaigns',
-			kpis: [
-				{ labelKey: 'admin.stats.kpi.totalUsers', value: '1,248', trendUp: true, trendValue: '+12.5%', icon: 'fa-solid fa-users', bgColor: 'rgba(79,140,247,0.1)', color: '#4f8cf7' },
-				{ labelKey: 'admin.stats.kpi.totalCampaigns', value: '156', trendUp: true, trendValue: '+8.3%', icon: 'fa-solid fa-flag', bgColor: 'rgba(40,167,69,0.1)', color: '#28a745' },
-				{ labelKey: 'admin.stats.kpi.completionRate', value: '84%', trendUp: true, trendValue: '+5.2%', icon: 'fa-solid fa-check-circle', bgColor: 'rgba(253,126,20,0.1)', color: '#fd7e14' },
-				{ labelKey: 'admin.stats.kpi.avgRating', value: '4.6', trendUp: false, trendValue: '-0.1', icon: 'fa-solid fa-star', bgColor: 'rgba(220,53,69,0.1)', color: '#dc3545' }
-			],
-			monthlyData: [
-				{ label: 'T1', campaigns: 8, volunteers: 120 },
-				{ label: 'T2', campaigns: 12, volunteers: 180 },
-				{ label: 'T3', campaigns: 15, volunteers: 245 },
-				{ label: 'T4', campaigns: 10, volunteers: 165 },
-				{ label: 'T5', campaigns: 18, volunteers: 310 },
-				{ label: 'T6', campaigns: 22, volunteers: 380 },
-				{ label: 'T7', campaigns: 28, volunteers: 450 },
-				{ label: 'T8', campaigns: 25, volunteers: 410 },
-				{ label: 'T9', campaigns: 20, volunteers: 340 },
-				{ label: 'T10', campaigns: 16, volunteers: 260 },
-				{ label: 'T11', campaigns: 14, volunteers: 220 },
-				{ label: 'T12', campaigns: 10, volunteers: 185 }
-			],
-			campaignStatuses: [
-				{ labelKey: 'admin.stats.status.recruiting', count: 12, percent: 32, icon: 'fa-solid fa-bullhorn', color: '#28a745', bgColor: 'rgba(40,167,69,0.1)' },
-				{ labelKey: 'admin.stats.status.active', count: 8, percent: 21, icon: 'fa-solid fa-play', color: '#0d6efd', bgColor: 'rgba(13,110,253,0.1)' },
-				{ labelKey: 'admin.stats.status.completed', count: 128, percent: 82, icon: 'fa-solid fa-check', color: '#6c757d', bgColor: 'rgba(108,117,125,0.1)' },
-				{ labelKey: 'admin.stats.status.cancelled', count: 8, percent: 5, icon: 'fa-solid fa-ban', color: '#dc3545', bgColor: 'rgba(220,53,69,0.1)' }
-			],
-			topRegions: [
-				{ name: 'TP. Hồ Chí Minh', volunteers: 320, percent: 100 },
-				{ name: 'Hà Nội', volunteers: 285, percent: 89 },
-				{ name: 'Đà Nẵng', volunteers: 198, percent: 62 },
-				{ name: 'Lào Cai', volunteers: 145, percent: 45 },
-				{ name: 'Quảng Nam', volunteers: 120, percent: 38 },
-				{ name: 'Đắk Lắk', volunteers: 95, percent: 30 }
-			],
-			topSkills: [
-				{ name: 'Dạy học', count: 245, percent: 100, color: '#4f8cf7', icon: 'fa-solid fa-chalkboard-user' },
-				{ name: 'Truyền thông', count: 156, percent: 64, color: '#e83e8c', icon: 'fa-solid fa-bullhorn' },
-				{ name: 'Y tế / Sơ cứu', count: 128, percent: 52, color: '#dc3545', icon: 'fa-solid fa-kit-medical' },
-				{ name: 'IT / Công nghệ', count: 112, percent: 46, color: '#6f42c1', icon: 'fa-solid fa-laptop-code' },
-				{ name: 'Nấu ăn', count: 98, percent: 40, color: '#fd7e14', icon: 'fa-solid fa-utensils' },
-				{ name: 'Xây dựng', count: 89, percent: 36, color: '#198754', icon: 'fa-solid fa-hammer' }
-			]
+			kpis: [],
+			monthlyData: [],
+			campaignStatuses: [],
+			topRegions: [],
+			topSkills: []
+		}
+	},
+	async created() {
+		await this.fetchStatistics();
+	},
+	watch: {
+		period() {
+			this.fetchStatistics();
 		}
 	},
 	computed: {
 		maxValue() {
-			return Math.max(...this.monthlyData.map(m => this.chartView === 'campaigns' ? m.campaigns : m.volunteers));
+			return Math.max(1, ...this.monthlyData.map(m => this.chartView === 'campaigns' ? m.campaigns : m.volunteers), 1);
 		}
 	},
 	methods: {
-		exportReport() {
-			if (this.toast) this.toast.success(this.$t('admin.stats.toast.exportSuccess'), this.$t('admin.stats.toast.exportMsg'));
+		async fetchStatistics() {
+			try {
+				const { data } = await api.get('/kiem-duyet/thong-ke', { params: { period: this.period } });
+				const payload = data?.data || {};
+				this.kpis = Object.values(payload.kpis || {}).map((item) => ({
+					label: item.label,
+					value: item.value,
+					trendUp: item.trend?.positive ?? true,
+					trendValue: item.trend?.text || 'Không đổi',
+					icon: item.icon,
+					bgColor: item.bg_color,
+					color: item.color,
+				}));
+
+				this.monthlyData = payload.monthly_data || [];
+				this.campaignStatuses = (payload.campaign_statuses || []).map((item) => ({
+					label: item.label,
+					count: item.count,
+					percent: item.percent,
+					icon: item.icon,
+					color: item.color,
+					bgColor: item.bg_color,
+				}));
+				this.topRegions = payload.top_regions || [];
+				this.topSkills = payload.top_skills || [];
+			} catch (error) {
+				if (this.toast) {
+					this.toast.error('Không thể tải thống kê', error?.response?.data?.message || 'Vui lòng thử lại sau.');
+				}
+			}
 		}
 	}
 }

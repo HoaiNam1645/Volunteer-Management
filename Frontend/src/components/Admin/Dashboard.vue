@@ -7,11 +7,11 @@
 				<p class="text-muted mb-0 small">{{ $t('admin.dashboard.subtitle') }}</p>
 			</div>
 			<div class="d-flex gap-2">
-				<select class="form-select form-select-sm" style="width: auto;">
-					<option>{{ $t('admin.dashboard.period.week') }}</option>
-					<option>{{ $t('admin.dashboard.period.month') }}</option>
-					<option>{{ $t('admin.dashboard.period.quarter') }}</option>
-					<option>{{ $t('admin.dashboard.period.year') }}</option>
+				<select class="form-select form-select-sm" style="width: auto;" v-model="period" @change="fetchDashboard">
+					<option value="week">{{ $t('admin.dashboard.period.week') }}</option>
+					<option value="month">{{ $t('admin.dashboard.period.month') }}</option>
+					<option value="quarter">{{ $t('admin.dashboard.period.quarter') }}</option>
+					<option value="year">{{ $t('admin.dashboard.period.year') }}</option>
 				</select>
 			</div>
 		</div>
@@ -23,15 +23,15 @@
 					<div class="card-body p-3">
 						<div class="d-flex align-items-start justify-content-between">
 							<div>
-								<p class="text-muted small mb-1">{{ $t(stat.labelKey) }}</p>
-								<h3 class="fw-bold mb-0">{{ stat.value }}</h3>
+								<p class="text-muted small mb-1">{{ stat.label }}</p>
+								<h3 class="fw-bold mb-0">{{ formatNumber(stat.value) }}</h3>
 								<div class="mt-2">
-									<span class="badge rounded-pill" :class="stat.trendClass">
-										<i class="fa-solid" :class="stat.trendIcon"></i> {{ getTrendText(stat) }}
+									<span class="badge rounded-pill" :class="trendBadgeClass(stat)">
+										<i class="fa-solid" :class="trendIcon(stat)"></i> {{ getTrendText(stat) }}
 									</span>
 								</div>
 							</div>
-							<div class="stat-icon" :class="stat.bgClass">
+							<div class="stat-icon" :class="stat.bg_class">
 								<i :class="stat.icon"></i>
 							</div>
 						</div>
@@ -48,16 +48,16 @@
 						<h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-area text-primary me-2"></i>{{ $t('admin.dashboard.charts.systemActivity') }}</h6>
 						<div class="d-flex gap-2">
 							<span class="chart-legend"><span class="legend-dot bg-primary"></span> {{ $t('admin.dashboard.charts.newRegistrations') }}</span>
-							<span class="chart-legend"><span class="legend-dot bg-success"></span> {{ $t('admin.dashboard.charts.campaigns') }}</span>
+								<span class="chart-legend"><span class="legend-dot bg-success"></span> {{ $t('admin.dashboard.charts.campaigns') }}</span>
+							</div>
 						</div>
-					</div>
 					<div class="card-body">
 						<div class="chart-placeholder d-flex align-items-end gap-2 justify-content-around" style="height: 250px;">
 							<div class="chart-bar-pair" v-for="(item, idx) in chartData" :key="idx">
 								<div class="d-flex align-items-end gap-1" style="height: 200px;">
-									<div class="chart-bar bg-primary bg-opacity-75" :style="{ height: item.reg + '%' }" 
+									<div class="chart-bar bg-primary bg-opacity-75" :style="{ height: item.regHeight + '%' }"
 										v-bs-tooltip :title="item.reg + ' ' + $t('admin.dashboard.charts.newRegistrations').toLowerCase()"></div>
-									<div class="chart-bar bg-success bg-opacity-75" :style="{ height: item.camp + '%' }"
+									<div class="chart-bar bg-success bg-opacity-75" :style="{ height: item.campHeight + '%' }"
 										v-bs-tooltip :title="item.camp + ' ' + $t('admin.dashboard.charts.campaigns').toLowerCase()"></div>
 								</div>
 								<div class="text-center text-muted small mt-2">{{ item.label }}</div>
@@ -76,7 +76,7 @@
 						<!-- Donut chart visual -->
 						<div class="donut-chart mx-auto mb-4">
 							<div class="donut-hole">
-								<h4 class="fw-bold mb-0">1,248</h4>
+								<h4 class="fw-bold mb-0">{{ formatNumber(totalUsers) }}</h4>
 								<span class="small text-muted">{{ $t('admin.dashboard.charts.total') }}</span>
 							</div>
 						</div>
@@ -84,7 +84,7 @@
 							<div class="d-flex align-items-center justify-content-between" v-for="role in roleDistribution" :key="role.label">
 								<div class="d-flex align-items-center gap-2">
 									<span class="role-dot" :style="{ background: role.color }"></span>
-									<span class="small">{{ $t(role.labelKey) }}</span>
+									<span class="small">{{ role.label }}</span>
 								</div>
 								<div class="d-flex align-items-center gap-2">
 									<span class="fw-bold small">{{ role.count }}</span>
@@ -101,32 +101,30 @@
 
 		<!-- Lower Section -->
 		<div class="row g-3">
-			<!-- Pending Approvals -->
+			<!-- Recent Users -->
 			<div class="col-lg-6">
 				<div class="card border-0 shadow-sm">
 					<div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
 						<h6 class="fw-bold mb-0">
-							<i class="fa-solid fa-user-clock text-warning me-2"></i>{{ $t('admin.dashboard.approval.title') }}
-							<span class="badge bg-warning text-dark ms-2">5</span>
+							<i class="fa-solid fa-user-plus text-primary me-2"></i>Người dùng đăng ký gần đây
+							<span class="badge bg-primary-subtle text-primary ms-2">{{ recentUsers.length }}</span>
 						</h6>
-						<router-link v-if="canViewUsers" to="/admin/nguoi-dung" class="btn btn-sm btn-outline-primary rounded-pill">{{ $t('admin.dashboard.approval.viewAll') }}</router-link>
+						<router-link v-if="canViewUsers" to="/admin/nguoi-dung" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</router-link>
 					</div>
 					<div class="card-body p-0">
-						<div class="approval-item d-flex align-items-center gap-3 p-3 border-bottom" v-for="user in pendingUsers" :key="user.id">
-							<div class="user-avatar-sm" :style="{ background: user.color }">
-								{{ user.name.charAt(0) }}
+						<div v-if="!recentUsers.length" class="text-muted small p-3">Chưa có người dùng đăng ký gần đây.</div>
+						<div class="approval-item d-flex align-items-center gap-3 p-3 border-bottom" v-for="user in recentUsers" :key="user.id">
+							<div class="user-avatar-sm overflow-hidden bg-primary-subtle text-primary">
+								<img v-if="user.avatar" :src="user.avatar" alt="" class="w-100 h-100 object-fit-cover" />
+								<span v-else>{{ user.name.charAt(0) }}</span>
 							</div>
 							<div class="flex-grow-1">
 								<h6 class="mb-0 small fw-bold">{{ user.name }}</h6>
-								<span class="text-muted" style="font-size: 12px;">{{ user.email }} · {{ user.time }}</span>
-							</div>
-							<div v-if="canManageUsers" class="d-flex gap-1">
-								<button class="btn btn-sm btn-success rounded-pill px-3" @click="approveUser(user)">
-									<i class="fa-solid fa-check me-1"></i>{{ $t('admin.dashboard.approval.approve') }}
-								</button>
-								<button class="btn btn-sm btn-outline-danger rounded-pill px-2" @click="rejectUser(user)">
-									<i class="fa-solid fa-xmark"></i>
-								</button>
+								<span class="text-muted d-block" style="font-size: 12px;">{{ user.email }} · {{ user.time }}</span>
+								<div class="d-flex align-items-center gap-2 mt-1">
+									<span class="badge rounded-pill text-bg-light">{{ user.role_label }}</span>
+									<span class="badge rounded-pill" :class="user.status_badge_class">{{ user.status_label }}</span>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -138,11 +136,12 @@
 				<div class="card border-0 shadow-sm">
 					<div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
 						<h6 class="fw-bold mb-0"><i class="fa-solid fa-flag text-primary me-2"></i>{{ $t('admin.dashboard.campaigns.title') }}</h6>
-						<span class="badge bg-success rounded-pill">{{ $t('admin.dashboard.campaigns.activeCount', { count: 12 }) }}</span>
+						<span class="badge bg-success rounded-pill">{{ activeCampaignsLabel }}</span>
 					</div>
 					<div class="card-body p-0">
+						<div v-if="!recentCampaigns.length" class="text-muted small p-3">Chưa có chiến dịch gần đây.</div>
 						<div class="campaign-item d-flex align-items-center gap-3 p-3 border-bottom" v-for="campaign in recentCampaigns" :key="campaign.id">
-							<div class="campaign-thumb" :style="{ backgroundImage: `url(${campaign.image})` }"></div>
+							<div class="campaign-thumb" :style="campaignThumbStyle(campaign)"></div>
 							<div class="flex-grow-1">
 								<h6 class="mb-1 small fw-bold campaign-title-text">{{ campaign.title }}</h6>
 								<div class="d-flex align-items-center gap-3 text-muted" style="font-size: 12px;">
@@ -150,7 +149,7 @@
 									<span><i class="fa-solid fa-location-dot me-1"></i>{{ campaign.location }}</span>
 								</div>
 							</div>
-							<span class="badge rounded-pill" :class="campaign.statusClass">{{ $t(campaign.statusKey) }}</span>
+							<span class="badge rounded-pill" :class="campaign.status_badge_class">{{ campaign.status_label }}</span>
 						</div>
 					</div>
 				</div>
@@ -160,6 +159,7 @@
 </template>
 
 <script>
+import api from '../../services/api';
 import { hasPermission } from '../../utils/permissions';
 
 export default {
@@ -170,44 +170,17 @@ export default {
 	data() {
 		return {
 			currentUser: null,
-			stats: [
-				{ labelKey: 'admin.dashboard.stats.totalUsers', value: '1,248', trend: '+12.5%', trendType: 'text', trendIcon: 'fa-arrow-up', trendClass: 'bg-success-subtle text-success', icon: 'fa-solid fa-users', bgClass: 'bg-primary-subtle text-primary' },
-				{ labelKey: 'admin.dashboard.stats.activeCampaigns', value: '24', trend: '+3', trendType: 'text', trendIcon: 'fa-arrow-up', trendClass: 'bg-success-subtle text-success', icon: 'fa-solid fa-flag', bgClass: 'bg-success-subtle text-success' },
-				{ labelKey: 'admin.dashboard.stats.pendingApprovals', value: '5', trendKey: 'admin.dashboard.stats.needsAction', trendType: 'i18n', trendIcon: 'fa-circle-exclamation', trendClass: 'bg-warning-subtle text-warning', icon: 'fa-solid fa-user-clock', bgClass: 'bg-warning-subtle text-warning' },
-				{ labelKey: 'admin.dashboard.stats.publishedArticles', value: '87', trendCount: 8, trendType: 'i18nWeek', trendIcon: 'fa-arrow-up', trendClass: 'bg-info-subtle text-info', icon: 'fa-solid fa-newspaper', bgClass: 'bg-info-subtle text-info' }
-			],
-			chartData: [
-				{ label: 'T2', reg: 45, camp: 30 },
-				{ label: 'T3', reg: 60, camp: 45 },
-				{ label: 'T4', reg: 35, camp: 55 },
-				{ label: 'T5', reg: 80, camp: 40 },
-				{ label: 'T6', reg: 55, camp: 65 },
-				{ label: 'T7', reg: 70, camp: 50 },
-				{ label: 'CN', reg: 90, camp: 75 }
-			],
-			roleDistribution: [
-				{ labelKey: 'admin.dashboard.charts.roles.volunteer', count: 985, percent: 79, color: '#4f8cf7' },
-				{ labelKey: 'admin.dashboard.charts.roles.coordinator', count: 198, percent: 16, color: '#28a745' },
-				{ labelKey: 'admin.dashboard.charts.roles.admin', count: 5, percent: 0.4, color: '#fd7e14' },
-				{ labelKey: 'admin.dashboard.charts.roles.pending', count: 60, percent: 5, color: '#dc3545' }
-			],
-			pendingUsers: [
-				{ id: 1, name: 'Nguyễn Văn Bình', email: 'binh.nv@gmail.com', time: '2 giờ trước', color: '#dc3545' },
-				{ id: 2, name: 'Trần Thị Mai', email: 'mai.tt@gmail.com', time: '5 giờ trước', color: '#6f42c1' },
-				{ id: 3, name: 'Lê Hòa Phúc', email: 'phuc.lh@gmail.com', time: '1 ngày trước', color: '#198754' },
-				{ id: 4, name: 'Phạm Quốc Huy', email: 'huy.pq@gmail.com', time: '1 ngày trước', color: '#fd7e14' },
-				{ id: 5, name: 'Hoàng Yến Nhi', email: 'nhi.hy@gmail.com', time: '2 ngày trước', color: '#0d6efd' }
-			],
-			recentCampaigns: [
-				{ id: 1, title: 'Trồng cây xanh Tây Nguyên 2026', volunteers: 45, target: 80, location: 'Đắk Lắk', statusKey: 'admin.stats.status.recruiting', statusClass: 'bg-success-subtle text-success', image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=100&q=80' },
-				{ id: 2, title: 'Dạy học miễn phí Sapa', volunteers: 20, target: 20, location: 'Lào Cai', statusKey: 'admin.stats.status.completed', statusClass: 'bg-primary-subtle text-primary', image: 'https://images.unsplash.com/photo-1529390079861-591de354faf5?w=100&q=80' },
-				{ id: 3, title: 'Khám bệnh cộng đồng Quảng Nam', volunteers: 12, target: 30, location: 'Quảng Nam', statusKey: 'admin.stats.status.recruiting', statusClass: 'bg-success-subtle text-success', image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=100&q=80' },
-				{ id: 4, title: 'Xây cầu vùng lũ Quảng Bình', volunteers: 50, target: 50, location: 'Quảng Bình', statusKey: 'admin.stats.status.completed', statusClass: 'bg-secondary-subtle text-secondary', image: 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=100&q=80' }
-			]
+			period: 'month',
+			stats: [],
+			chartData: [],
+			roleDistribution: [],
+			recentUsers: [],
+			recentCampaigns: [],
 		}
 	},
-	created() {
+	async created() {
 		this.loadCurrentUser();
+		await this.fetchDashboard();
 	},
 	computed: {
 		canManageUsers() {
@@ -215,6 +188,12 @@ export default {
 		},
 		canViewUsers() {
 			return hasPermission(this.currentUser, 'user_management.view');
+		},
+		totalUsers() {
+			return this.stats.find((item) => item.key === 'total_users')?.value || 0;
+		},
+		activeCampaignsLabel() {
+			return this.stats.find((item) => item.key === 'active_campaigns')?.badge_label || '0 đang hoạt động';
 		},
 	},
 	methods: {
@@ -225,24 +204,52 @@ export default {
 				this.currentUser = null;
 			}
 		},
-		getTrendText(stat) {
-			if (stat.trendType === 'i18nWeek') {
-				return this.$t('admin.dashboard.stats.thisWeekCount', { count: stat.trendCount });
-			} else if (stat.trendType === 'i18n') {
-				return this.$t(stat.trendKey);
+		async fetchDashboard() {
+			try {
+				const { data } = await api.get('/admin/dashboard', { params: { period: this.period } });
+				const payload = data?.data || {};
+				const summary = payload.summary || {};
+				this.stats = Object.values(summary);
+
+				const chartRows = payload.activity_chart || [];
+				const chartMax = Math.max(1, ...chartRows.flatMap((item) => [Number(item.registrations || 0), Number(item.campaigns || 0)]));
+				this.chartData = chartRows.map((item) => ({
+					label: item.label,
+					reg: Number(item.registrations || 0),
+					camp: Number(item.campaigns || 0),
+					regHeight: Math.max(4, Math.round((Number(item.registrations || 0) / chartMax) * 100)),
+					campHeight: Math.max(4, Math.round((Number(item.campaigns || 0) / chartMax) * 100)),
+				}));
+
+				this.roleDistribution = payload.role_distribution || [];
+				this.recentUsers = payload.recent_users || [];
+				this.recentCampaigns = payload.recent_campaigns || [];
+			} catch (error) {
+				if (this.toast) {
+					this.toast.error('Không thể tải dashboard', error?.response?.data?.message || 'Vui lòng thử lại sau.');
+				}
 			}
-			return stat.trend;
 		},
-		approveUser(user) {
-			this.pendingUsers = this.pendingUsers.filter(u => u.id !== user.id);
-			this.stats[2].value = String(this.pendingUsers.length);
-			if (this.toast) this.toast.success(this.$t('admin.dashboard.approval.toast.approveSuccess'), this.$t('admin.dashboard.approval.toast.approveMsg', { name: user.name }));
+		getTrendText(stat) {
+			return stat?.trend?.text || 'Không đổi';
 		},
-		rejectUser(user) {
-			this.pendingUsers = this.pendingUsers.filter(u => u.id !== user.id);
-			this.stats[2].value = String(this.pendingUsers.length);
-			if (this.toast) this.toast.warning(this.$t('admin.dashboard.approval.toast.rejectSuccess'), this.$t('admin.dashboard.approval.toast.rejectMsg', { name: user.name }));
-		}
+		trendBadgeClass(stat) {
+			return stat?.trend?.positive
+				? 'bg-success-subtle text-success'
+				: 'bg-warning-subtle text-warning';
+		},
+		trendIcon(stat) {
+			return stat?.trend?.positive ? 'fa-arrow-up' : 'fa-circle-exclamation';
+		},
+		formatNumber(value) {
+			return new Intl.NumberFormat('vi-VN').format(Number(value || 0));
+		},
+		campaignThumbStyle(campaign) {
+			if (campaign.image) {
+				return { backgroundImage: `url(${campaign.image})` };
+			}
+			return { background: 'linear-gradient(135deg, #4f8cf7, #77a6ff)' };
+		},
 	}
 }
 </script>
