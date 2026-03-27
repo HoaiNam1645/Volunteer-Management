@@ -279,13 +279,30 @@ class ThamGiaChienDichController extends Controller
     public function dangKy(Request $request, $id)
     {
         $user = auth('api')->user();
-        $campaign = $this->findCampaignOpenForRegistration($id);
+        $campaign = ChienDich::query()
+            ->where('id', $id)
+            ->whereNull('xoa_luc')
+            ->first();
 
         if (!$campaign) {
             return response()->json([
                 'status' => 0,
+                'message' => 'Chiến dịch không tồn tại.',
+            ], 404);
+        }
+
+        if (!$this->coMoDangKy($campaign)) {
+            return response()->json([
+                'status' => 0,
                 'message' => 'Chiến dịch không tồn tại hoặc không còn mở đăng ký.',
             ], 404);
+        }
+
+        if ($this->daDuSoLuongTinhNguyenVien($campaign)) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Chiến dịch đã đủ số lượng tình nguyện viên.',
+            ], 422);
         }
 
         if ((int) $campaign->nguoi_tao_id === (int) $user->id) {
@@ -572,6 +589,7 @@ class ThamGiaChienDichController extends Controller
             'co_the_xac_nhan' => $flags['co_the_xac_nhan'],
             'co_the_huy_dang_ky' => $flags['co_the_huy_dang_ky'],
             'da_het_han_dang_ky' => $flags['da_het_han_dang_ky'],
+            'da_du_so_luong' => $flags['da_du_so_luong'],
             'display_status' => $this->mapDisplayStatusFromCampaign($campaign),
         ];
     }
@@ -623,6 +641,7 @@ class ThamGiaChienDichController extends Controller
             'co_the_xac_nhan' => $flags['co_the_xac_nhan'],
             'co_the_huy_dang_ky' => $flags['co_the_huy_dang_ky'],
             'da_het_han_dang_ky' => $flags['da_het_han_dang_ky'],
+            'da_du_so_luong' => $flags['da_du_so_luong'],
             'display_status' => $this->mapDisplayStatusFromCampaign($campaign),
         ];
     }
@@ -662,13 +681,31 @@ class ThamGiaChienDichController extends Controller
     {
         $daHetHanDangKy = $campaign->han_dang_ky && now()->gt($campaign->han_dang_ky);
         $dangMoDangKy = $campaign->trang_thai === 'da_duyet' && !$daHetHanDangKy;
+        $daDuSoLuong = $this->daDuSoLuongTinhNguyenVien($campaign);
 
         return [
-            'co_the_dang_ky' => $dangMoDangKy && !$dangKy,
+            'co_the_dang_ky' => $dangMoDangKy && !$daDuSoLuong && !$dangKy,
             'co_the_xac_nhan' => $dangKy && $dangMoDangKy && $dangKy->trang_thai === 'da_dang_ky',
             'co_the_huy_dang_ky' => $dangKy && $this->coTheHuyDangKy($campaign, $dangKy),
             'da_het_han_dang_ky' => $daHetHanDangKy,
+            'da_du_so_luong' => $daDuSoLuong,
         ];
+    }
+
+    private function coMoDangKy(ChienDich $campaign): bool
+    {
+        $daHetHanDangKy = $campaign->han_dang_ky && now()->gt($campaign->han_dang_ky);
+
+        return $campaign->trang_thai === 'da_duyet' && !$daHetHanDangKy;
+    }
+
+    private function daDuSoLuongTinhNguyenVien(ChienDich $campaign): bool
+    {
+        if (!$campaign->so_luong_toi_da) {
+            return false;
+        }
+
+        return (int) $campaign->so_xac_nhan >= (int) $campaign->so_luong_toi_da;
     }
 
     private function coTheHuyDangKy(ChienDich $campaign, DangKyThamGia $dangKy): bool
