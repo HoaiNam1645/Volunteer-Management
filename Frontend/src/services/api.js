@@ -1,7 +1,20 @@
 import axios from 'axios';
 
+const resolvedBaseUrl = (() => {
+    const configuredBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').trim();
+    if (configuredBaseUrl) {
+        return configuredBaseUrl.replace(/\/+$/, '');
+    }
+
+    if (typeof window !== 'undefined' && window.location?.origin) {
+        return `${window.location.origin.replace(/\/+$/, '')}/api`;
+    }
+
+    return '/api';
+})();
+
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api',
+    baseURL: resolvedBaseUrl,
     withCredentials: true,
     headers: {
         'Accept': 'application/json',
