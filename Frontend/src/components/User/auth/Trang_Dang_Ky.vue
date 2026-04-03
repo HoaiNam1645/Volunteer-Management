@@ -135,9 +135,10 @@
 											</div>
 											<div v-if="showOtherSkillInput" class="mt-3">
 												<div class="input-group">
-													<input v-model.trim="otherSkillInput" type="text" class="form-control" placeholder="Nhập kỹ năng khác">
+													<input v-model.trim="otherSkillInput" type="text" class="form-control" :class="{ 'is-invalid': fieldErrors.otherSkillInput }" placeholder="Nhập kỹ năng khác">
 													<button type="button" class="btn btn-outline-primary" @click="addOtherSkill">Thêm</button>
 												</div>
+												<div v-if="fieldErrors.otherSkillInput" class="inline-error">{{ fieldErrors.otherSkillInput }}</div>
 												<div v-if="form.ky_nang_khac.length" class="d-flex flex-wrap gap-2 mt-2">
 													<span v-for="skill in form.ky_nang_khac" :key="skill" class="badge bg-warning text-dark rounded-pill px-3 py-2">
 														<i :class="getDefaultSkillIcon()" class="me-1"></i>
@@ -148,6 +149,7 @@
 													</span>
 												</div>
 											</div>
+											<div v-if="fieldErrors.ky_nang_ids" class="inline-error mt-2">{{ fieldErrors.ky_nang_ids }}</div>
 										</div>
 									</div>
 
@@ -163,9 +165,10 @@
 										</div>
 										<div v-if="showOtherAreaInput" class="mt-3">
 											<div class="input-group">
-												<input v-model.trim="otherAreaInput" type="text" class="form-control" placeholder="Nhập khu vực khác">
+												<input v-model.trim="otherAreaInput" type="text" class="form-control" :class="{ 'is-invalid': fieldErrors.otherAreaInput }" placeholder="Nhập khu vực khác">
 												<button type="button" class="btn btn-outline-success" @click="addOtherArea">Thêm</button>
 											</div>
+											<div v-if="fieldErrors.otherAreaInput" class="inline-error">{{ fieldErrors.otherAreaInput }}</div>
 											<div v-if="form.khu_vuc_khac.length" class="d-flex flex-wrap gap-2 mt-2">
 												<span v-for="area in form.khu_vuc_khac" :key="area" class="badge bg-warning text-dark rounded-pill px-3 py-2">
 													<i class="fa-solid fa-map-marker-alt me-1"></i>
@@ -176,6 +179,7 @@
 												</span>
 											</div>
 										</div>
+										<div v-if="fieldErrors.khu_vuc_ids" class="inline-error mt-2">{{ fieldErrors.khu_vuc_ids }}</div>
 									</div>
 
 									<div class="row g-3 mt-2">
@@ -236,12 +240,13 @@
 									</div>
 
 									<div class="mb-4 form-check user-select-none">
-										<input id="agreeTerms" v-model="form.agreeTerms" type="checkbox" class="form-check-input shadow-none cursor-pointer" required>
+										<input id="agreeTerms" v-model="form.agreeTerms" type="checkbox" class="form-check-input shadow-none cursor-pointer" :class="{ 'is-invalid': fieldErrors.agreeTerms }" required>
 										<label class="form-check-label text-muted cursor-pointer" for="agreeTerms">
 											{{ $t('auth.register.termsAgree') }}
 											<router-link to="/dieu-khoan" class="text-primary text-decoration-none fw-semibold transition-hover">{{ $t('auth.register.termsLink') }}</router-link> {{ $t('auth.register.termsAnd') }}
 											<router-link to="/chinh-sach-bao-mat" class="text-primary text-decoration-none fw-semibold transition-hover">{{ $t('auth.register.privacyLink') }}</router-link> {{ $t('auth.register.termsPlatform') }}
 										</label>
+										<div v-if="fieldErrors.agreeTerms" class="inline-error">{{ fieldErrors.agreeTerms }}</div>
 									</div>
 
 									<div class="row g-3">
@@ -378,6 +383,9 @@ export default {
 			if (this.currentStep === 1 && !this.validateStepOne()) {
 				return;
 			}
+			if (this.currentStep === 2 && !this.validateStepTwo()) {
+				return;
+			}
 			if (this.currentStep < 3) this.currentStep++;
 		},
 		prevStep() {
@@ -388,47 +396,109 @@ export default {
 			const phone = this.form.so_dien_thoai.trim();
 			const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 			const phonePattern = /^(0|\+84)\d{9,10}$/;
-			this.fieldErrors = {};
+			this.fieldErrors = {
+				...Object.fromEntries(
+					Object.entries(this.fieldErrors).filter(([key]) => ![
+						'ho_ten',
+						'email',
+						'so_dien_thoai',
+						'password',
+						'password_confirmation',
+					].includes(key))
+				),
+			};
 			this.alertMessage = '';
+			let isValid = true;
 
 			if (!this.form.ho_ten.trim()) {
 				this.fieldErrors.ho_ten = 'Vui lòng nhập họ và tên.';
-				return false;
+				isValid = false;
+			} else if (this.form.ho_ten.trim().length < 2) {
+				this.fieldErrors.ho_ten = 'Họ và tên phải có ít nhất 2 ký tự.';
+				isValid = false;
 			}
 
 			if (!email) {
 				this.fieldErrors.email = 'Vui lòng nhập email.';
-				return false;
-			}
-
-			if (!emailPattern.test(email)) {
+				isValid = false;
+			} else if (!emailPattern.test(email)) {
 				this.fieldErrors.email = 'Email không đúng định dạng.';
-				return false;
+				isValid = false;
 			}
 
 			if (phone && !phonePattern.test(phone)) {
 				this.fieldErrors.so_dien_thoai = 'Số điện thoại không hợp lệ.';
-				return false;
+				isValid = false;
 			}
 
 			if (!this.form.password) {
 				this.fieldErrors.password = 'Vui lòng nhập mật khẩu.';
-				return false;
-			}
-
-			if (this.form.password.length < 8) {
+				isValid = false;
+			} else if (this.form.password.length < 8) {
 				this.fieldErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
-				return false;
+				isValid = false;
 			}
 
-			if (this.form.password !== this.form.password_confirmation) {
+			if (!this.form.password_confirmation) {
+				this.fieldErrors.password_confirmation = 'Vui lòng xác nhận mật khẩu.';
+				isValid = false;
+			} else if (this.form.password !== this.form.password_confirmation) {
 				this.fieldErrors.password_confirmation = 'Xác nhận mật khẩu không khớp.';
-				return false;
+				isValid = false;
 			}
 
 			this.form.email = email;
 			this.form.so_dien_thoai = phone;
-			this.alertMessage = '';
+			return isValid;
+		},
+		validateStepTwo() {
+			this.fieldErrors = {
+				...Object.fromEntries(
+					Object.entries(this.fieldErrors).filter(([key]) => ![
+						'ky_nang_ids',
+						'khu_vuc_ids',
+						'otherSkillInput',
+						'otherAreaInput',
+					].includes(key))
+				),
+			};
+
+			let isValid = true;
+
+			if (this.showOtherSkillInput && this.otherSkillInput.trim()) {
+				this.fieldErrors.otherSkillInput = 'Bạn đang nhập dở một kỹ năng khác. Hãy bấm "Thêm" hoặc xóa nội dung này.';
+				isValid = false;
+			}
+
+			if (this.showOtherAreaInput && this.otherAreaInput.trim()) {
+				this.fieldErrors.otherAreaInput = 'Bạn đang nhập dở một khu vực khác. Hãy bấm "Thêm" hoặc xóa nội dung này.';
+				isValid = false;
+			}
+
+			if (this.form.ky_nang_ids.length === 0 && this.form.ky_nang_khac.length === 0) {
+				this.fieldErrors.ky_nang_ids = 'Vui lòng chọn ít nhất 1 kỹ năng.';
+				isValid = false;
+			}
+
+			if (this.form.khu_vuc_ids.length === 0 && this.form.khu_vuc_khac.length === 0) {
+				this.fieldErrors.khu_vuc_ids = 'Vui lòng chọn ít nhất 1 khu vực hoạt động.';
+				isValid = false;
+			}
+
+			return isValid;
+		},
+		validateStepThree() {
+			this.fieldErrors = {
+				...Object.fromEntries(
+					Object.entries(this.fieldErrors).filter(([key]) => key !== 'agreeTerms')
+				),
+			};
+
+			if (!this.form.agreeTerms) {
+				this.fieldErrors.agreeTerms = 'Bạn cần đồng ý điều khoản trước khi hoàn tất đăng ký.';
+				return false;
+			}
+
 			return true;
 		},
 		toggleOtherSkillInput() {
@@ -441,9 +511,22 @@ export default {
 		},
 		addOtherSkill() {
 			const value = this.otherSkillInput.trim();
-			if (!value) return;
+			delete this.fieldErrors.otherSkillInput;
+			if (!value) {
+				this.fieldErrors.otherSkillInput = 'Vui lòng nhập kỹ năng khác.';
+				return;
+			}
+			if (value.length > 100) {
+				this.fieldErrors.otherSkillInput = 'Kỹ năng khác không được quá 100 ký tự.';
+				return;
+			}
 			const existed = this.form.ky_nang_khac.some((skill) => skill.toLowerCase() === value.toLowerCase());
-			if (!existed) this.form.ky_nang_khac.push(value);
+			if (existed) {
+				this.fieldErrors.otherSkillInput = 'Kỹ năng này đã được thêm rồi.';
+				return;
+			}
+			this.form.ky_nang_khac.push(value);
+			delete this.fieldErrors.ky_nang_ids;
 			this.otherSkillInput = '';
 		},
 		removeOtherSkill(value) {
@@ -451,9 +534,22 @@ export default {
 		},
 		addOtherArea() {
 			const value = this.otherAreaInput.trim();
-			if (!value) return;
+			delete this.fieldErrors.otherAreaInput;
+			if (!value) {
+				this.fieldErrors.otherAreaInput = 'Vui lòng nhập khu vực khác.';
+				return;
+			}
+			if (value.length > 150) {
+				this.fieldErrors.otherAreaInput = 'Khu vực khác không được quá 150 ký tự.';
+				return;
+			}
 			const existed = this.form.khu_vuc_khac.some((area) => area.toLowerCase() === value.toLowerCase());
-			if (!existed) this.form.khu_vuc_khac.push(value);
+			if (existed) {
+				this.fieldErrors.otherAreaInput = 'Khu vực này đã được thêm rồi.';
+				return;
+			}
+			this.form.khu_vuc_khac.push(value);
+			delete this.fieldErrors.khu_vuc_ids;
 			this.otherAreaInput = '';
 		},
 		removeOtherArea(value) {
@@ -463,11 +559,13 @@ export default {
 			const i = this.form.ky_nang_ids.indexOf(id);
 			if (i > -1) this.form.ky_nang_ids.splice(i, 1);
 			else this.form.ky_nang_ids.push(id);
+			if (this.form.ky_nang_ids.length > 0 || this.form.ky_nang_khac.length > 0) delete this.fieldErrors.ky_nang_ids;
 		},
 		toggleArea(id) {
 			const i = this.form.khu_vuc_ids.indexOf(id);
 			if (i > -1) this.form.khu_vuc_ids.splice(i, 1);
 			else this.form.khu_vuc_ids.push(id);
+			if (this.form.khu_vuc_ids.length > 0 || this.form.khu_vuc_khac.length > 0) delete this.fieldErrors.khu_vuc_ids;
 		},
 		getSkillName(id) {
 			const skill = this.availableSkills.find((item) => item.id === id);
@@ -481,7 +579,9 @@ export default {
 			return area ? area.ten : '';
 		},
 		async handleRegister() {
-			if (!this.form.agreeTerms) return;
+			if (!this.validateStepOne() || !this.validateStepTwo() || !this.validateStepThree()) {
+				return;
+			}
 
 			this.isLoading = true;
 			this.alertMessage = '';
@@ -522,6 +622,12 @@ export default {
 					const data = error.response.data;
 					if (data.errors) {
 						const firstKey = Object.keys(data.errors)[0];
+						this.fieldErrors = {
+							...this.fieldErrors,
+							...Object.fromEntries(
+								Object.entries(data.errors).map(([key, messages]) => [key, messages?.[0] || 'Dữ liệu không hợp lệ.'])
+							),
+						};
 						this.alertMessage = data.errors[firstKey][0];
 					} else {
 						this.alertMessage = data.message || 'Đăng ký thất bại.';

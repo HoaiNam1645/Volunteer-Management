@@ -54,6 +54,25 @@
 						</div>
 					</div>
 
+					<div v-if="campaign.images.length > 0" class="card border-0 shadow-sm rounded-4 mb-4">
+						<div class="card-body p-4 p-md-5">
+							<div class="d-flex align-items-center justify-content-between mb-3">
+								<h4 class="fw-bold mb-0"><i class="fa-regular fa-images text-primary me-2"></i>Hình ảnh chiến dịch</h4>
+								<span class="badge bg-light text-dark border">{{ campaign.images.length }} ảnh</span>
+							</div>
+							<div class="rounded-4 overflow-hidden border mb-3">
+								<img :src="activeCampaignImage" alt="Hình ảnh chiến dịch" class="w-100 object-fit-cover" style="height: 360px;">
+							</div>
+							<div class="row g-2" v-if="campaign.images.length > 1">
+								<div v-for="(image, index) in campaign.images" :key="`${campaign.id}-image-${index}`" class="col-4 col-md-3">
+									<button type="button" class="btn p-0 w-100 border rounded-3 overflow-hidden gallery-thumb" :class="{ active: activeImageIndex === index }" @click="activeImageIndex = index">
+										<img :src="image" alt="Ảnh thu nhỏ chiến dịch" class="w-100 object-fit-cover" style="height: 96px;">
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
 							<h4 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-info me-2"></i>{{ $t('campaignDetail.aboutTitle') }}</h4>
@@ -253,6 +272,7 @@ export default {
 			submittingAction: false,
 			cancelReason: '',
 			showAllReviews: false,
+			activeImageIndex: 0,
 			campaign: {
 				id: null,
 				title: '',
@@ -272,6 +292,7 @@ export default {
 				confirmed: 0,
 				progress: 0,
 				bannerStyle: '',
+				images: [],
 				latitude: null,
 				longitude: null,
 				skills: [],
@@ -287,6 +308,9 @@ export default {
 		};
 	},
 	computed: {
+		activeCampaignImage() {
+			return this.campaign.images[this.activeImageIndex] || this.campaign.images[0] || '';
+		},
 		currentUser() {
 			try {
 				return JSON.parse(localStorage.getItem('user') || 'null');
@@ -378,6 +402,7 @@ export default {
 				const res = await api.get(`/chien-dich/${this.$route.params.id}`);
 				const payload = res.data?.data;
 				this.campaign = this.mapCampaign(payload);
+				this.activeImageIndex = 0;
 				this.registration = this.mapRegistration(payload?.dang_ky_hien_tai);
 				this.feedbacks = payload?.feedbacks || [];
 				this.renderMapIfPossible();
@@ -389,7 +414,10 @@ export default {
 			}
 		},
 		mapCampaign(item = {}) {
-			const bannerStyle = item.anh_bia ? `linear-gradient(rgba(15,23,42,.35), rgba(15,23,42,.35)), url(${item.anh_bia}) center/cover` : this.getPriorityGradient(item.muc_do_uu_tien);
+			const images = Array.isArray(item.danh_sach_anh) && item.danh_sach_anh.length
+				? item.danh_sach_anh
+				: (Array.isArray(item.images) && item.images.length ? item.images : (item.anh_bia ? [item.anh_bia] : []));
+			const bannerStyle = images[0] ? `linear-gradient(rgba(15,23,42,.35), rgba(15,23,42,.35)), url(${images[0]}) center/cover` : this.getPriorityGradient(item.muc_do_uu_tien);
 			return {
 				id: item.id,
 				title: item.tieu_de || this.$t('common.notAvailable'),
@@ -409,6 +437,7 @@ export default {
 				confirmed: item.so_xac_nhan || 0,
 				progress: item.so_luong_toi_da ? Math.min(100, Math.round(((item.so_dang_ky || 0) / item.so_luong_toi_da) * 100)) : 0,
 				bannerStyle,
+				images,
 				latitude: item.vi_do,
 				longitude: item.kinh_do,
 				skills: item.ky_nangs || [],
@@ -620,6 +649,16 @@ export default {
 	width: 56px;
 	height: 56px;
 	min-width: 56px;
+}
+.gallery-thumb {
+	opacity: 0.75;
+	transition: all 0.2s ease;
+}
+.gallery-thumb.active,
+.gallery-thumb:hover {
+	opacity: 1;
+	border-color: #0d6efd !important;
+	box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.12);
 }
 .modal-overlay {
 	position: fixed;

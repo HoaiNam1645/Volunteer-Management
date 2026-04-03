@@ -254,35 +254,54 @@
 							<div class="row g-3 mb-4">
 								<div class="col-12">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.campaignName') }} <span class="text-danger">*</span></label>
-									<input type="text" class="form-control" v-model="formData.title" :placeholder="$t('coordinator.campaignNamePlaceholder')" required>
+									<input type="text" class="form-control" :class="{ 'is-invalid': formErrors.title }" v-model.trim="formData.title" :placeholder="$t('coordinator.campaignNamePlaceholder')" required>
+									<div v-if="formErrors.title" class="invalid-feedback d-block">{{ formErrors.title }}</div>
 								</div>
 								<div class="col-12">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.descriptionLabel') }} <span class="text-danger">*</span></label>
-									<textarea class="form-control" rows="3" v-model="formData.description" :placeholder="$t('coordinator.descriptionPlaceholder')" required></textarea>
+									<textarea class="form-control" rows="3" :class="{ 'is-invalid': formErrors.description }" v-model.trim="formData.description" :placeholder="$t('coordinator.descriptionPlaceholder')" required></textarea>
+									<div v-if="formErrors.description" class="invalid-feedback d-block">{{ formErrors.description }}</div>
 								</div>
 								<div class="col-12">
-									<label class="form-label fw-semibold small">Ảnh bìa chiến dịch</label>
-									<input type="file" class="form-control" accept="image/*" @change="onCoverImageChange">
-									<div v-if="formData.coverPreview" class="mt-3 rounded-3 border overflow-hidden" style="height: 180px;">
-										<img :src="formData.coverPreview" alt="Ảnh bìa chiến dịch" class="w-100 h-100 object-fit-cover">
+									<label class="form-label fw-semibold small">Hình ảnh chiến dịch</label>
+									<input type="file" class="form-control" :class="{ 'is-invalid': formErrors.images }" accept="image/*" multiple @change="onCampaignImagesChange">
+									<div class="form-text">Có thể chọn nhiều ảnh. Ảnh đầu tiên sẽ dùng làm ảnh bìa.</div>
+									<div v-if="formErrors.images" class="invalid-feedback d-block">{{ formErrors.images }}</div>
+									<div v-if="formData.previewImages.length" class="row g-3 mt-1">
+										<div v-for="(image, index) in formData.previewImages" :key="image.key" class="col-sm-6 col-lg-4">
+											<div class="border rounded-3 overflow-hidden bg-light position-relative h-100">
+												<div class="position-absolute top-0 start-0 m-2 badge" :class="index === 0 ? 'bg-primary' : 'bg-dark bg-opacity-75'">
+													{{ index === 0 ? 'Ảnh bìa' : `Ảnh ${index + 1}` }}
+												</div>
+												<button
+													type="button"
+													class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
+													@click="removeCampaignImage(image)">
+													<i class="fa-solid fa-xmark"></i>
+												</button>
+												<img :src="image.url" alt="Hình ảnh chiến dịch" class="w-100 object-fit-cover" style="height: 180px;">
+											</div>
+										</div>
 									</div>
 								</div>
 								<div class="col-sm-6">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.campaignType') }} <span class="text-danger">*</span></label>
-									<select class="form-select" v-model="formData.category" required>
+									<select class="form-select" :class="{ 'is-invalid': formErrors.category }" v-model="formData.category" required>
 										<option value="">{{ $t('coordinator.selectType') }}</option>
 										<option v-for="t in campaignTypes" :key="t.id" :value="t.id">{{ t.ten }}</option>
 									</select>
+									<div v-if="formErrors.category" class="invalid-feedback d-block">{{ formErrors.category }}</div>
 								</div>
 								<div class="col-sm-6">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.priorityLevel') }} <span class="text-danger">*</span></label>
-									<select class="form-select" v-model="formData.priority" required>
+									<select class="form-select" :class="{ 'is-invalid': formErrors.priority }" v-model="formData.priority" required>
 										<option value="">{{ $t('coordinator.selectPriority') }}</option>
 										<option value="urgent">{{ $t('priorities.urgent') }}</option>
 										<option value="high">{{ $t('priorities.high') }}</option>
 										<option value="medium">{{ $t('priorities.medium') }}</option>
 										<option value="low">{{ $t('priorities.low') }}</option>
 									</select>
+									<div v-if="formErrors.priority" class="invalid-feedback d-block">{{ formErrors.priority }}</div>
 								</div>
 							</div>
 
@@ -295,11 +314,12 @@
 									<label class="form-label fw-semibold small">{{ $t('coordinator.locationLabel') }} <span class="text-danger">*</span></label>
 									<div class="input-group">
 										<span class="input-group-text bg-light"><i class="fa-solid fa-location-dot text-danger"></i></span>
-										<input type="text" class="form-control" v-model="formData.location" :placeholder="$t('coordinator.locationPlaceholder')" required>
+										<input type="text" class="form-control" :class="{ 'is-invalid': formErrors.location }" v-model.trim="formData.location" :placeholder="$t('coordinator.locationPlaceholder')" required>
 										<span class="input-group-text bg-white" v-if="campaignGeocoding">
 											<span class="spinner-border spinner-border-sm text-primary" role="status"></span>
 										</span>
 									</div>
+									<div v-if="formErrors.location" class="invalid-feedback d-block">{{ formErrors.location }}</div>
 									<div class="form-text small" v-if="campaignGeocodeStatus">
 										<i :class="campaignGeocodeStatus === 'success' ? 'fa-solid fa-check-circle text-success' : 'fa-solid fa-info-circle text-warning'" class="me-1"></i>
 										<span :class="campaignGeocodeStatus === 'success' ? 'text-success' : 'text-warning'">{{ campaignGeocodeMessage }}</span>
@@ -330,11 +350,13 @@
 								</div>
 								<div class="col-sm-6">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.startDate') }} <span class="text-danger">*</span></label>
-									<input type="date" class="form-control" v-model="formData.startDate" required>
+									<input type="date" class="form-control" :class="{ 'is-invalid': formErrors.startDate }" v-model="formData.startDate" required>
+									<div v-if="formErrors.startDate" class="invalid-feedback d-block">{{ formErrors.startDate }}</div>
 								</div>
 								<div class="col-sm-6">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.endDate') }} <span class="text-danger">*</span></label>
-									<input type="date" class="form-control" v-model="formData.endDate" required>
+									<input type="date" class="form-control" :class="{ 'is-invalid': formErrors.endDate }" v-model="formData.endDate" required>
+									<div v-if="formErrors.endDate" class="invalid-feedback d-block">{{ formErrors.endDate }}</div>
 								</div>
 							</div>
 
@@ -347,17 +369,19 @@
 									<label class="form-label fw-semibold small">{{ $t('coordinator.quantityNeeded') }} (Tối đa) <span class="text-danger">*</span></label>
 									<div class="input-group">
 										<span class="input-group-text bg-light"><i class="fa-solid fa-users text-primary"></i></span>
-										<input type="number" class="form-control" v-model.number="formData.maxVolunteers" placeholder="50" min="1" required>
+										<input type="number" class="form-control" :class="{ 'is-invalid': formErrors.maxVolunteers }" v-model.number="formData.maxVolunteers" placeholder="50" min="1" required>
 										<span class="input-group-text bg-light small">{{ $t('common.people') }}</span>
 									</div>
+									<div v-if="formErrors.maxVolunteers" class="invalid-feedback d-block">{{ formErrors.maxVolunteers }}</div>
 								</div>
 								<div class="col-sm-6">
 									<label class="form-label fw-semibold small">Số lượng tối thiểu <span class="text-danger">*</span></label>
 									<div class="input-group">
 										<span class="input-group-text bg-light"><i class="fa-solid fa-user-check text-success"></i></span>
-										<input type="number" class="form-control" v-model.number="formData.minVolunteers" placeholder="5" min="1" required>
+										<input type="number" class="form-control" :class="{ 'is-invalid': formErrors.minVolunteers }" v-model.number="formData.minVolunteers" placeholder="5" min="1" required>
 										<span class="input-group-text bg-light small">{{ $t('common.people') }}</span>
 									</div>
+									<div v-if="formErrors.minVolunteers" class="invalid-feedback d-block">{{ formErrors.minVolunteers }}</div>
 								</div>
 								<div class="col-12">
 									<label class="form-label fw-semibold small">{{ $t('coordinator.requiredSkills') }}</label>
@@ -478,12 +502,17 @@ export default {
 			campaignGeocodeStatus: '',
 			campaignGeocodeMessage: '',
 			campaignGeocodeTimer: null,
+			formErrors: {},
 			formData: {
 				title: '', description: '', category: '', priority: '',
 				location: '', latitude: null, longitude: null,
 				startDate: '', endDate: '',
 				maxVolunteers: null, minVolunteers: null, requiredSkills: [],
-				coverImage: null, coverPreview: null, coverUrl: null
+				coverUrl: null,
+				images: [],
+				existingImages: [],
+				newImages: [],
+				previewImages: [],
 			},
 			campaigns: [],
 			campaignTypes: [],
@@ -664,11 +693,15 @@ export default {
 		// ===== Mapping helpers =====
 		mapCampaignFromApi(cd) {
 			const loai = cd.loai_chien_dich;
+			const images = Array.isArray(cd.danh_sach_anh) && cd.danh_sach_anh.length
+				? cd.danh_sach_anh
+				: (cd.anh_bia ? [cd.anh_bia] : []);
 			return {
 				id: cd.id,
 				title: cd.tieu_de,
 				description: cd.mo_ta || '',
-				coverUrl: cd.anh_bia || null,
+				coverUrl: images[0] || cd.anh_bia || null,
+				images,
 				category: cd.loai_chien_dich_id || '',
 				priority: PRIORITY_MAP[cd.muc_do_uu_tien] || 'medium',
 				location: cd.dia_diem,
@@ -709,12 +742,13 @@ export default {
 		getStatusIcon(s) { return { approved: 'fa-solid fa-badge-check', active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', pending_cancel: 'fa-solid fa-clock-rotate-left', cancelled: 'fa-solid fa-ban', rejected: 'fa-solid fa-circle-xmark', draft: 'fa-solid fa-file-lines' }[s] || ''; },
 		getProgress(c) { return c.maxVolunteers ? Math.round(c.registered / c.maxVolunteers * 100) : 0; },
 		getCampaignCoverStyle(campaign, variant = 'banner') {
-			if (campaign.coverUrl) {
+			const coverUrl = campaign.coverUrl || campaign.images?.[0] || null;
+			if (coverUrl) {
 				const overlay = variant === 'avatar'
 					? 'linear-gradient(rgba(15,23,42,.20), rgba(15,23,42,.20))'
 					: 'linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.28))';
 				return {
-					background: `${overlay}, url(${campaign.coverUrl}) center/cover`,
+					background: `${overlay}, url(${coverUrl}) center/cover`,
 				};
 			}
 			return { background: campaign.color };
@@ -722,11 +756,16 @@ export default {
 
 		// ===== Form =====
 		resetForm() {
+			this.formErrors = {};
 			this.formData = {
 				title: '', description: '', category: '', priority: '',
 				location: '', latitude: null, longitude: null,
 				startDate: '', endDate: '', maxVolunteers: null, minVolunteers: null, requiredSkills: [],
-				coverImage: null, coverPreview: null, coverUrl: null
+				coverUrl: null,
+				images: [],
+				existingImages: [],
+				newImages: [],
+				previewImages: [],
 			};
 			this.campaignGeocodeStatus = '';
 			this.campaignGeocodeMessage = '';
@@ -739,9 +778,15 @@ export default {
 			this.formData = {
 				...c,
 				requiredSkills: [...c.requiredSkills],
-				coverImage: null,
-				coverPreview: c.coverUrl || null,
-				coverUrl: c.coverUrl || null,
+				coverUrl: c.coverUrl || c.images?.[0] || null,
+				images: [...(c.images || [])],
+				existingImages: [...(c.images || [])],
+				newImages: [],
+				previewImages: (c.images || []).map((url, index) => ({
+					key: `existing-${index}-${url}`,
+					type: 'existing',
+					url,
+				})),
 			};
 			new bootstrap.Modal(this.$refs.campaignModal).show();
 			if (c.latitude && c.longitude) {
@@ -760,15 +805,79 @@ export default {
 				this.loadCampaigns(page);
 			}
 		},
-		onCoverImageChange(e) {
-			const file = e.target.files?.[0];
-			if (!file) return;
-			this.formData.coverImage = file;
-			this.formData.coverPreview = URL.createObjectURL(file);
+		onCampaignImagesChange(e) {
+			const files = Array.from(e.target.files || []);
+			if (!files.length) return;
+
+			const validFiles = files.filter((file) => file.type.startsWith('image/'));
+			if (!validFiles.length) return;
+
+			this.formData.newImages = [...this.formData.newImages, ...validFiles];
+			this.syncCampaignPreviewImages();
+			this.formErrors.images = '';
+			e.target.value = '';
+		},
+		syncCampaignPreviewImages() {
+			const existing = (this.formData.existingImages || []).map((url, index) => ({
+				key: `existing-${index}-${url}`,
+				type: 'existing',
+				url,
+			}));
+			const news = (this.formData.newImages || []).map((file, index) => ({
+				key: `new-${index}-${file.name}-${file.size}`,
+				type: 'new',
+				url: URL.createObjectURL(file),
+				file,
+			}));
+			this.formData.previewImages = [...existing, ...news];
+			this.formData.images = this.formData.previewImages.map((item) => item.url);
+			this.formData.coverUrl = this.formData.previewImages[0]?.url || null;
+		},
+		removeCampaignImage(image) {
+			if (image.type === 'existing') {
+				this.formData.existingImages = this.formData.existingImages.filter((url) => url !== image.url);
+			} else {
+				this.formData.newImages = this.formData.newImages.filter((file) => file !== image.file);
+			}
+			this.syncCampaignPreviewImages();
+		},
+		validateCampaignForm() {
+			const errors = {};
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const startDate = this.formData.startDate ? new Date(this.formData.startDate) : null;
+			const endDate = this.formData.endDate ? new Date(this.formData.endDate) : null;
+
+			if (!this.formData.title?.trim()) errors.title = 'Vui lòng nhập tên chiến dịch.';
+			else if (this.formData.title.trim().length < 5) errors.title = 'Tên chiến dịch phải có ít nhất 5 ký tự.';
+
+			if (!this.formData.description?.trim()) errors.description = 'Vui lòng nhập mô tả chiến dịch.';
+			else if (this.formData.description.trim().length < 20) errors.description = 'Mô tả chiến dịch phải có ít nhất 20 ký tự.';
+
+			if (!this.formData.category) errors.category = 'Vui lòng chọn loại chiến dịch.';
+			if (!this.formData.priority) errors.priority = 'Vui lòng chọn mức độ ưu tiên.';
+
+			if (!this.formData.location?.trim()) errors.location = 'Vui lòng nhập địa điểm tổ chức.';
+			else if (this.formData.location.trim().length < 5) errors.location = 'Địa điểm phải có ít nhất 5 ký tự.';
+
+			if (!this.formData.startDate) errors.startDate = 'Vui lòng chọn ngày bắt đầu.';
+			else if (startDate && startDate < today) errors.startDate = 'Ngày bắt đầu không được ở trong quá khứ.';
+
+			if (!this.formData.endDate) errors.endDate = 'Vui lòng chọn ngày kết thúc.';
+			else if (startDate && endDate && endDate < startDate) errors.endDate = 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.';
+
+			if (!this.formData.maxVolunteers || this.formData.maxVolunteers < 1) errors.maxVolunteers = 'Số lượng tối đa phải lớn hơn 0.';
+			if (!this.formData.minVolunteers || this.formData.minVolunteers < 1) errors.minVolunteers = 'Số lượng tối thiểu phải lớn hơn 0.';
+			else if (this.formData.maxVolunteers && this.formData.minVolunteers > this.formData.maxVolunteers) errors.minVolunteers = 'Số lượng tối thiểu không được lớn hơn số lượng tối đa.';
+
+			if ((this.formData.previewImages || []).length > 10) errors.images = 'Tối đa 10 hình ảnh cho mỗi chiến dịch.';
+
+			this.formErrors = errors;
+			return Object.keys(errors).length === 0;
 		},
 
 		async saveCampaign() {
-			if (!this.formData.title || !this.formData.category || !this.formData.location) {
+			if (!this.validateCampaignForm()) {
 				if (this.toast) this.toast.showToast('error', 'Lỗi', this.$t('coordinator.fillAllFields'));
 				else alert(this.$t('coordinator.fillAllFields'));
 				return;
@@ -788,7 +897,13 @@ export default {
 			payload.append('so_luong_toi_thieu', this.formData.minVolunteers || 1);
 			payload.append('muc_do_uu_tien', PRIORITY_MAP_REVERSE[this.formData.priority] || 'trung_binh');
 			(this.formData.requiredSkills || []).forEach((id, index) => payload.append(`ky_nang_ids[${index}]`, id));
-			if (this.formData.coverImage) payload.append('anh_bia', this.formData.coverImage);
+			(this.formData.existingImages || []).forEach((url, index) => payload.append(`danh_sach_anh_hien_tai[${index}]`, url));
+			if ((this.formData.existingImages || []).length === 0 && this.formData.newImages.length > 0) {
+				payload.append('anh_bia', this.formData.newImages[0]);
+				this.formData.newImages.slice(1).forEach((file, index) => payload.append(`anh_phu[${index}]`, file));
+			} else {
+				this.formData.newImages.forEach((file, index) => payload.append(`anh_phu[${index}]`, file));
+			}
 
 			try {
 				if (this.isEditing) {

@@ -56,7 +56,42 @@ class ChienDich extends Model
 
     public function getAnhBiaAttribute($value): ?string
     {
-        if (!$value) {
+        return $this->normalizeMediaPath($value);
+    }
+
+    public function getDanhSachAnhAttribute($value): array
+    {
+        $images = ($this->relationLoaded('hinhAnhChienDich')
+            ? $this->hinhAnhChienDich
+            : $this->hinhAnhChienDich()->orderBy('thu_tu')->get())
+            ->map(fn ($item) => $item->duong_dan_anh)
+            ->filter()
+            ->values();
+
+        if ($images->isEmpty()) {
+            $cover = $this->normalizeMediaPath($this->attributes['anh_bia'] ?? null);
+            if ($cover) {
+                $images = collect([$cover]);
+            }
+        }
+
+        return $images->all();
+    }
+
+    private function resolveMediaBaseUrl(): string
+    {
+        $request = request();
+
+        if ($request) {
+            return rtrim($request->getSchemeAndHttpHost(), '/');
+        }
+
+        return rtrim(config('app.url', 'http://127.0.0.1:8000'), '/');
+    }
+
+    private function normalizeMediaPath($value): ?string
+    {
+        if (!$value || !is_string($value)) {
             return null;
         }
 
@@ -81,17 +116,6 @@ class ChienDich extends Model
         return $value;
     }
 
-    private function resolveMediaBaseUrl(): string
-    {
-        $request = request();
-
-        if ($request) {
-            return rtrim($request->getSchemeAndHttpHost(), '/');
-        }
-
-        return rtrim(config('app.url', 'http://127.0.0.1:8000'), '/');
-    }
-
     // ======================== RELATIONSHIPS ========================
 
     public function nguoiTao()
@@ -113,6 +137,11 @@ class ChienDich extends Model
     public function kyNangs()
     {
         return $this->belongsToMany(KyNang::class, 'chien_dich_ky_nangs', 'chien_dich_id', 'ky_nang_id');
+    }
+
+    public function hinhAnhChienDich()
+    {
+        return $this->hasMany(HinhAnhChienDich::class, 'chien_dich_id')->orderBy('thu_tu');
     }
 
     public function duyetBoi()

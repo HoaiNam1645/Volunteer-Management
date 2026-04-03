@@ -15,6 +15,15 @@ class ThamGiaChienDichController extends Controller
 {
     private const PUBLIC_STATUSES = ['da_duyet', 'dang_dien_ra', 'hoan_thanh'];
 
+    private function daHetHanDangKy(ChienDich $campaign): bool
+    {
+        if (!$campaign->han_dang_ky) {
+            return false;
+        }
+
+        return now()->startOfDay()->gt($campaign->han_dang_ky->copy()->startOfDay());
+    }
+
     public function boLoc()
     {
         $baseQuery = ChienDich::query()
@@ -148,7 +157,7 @@ class ThamGiaChienDichController extends Controller
                             $innerQuery->where('trang_thai', 'da_duyet')
                                 ->where(function ($dateQuery) {
                                     $dateQuery->whereNull('han_dang_ky')
-                                        ->orWhere('han_dang_ky', '>=', now());
+                                        ->orWhereDate('han_dang_ky', '>=', now()->toDateString());
                                 });
                         });
                     }
@@ -157,7 +166,7 @@ class ThamGiaChienDichController extends Controller
                         $subQuery->orWhere(function ($innerQuery) {
                             $innerQuery->where('trang_thai', 'da_duyet')
                                 ->whereNotNull('han_dang_ky')
-                                ->where('han_dang_ky', '<', now());
+                                ->whereDate('han_dang_ky', '<', now()->toDateString());
                         });
                     }
 
@@ -256,6 +265,7 @@ class ThamGiaChienDichController extends Controller
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
+                'hinhAnhChienDich:id,chien_dich_id,duong_dan_anh,thu_tu',
                 'nguoiTao:id,ho_ten,email',
                 'duyetBoi:id,ho_ten,email',
                 'feedbacks.nguoiDung:id,ho_ten,email',
@@ -551,6 +561,7 @@ class ThamGiaChienDichController extends Controller
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
+                'hinhAnhChienDich:id,chien_dich_id,duong_dan_anh,thu_tu',
                 'nguoiTao:id,ho_ten,email',
                 'duyetBoi:id,ho_ten,email',
             ]);
@@ -566,6 +577,7 @@ class ThamGiaChienDichController extends Controller
             'tieu_de' => $campaign->tieu_de,
             'mo_ta' => $campaign->mo_ta,
             'anh_bia' => $campaign->anh_bia,
+            'danh_sach_anh' => $campaign->danh_sach_anh,
             'dia_diem' => $campaign->dia_diem,
             'vi_do' => $campaign->vi_do,
             'kinh_do' => $campaign->kinh_do,
@@ -604,7 +616,8 @@ class ThamGiaChienDichController extends Controller
             'tieu_de' => $campaign->tieu_de,
             'mo_ta' => $campaign->mo_ta,
             'anh_bia' => $campaign->anh_bia,
-            'images' => $campaign->anh_bia ? [$campaign->anh_bia] : [],
+            'danh_sach_anh' => $campaign->danh_sach_anh,
+            'images' => $campaign->danh_sach_anh,
             'dia_diem' => $campaign->dia_diem,
             'vi_do' => $campaign->vi_do,
             'kinh_do' => $campaign->kinh_do,
@@ -657,7 +670,7 @@ class ThamGiaChienDichController extends Controller
         }
 
         if ($campaign->trang_thai === 'da_duyet') {
-            $daHetHanDangKy = $campaign->han_dang_ky && now()->gt($campaign->han_dang_ky);
+            $daHetHanDangKy = $this->daHetHanDangKy($campaign);
             return $daHetHanDangKy ? 'closed_registration' : 'registering';
         }
 
@@ -679,7 +692,7 @@ class ThamGiaChienDichController extends Controller
 
     private function buildAvailabilityFlags(ChienDich $campaign, ?DangKyThamGia $dangKy): array
     {
-        $daHetHanDangKy = $campaign->han_dang_ky && now()->gt($campaign->han_dang_ky);
+        $daHetHanDangKy = $this->daHetHanDangKy($campaign);
         $dangMoDangKy = $campaign->trang_thai === 'da_duyet' && !$daHetHanDangKy;
         $daDuSoLuong = $this->daDuSoLuongTinhNguyenVien($campaign);
 
@@ -694,7 +707,7 @@ class ThamGiaChienDichController extends Controller
 
     private function coMoDangKy(ChienDich $campaign): bool
     {
-        $daHetHanDangKy = $campaign->han_dang_ky && now()->gt($campaign->han_dang_ky);
+        $daHetHanDangKy = $this->daHetHanDangKy($campaign);
 
         return $campaign->trang_thai === 'da_duyet' && !$daHetHanDangKy;
     }

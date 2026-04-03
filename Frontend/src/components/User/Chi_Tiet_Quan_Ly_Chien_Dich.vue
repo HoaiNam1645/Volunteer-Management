@@ -55,6 +55,25 @@
 					</div>
 				</div>
 
+				<div v-if="campaign.images.length > 0" class="card border-0 shadow-sm mb-4">
+					<div class="card-body p-4">
+						<div class="d-flex align-items-center justify-content-between mb-3">
+							<h6 class="fw-bold text-dark mb-0"><i class="fa-regular fa-images me-2 text-primary"></i>Thư viện ảnh</h6>
+							<span class="badge bg-light text-dark border">{{ campaign.images.length }} ảnh</span>
+						</div>
+						<div class="rounded-4 overflow-hidden border mb-3">
+							<img :src="activeCampaignImage" alt="Ảnh chiến dịch" class="w-100 object-fit-cover" style="height: 360px;">
+						</div>
+						<div class="row g-2" v-if="campaign.images.length > 1">
+							<div v-for="(image, index) in campaign.images" :key="`${campaign.id}-gallery-${index}`" class="col-4 col-md-3">
+								<button type="button" class="btn p-0 w-100 border rounded-3 overflow-hidden gallery-thumb" :class="{ active: activeImageIndex === index }" @click="activeImageIndex = index">
+									<img :src="image" alt="Ảnh thu nhỏ chiến dịch" class="w-100 object-fit-cover" style="height: 96px;">
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<!-- Details Grid -->
 				<div class="row g-3 mb-4">
 					<div class="col-sm-6">
@@ -443,6 +462,7 @@ export default {
 			detailMarker: null,
 			mapLatitude: null,
 			mapLongitude: null,
+			activeImageIndex: 0,
 			campaign: {
 				id: 0, title: '', description: '', category: '', priority: 'medium',
 				location: '', latitude: null, longitude: null,
@@ -451,6 +471,7 @@ export default {
 				icon: 'fa-solid fa-flag',
 				color: 'linear-gradient(135deg, #0d6efd, #6610f2)',
 				coverUrl: null,
+				images: [],
 				coordinatorName: '', coordinatorEmail: '',
 			},
 			campaignTypes: [],
@@ -477,6 +498,9 @@ export default {
 	},
 	computed: {
 		campaignId() { return this.$route.params.id; },
+		activeCampaignImage() {
+			return this.campaign.images[this.activeImageIndex] || this.campaign.images[0] || '';
+		},
 		availableSkills() {
 			if (this.skillsList.length > 0) {
 				return this.skillsList.map(s => ({
@@ -524,9 +548,9 @@ export default {
 		getStatusLabel(s) { return this.$t(`statuses.${s}`); },
 			getStatusIcon(s) { return { approved: 'fa-solid fa-badge-check', active: 'fa-solid fa-circle-play', pending: 'fa-solid fa-hourglass-half', completed: 'fa-solid fa-circle-check', cancelled: 'fa-solid fa-ban', rejected: 'fa-solid fa-circle-xmark', pending_cancel: 'fa-solid fa-clock-rotate-left', draft: 'fa-solid fa-file-lines' }[s] || ''; },
 		getCampaignBannerStyle() {
-			if (this.campaign.coverUrl) {
+			if (this.campaign.coverUrl || this.campaign.images[0]) {
 				return {
-					background: `linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.28)), url(${this.campaign.coverUrl}) center/cover`,
+					background: `linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.28)), url(${this.campaign.coverUrl || this.campaign.images[0]}) center/cover`,
 				};
 			}
 			return { background: this.campaign.color };
@@ -740,6 +764,9 @@ export default {
 				if (res.data.status === 1) {
 					const cd = res.data.data;
 					const loai = cd.loai_chien_dich;
+					const images = Array.isArray(cd.danh_sach_anh) && cd.danh_sach_anh.length
+						? cd.danh_sach_anh
+						: (cd.anh_bia ? [cd.anh_bia] : []);
 					this.campaign = {
 						id: cd.id,
 						title: cd.tieu_de,
@@ -758,12 +785,14 @@ export default {
 						registered: cd.so_dang_ky || 0,
 						status: STATUS_MAP[cd.trang_thai] || cd.trang_thai,
 						requiredSkills: cd.ky_nang_ids || [],
-						coverUrl: cd.anh_bia || null,
+						coverUrl: images[0] || cd.anh_bia || null,
+						images,
 						icon: loai ? `fa-solid ${loai.bieu_tuong || 'fa-flag'}` : 'fa-solid fa-flag',
 						color: loai ? `linear-gradient(135deg, ${loai.mau_sac || '#0d6efd'}, ${this.lightenColor(loai.mau_sac || '#0d6efd')})` : 'linear-gradient(135deg, #0d6efd, #6610f2)',
 						coordinatorName: cd.kiem_duyet_vien?.ho_ten || '',
 						coordinatorEmail: cd.kiem_duyet_vien?.email || '',
 					};
+					this.activeImageIndex = 0;
 					this.volunteers = (cd.danh_sach_dang_ky || []).map((item) => {
 						const nguoiDung = item.nguoi_dung || {};
 						return {
@@ -916,6 +945,16 @@ export default {
 	width: 130px;
 	height: 130px;
 	position: relative;
+}
+.gallery-thumb {
+	opacity: 0.75;
+	transition: all 0.2s ease;
+}
+.gallery-thumb.active,
+.gallery-thumb:hover {
+	opacity: 1;
+	border-color: #0d6efd !important;
+	box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.12);
 }
 
 .progress-circle {

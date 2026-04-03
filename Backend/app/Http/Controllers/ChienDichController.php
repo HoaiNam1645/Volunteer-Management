@@ -27,6 +27,7 @@ class ChienDichController extends Controller
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
+                'hinhAnhChienDich:id,chien_dich_id,duong_dan_anh,thu_tu',
                 'nguoiTao:id,ho_ten,email',
                 'duyetBoi:id,ho_ten,email,vai_tro',
             ]);
@@ -63,6 +64,7 @@ class ChienDichController extends Controller
                 'tieu_de'             => $cd->tieu_de,
                 'mo_ta'               => $cd->mo_ta,
                 'anh_bia'             => $cd->anh_bia,
+                'danh_sach_anh'       => $cd->danh_sach_anh,
                 'dia_diem'            => $cd->dia_diem,
                 'vi_do'               => $cd->vi_do,
                 'kinh_do'             => $cd->kinh_do,
@@ -117,6 +119,7 @@ class ChienDichController extends Controller
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
+                'hinhAnhChienDich:id,chien_dich_id,duong_dan_anh,thu_tu',
                 'nguoiTao:id,ho_ten,email',
                 'duyetBoi:id,ho_ten,email,vai_tro',
                 'dangKyThamGias.nguoiDung:id,ho_ten,email',
@@ -140,6 +143,7 @@ class ChienDichController extends Controller
                 'tieu_de'             => $cd->tieu_de,
                 'mo_ta'               => $cd->mo_ta,
                 'anh_bia'             => $cd->anh_bia,
+                'danh_sach_anh'       => $cd->danh_sach_anh,
                 'dia_diem'            => $cd->dia_diem,
                 'vi_do'               => $cd->vi_do,
                 'kinh_do'             => $cd->kinh_do,
@@ -351,6 +355,8 @@ class ChienDichController extends Controller
             'mo_ta'              => 'nullable|string',
             'loai_chien_dich_id' => 'nullable|integer|exists:loai_chien_dichs,id',
             'anh_bia'            => 'nullable|image|max:5120',
+            'anh_phu'            => 'nullable|array',
+            'anh_phu.*'          => 'image|max:5120',
             'dia_diem'           => 'required|string|max:500',
             'vi_do'              => 'nullable|numeric',
             'kinh_do'            => 'nullable|numeric',
@@ -367,18 +373,16 @@ class ChienDichController extends Controller
         $user = auth('api')->user();
         $hanDangKy = $request->han_dang_ky
             ? Carbon::parse($request->han_dang_ky)->toDateString()
-            : Carbon::parse($request->ngay_bat_dau)->subDays(3)->toDateString();
-        $anhBiaUrl = $request->hasFile('anh_bia')
-            ? $this->luuAnhBia($request->file('anh_bia'))
-            : null;
+            : now()->toDateString();
+        $imagePayload = $this->xuLyDanhSachAnhChienDich($request);
 
-        $cd = DB::transaction(function () use ($request, $user, $hanDangKy, $anhBiaUrl) {
+        $cd = DB::transaction(function () use ($request, $user, $hanDangKy, $imagePayload) {
             $cd = ChienDich::create([
                 'nguoi_tao_id'        => $user->id,
                 'loai_chien_dich_id' => $request->loai_chien_dich_id,
                 'tieu_de'            => $request->tieu_de,
                 'mo_ta'              => $request->mo_ta,
-                'anh_bia'            => $anhBiaUrl,
+                'anh_bia'            => $imagePayload['anh_bia'],
                 'dia_diem'           => $request->dia_diem,
                 'vi_do'              => $request->vi_do,
                 'kinh_do'            => $request->kinh_do,
@@ -395,6 +399,8 @@ class ChienDichController extends Controller
             if ($request->ky_nang_ids && count($request->ky_nang_ids) > 0) {
                 $cd->kyNangs()->sync($request->ky_nang_ids);
             }
+
+            $this->dongBoHinhAnhChienDich($cd, $imagePayload['danh_sach_anh']);
 
             return $cd;
         });
@@ -414,6 +420,10 @@ class ChienDichController extends Controller
             'mo_ta'              => 'nullable|string',
             'loai_chien_dich_id' => 'nullable|integer|exists:loai_chien_dichs,id',
             'anh_bia'            => 'nullable|image|max:5120',
+            'anh_phu'            => 'nullable|array',
+            'anh_phu.*'          => 'image|max:5120',
+            'danh_sach_anh_hien_tai'   => 'nullable|array',
+            'danh_sach_anh_hien_tai.*' => 'string|max:500',
             'dia_diem'           => 'required|string|max:500',
             'vi_do'              => 'nullable|numeric',
             'kinh_do'            => 'nullable|numeric',
@@ -451,17 +461,15 @@ class ChienDichController extends Controller
 
         $hanDangKy = $request->han_dang_ky
             ? Carbon::parse($request->han_dang_ky)->toDateString()
-            : Carbon::parse($request->ngay_bat_dau)->subDays(3)->toDateString();
-        $anhBiaUrl = $request->hasFile('anh_bia')
-            ? $this->luuAnhBia($request->file('anh_bia'))
-            : $cd->getRawOriginal('anh_bia');
+            : ($cd->han_dang_ky?->toDateString() ?? $cd->tao_luc?->toDateString() ?? now()->toDateString());
+        $imagePayload = $this->xuLyDanhSachAnhChienDich($request, $cd);
 
-        DB::transaction(function () use ($request, $cd, $hanDangKy, $anhBiaUrl) {
+        DB::transaction(function () use ($request, $cd, $hanDangKy, $imagePayload) {
             $cd->update([
                 'loai_chien_dich_id' => $request->loai_chien_dich_id,
                 'tieu_de'            => $request->tieu_de,
                 'mo_ta'              => $request->mo_ta,
-                'anh_bia'            => $anhBiaUrl,
+                'anh_bia'            => $imagePayload['anh_bia'],
                 'dia_diem'           => $request->dia_diem,
                 'vi_do'              => $request->vi_do,
                 'kinh_do'            => $request->kinh_do,
@@ -475,6 +483,7 @@ class ChienDichController extends Controller
 
             // Sync kỹ năng yêu cầu
             $cd->kyNangs()->sync($request->ky_nang_ids ?? []);
+            $this->dongBoHinhAnhChienDich($cd, $imagePayload['danh_sach_anh']);
         });
 
         $this->forgetOwnerStartReminderCache($cd->id);
@@ -1148,6 +1157,65 @@ class ChienDichController extends Controller
         $path = $file->store('campaign-covers', 'public');
 
         return Storage::disk('public')->url($path);
+    }
+
+    private function xuLyDanhSachAnhChienDich(Request $request, ?ChienDich $chienDich = null): array
+    {
+        $existingImages = collect();
+
+        if ($chienDich) {
+            $existingImages = $request->has('danh_sach_anh_hien_tai')
+                ? collect($request->input('danh_sach_anh_hien_tai', []))
+                : collect($chienDich->danh_sach_anh);
+        }
+
+        $uploadedImages = collect();
+
+        if ($request->hasFile('anh_bia')) {
+            $uploadedImages->push($this->luuAnhBia($request->file('anh_bia')));
+        }
+
+        if ($request->hasFile('anh_phu')) {
+            foreach ((array) $request->file('anh_phu') as $file) {
+                if ($file) {
+                    $uploadedImages->push($this->luuAnhBia($file));
+                }
+            }
+        }
+
+        $allImages = $existingImages
+            ->merge($uploadedImages)
+            ->map(fn ($item) => is_string($item) ? trim($item) : null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'anh_bia' => $allImages[0] ?? null,
+            'danh_sach_anh' => $allImages,
+        ];
+    }
+
+    private function dongBoHinhAnhChienDich(ChienDich $chienDich, array $imageUrls): void
+    {
+        $chienDich->hinhAnhChienDich()->delete();
+
+        if (empty($imageUrls)) {
+            return;
+        }
+
+        $payload = collect($imageUrls)
+            ->values()
+            ->map(fn ($url, $index) => [
+                'chien_dich_id' => $chienDich->id,
+                'duong_dan_anh' => $url,
+                'thu_tu' => $index,
+                'tao_luc' => now(),
+            ])
+            ->all();
+
+        $chienDich->hinhAnhChienDich()->insert($payload);
     }
 
     private function forgetOwnerStartReminderCache(int $campaignId): void

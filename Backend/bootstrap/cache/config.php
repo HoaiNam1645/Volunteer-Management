@@ -91,7 +91,7 @@
     'env' => 'local',
     'debug' => true,
     'url' => 'http://localhost',
-    'frontend_url' => 'http://localhost:5173',
+    'frontend_url' => 'https://volunteer-management-weld.vercel.app',
     'asset_url' => NULL,
     'timezone' => 'UTC',
     'locale' => 'en',
@@ -325,6 +325,7 @@
     'allowed_origins' => 
     array (
       0 => 'http://localhost:5173',
+      1 => 'https://volunteer-management-weld.vercel.app',
     ),
     'allowed_origins_patterns' => 
     array (

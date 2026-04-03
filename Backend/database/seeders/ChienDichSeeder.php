@@ -13,6 +13,8 @@ use Carbon\Carbon;
 
 class ChienDichSeeder extends Seeder
 {
+    private const GENERATED_CAMPAIGN_COUNT = 120;
+
     public function run(): void
     {
         // Theo nghiệp vụ mới: TNV là người tạo chiến dịch, KDV là người duyệt.
@@ -271,14 +273,22 @@ class ChienDichSeeder extends Seeder
             ],
         ];
 
-        $generatedStatuses = [
-            'da_duyet', 'da_duyet', 'da_duyet', 'da_duyet',
-            'cho_duyet', 'da_duyet', 'hoan_thanh', 'da_duyet',
-            'tu_choi', 'da_duyet', 'yeu_cau_huy', 'hoan_thanh',
-            'da_duyet', 'da_duyet', 'cho_duyet', 'da_duyet',
-            'hoan_thanh', 'da_duyet', 'da_duyet', 'tu_choi',
-            'da_duyet', 'yeu_cau_huy', 'da_duyet', 'hoan_thanh',
+        $statusPattern = [
+            'da_duyet',
+            'da_duyet',
+            'da_duyet',
+            'cho_duyet',
+            'da_duyet',
+            'hoan_thanh',
+            'da_duyet',
+            'tu_choi',
+            'da_duyet',
+            'yeu_cau_huy',
         ];
+        $generatedStatuses = [];
+        for ($i = 0; $i < self::GENERATED_CAMPAIGN_COUNT; $i++) {
+            $generatedStatuses[] = $statusPattern[$i % count($statusPattern)];
+        }
 
         foreach ($generatedStatuses as $index => $status) {
             $template = $campaignTemplates[$index % count($campaignTemplates)];
@@ -373,7 +383,7 @@ class ChienDichSeeder extends Seeder
                 if (!empty($ungVienIds)) {
                     shuffle($ungVienIds);
                     $numRegistrations = min(
-                        max(3, $cd->so_luong_toi_thieu ? min($cd->so_luong_toi_thieu + 2, 8) : 4),
+                        max(6, $cd->so_luong_toi_thieu ? min($cd->so_luong_toi_thieu + 6, 20) : 8),
                         count($ungVienIds)
                     );
                     $selectedTnvIds = array_slice($ungVienIds, 0, $numRegistrations);
