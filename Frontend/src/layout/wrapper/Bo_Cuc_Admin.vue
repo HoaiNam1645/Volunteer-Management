@@ -27,7 +27,7 @@
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.dashboard') }}</span>
 							</router-link>
 						</li>
-						<li class="nav-item" v-if="can('statistics.view')">
+						<li class="nav-item" v-if="can('statistics.view') && isReviewer">
 							<router-link to="/admin/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/admin/thong-ke') || (isReviewer && $route.path === '/admin') }">
 								<i class="fa-solid fa-chart-pie"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.statistics') }}</span>
@@ -95,18 +95,12 @@
 		<!-- Main Content -->
 		<div class="admin-main">
 			<!-- Top Header -->
-			<header class="admin-header">
-				<div class="d-flex align-items-center gap-3">
-					<button class="btn btn-link text-muted d-lg-none" @click="toggleSidebar">
-						<i class="fa-solid fa-bars fs-5"></i>
-					</button>
-					<div class="admin-search d-none d-md-block">
-						<div class="position-relative">
-							<input type="text" class="form-control" :placeholder="$t('admin.layout.searchPlaceholder')">
-							<i class="fa-solid fa-search search-icon"></i>
-						</div>
+				<header class="admin-header">
+					<div class="d-flex align-items-center gap-3">
+						<button class="btn btn-link text-muted d-lg-none" @click="toggleSidebar">
+							<i class="fa-solid fa-bars fs-5"></i>
+						</button>
 					</div>
-				</div>
 				<div class="d-flex align-items-center gap-3">
 					<LanguageSwitcher />
 					<div class="dropdown">
@@ -115,12 +109,15 @@
 							<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">3</span>
 						</button>
 						<ul class="dropdown-menu dropdown-menu-end p-0 shadow overflow-hidden" style="width: 300px;">
-							<li class="bg-light p-3 border-bottom d-flex justify-content-between align-items-center">
+							<li class="bg-light p-3 border-bottom">
 								<h6 class="mb-0 fw-bold">{{ $t('admin.layout.notifications.title') }}</h6>
-								<small class="text-primary cursor-pointer">{{ $t('admin.layout.notifications.markAllRead') }}</small>
 							</li>
 							<li>
-								<a class="dropdown-item p-3 border-bottom text-wrap" href="#">
+								<router-link
+									v-if="can('campaign_review.view')"
+									to="/admin/chien-dich"
+									class="dropdown-item p-3 border-bottom text-wrap"
+								>
 									<div class="d-flex gap-3">
 										<div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
 											<i class="fa-solid fa-flag"></i>
@@ -130,10 +127,25 @@
 											<p class="mb-0 text-muted" style="font-size: 11px;">{{ $t('admin.layout.notifications.pendingCampaignTime') }}</p>
 										</div>
 									</div>
-								</a>
+								</router-link>
+								<div v-else class="dropdown-item p-3 border-bottom text-wrap">
+									<div class="d-flex gap-3">
+										<div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+											<i class="fa-solid fa-flag"></i>
+										</div>
+										<div>
+											<p class="mb-1 fw-medium small">{{ $t('admin.layout.notifications.pendingCampaign') }}</p>
+											<p class="mb-0 text-muted" style="font-size: 11px;">{{ $t('admin.layout.notifications.pendingCampaignTime') }}</p>
+										</div>
+									</div>
+								</div>
 							</li>
 							<li>
-								<a class="dropdown-item p-3 border-bottom text-wrap" href="#">
+								<router-link
+									v-if="can('user_management.view')"
+									to="/admin/nguoi-dung"
+									class="dropdown-item p-3 border-bottom text-wrap"
+								>
 									<div class="d-flex gap-3">
 										<div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
 											<i class="fa-solid fa-user-plus"></i>
@@ -143,24 +155,33 @@
 											<p class="mb-0 text-muted" style="font-size: 11px;">{{ $t('admin.layout.notifications.newRegistrationsTime') }}</p>
 										</div>
 									</div>
-								</a>
+								</router-link>
+								<div v-else class="dropdown-item p-3 border-bottom text-wrap">
+									<div class="d-flex gap-3">
+										<div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+											<i class="fa-solid fa-user-plus"></i>
+										</div>
+										<div>
+											<p class="mb-1 fw-medium small">{{ $t('admin.layout.notifications.newRegistrations') }}</p>
+											<p class="mb-0 text-muted" style="font-size: 11px;">{{ $t('admin.layout.notifications.newRegistrationsTime') }}</p>
+										</div>
+									</div>
+								</div>
 							</li>
-							<li><a class="dropdown-item text-center text-primary py-2 small fw-bold bg-light" href="#">{{ $t('admin.layout.notifications.viewAll') }}</a></li>
+							<li v-if="can('user_management.view')"><router-link to="/admin/nguoi-dung" class="dropdown-item text-center text-primary py-2 small fw-bold bg-light">{{ $t('admin.layout.notifications.viewAll') }}</router-link></li>
 						</ul>
 					</div>
 					<router-link to="/" class="btn btn-outline-primary btn-sm rounded-pill px-3">
 						<i class="fa-solid fa-globe me-1"></i> {{ $t('admin.layout.homeView') }}
 					</router-link>
 					<div class="dropdown">
-						<a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#"
-							role="button" data-bs-toggle="dropdown">
+						<button type="button" class="d-flex align-items-center text-decoration-none dropdown-toggle btn btn-link p-0 border-0"
+							data-bs-toggle="dropdown">
 							<div class="admin-header-avatar">
 								<i class="fa-solid fa-user-shield"></i>
 							</div>
-						</a>
+						</button>
 						<ul class="dropdown-menu dropdown-menu-end">
-							<li><a class="dropdown-item" href="#"><i class="fa-solid fa-gear me-2"></i>{{ $t('admin.layout.settings') }}</a></li>
-							<li><hr class="dropdown-divider"></li>
 							<li>
 								<button type="button" class="dropdown-item text-danger" @click="handleLogout">
 									<i class="fa-solid fa-right-from-bracket me-2"></i>{{ $t('admin.layout.logout') }}

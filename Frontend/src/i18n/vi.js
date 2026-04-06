@@ -25,6 +25,7 @@ export default {
         close: 'Đóng',
         loading: 'Đang tải...',
         processing: 'Đang xử lý...',
+        pleaseTryAgain: 'Vui lòng thử lại sau.',
         noData: 'Không có dữ liệu',
         notAvailable: '—',
         all: 'Tất cả',
@@ -807,6 +808,14 @@ export default {
         dashboard: {
             title: 'Dashboard',
             subtitle: 'Tổng quan hệ thống quản lý tình nguyện viên',
+            messages: {
+                loadFailed: 'Không thể tải dashboard'
+            },
+            trend: {
+                increase: 'Tăng {value} so với kỳ trước',
+                decrease: 'Giảm {value} so với kỳ trước',
+                noChange: 'Không đổi so với kỳ trước'
+            },
             dateRange: {
                 last7Days: '7 ngày qua',
                 last30Days: '30 ngày qua',
@@ -838,6 +847,42 @@ export default {
                     admin: 'Quản trị viên',
                     pending: 'Chờ duyệt'
                 }
+            },
+            activity: {
+                close: 'Đóng danh sách',
+                empty: 'Không có dữ liệu chi tiết trong mốc thời gian này.',
+                registrationsTitle: 'Danh sách đăng ký mới - {label}',
+                campaignsTitle: 'Danh sách chiến dịch - {label}',
+                table: {
+                    user: 'Người dùng',
+                    role: 'Vai trò',
+                    status: 'Trạng thái',
+                    time: 'Thời gian',
+                    detail: 'Chi tiết',
+                    campaign: 'Chiến dịch',
+                    creator: 'Người tạo'
+                }
+            },
+            recentUsers: {
+                title: 'Người dùng đăng ký gần đây',
+                empty: 'Chưa có người dùng đăng ký mới trong giai đoạn này.'
+            },
+            campaigns: {
+                title: 'Chiến dịch gần đây',
+                empty: 'Chưa có chiến dịch nào trong giai đoạn này.',
+                activeCountLabel: '{count} đang hoạt động'
+            },
+            modals: {
+                userTitle: 'Chi tiết người dùng',
+                campaignTitle: 'Chi tiết chiến dịch',
+                role: 'Vai trò',
+                status: 'Trạng thái',
+                phone: 'Số điện thoại',
+                notUpdated: 'Chưa cập nhật',
+                registeredAt: 'Thời gian đăng ký',
+                creator: 'Người tạo',
+                confirmedVolunteers: 'Tình nguyện viên xác nhận',
+                createdAt: 'Ngày tạo'
             },
             pendingApprovals: {
                 title: 'Tài khoản chờ duyệt',
@@ -1123,19 +1168,21 @@ export default {
             stats: {
                 total: 'Tổng chiến dịch',
                 pending: 'Chờ duyệt',
+                approved: 'Đã duyệt',
                 pendingCancel: 'Yêu cầu hủy',
                 active: 'Đang diễn ra',
                 completed: 'Hoàn thành'
             },
             tabs: {
                 pending: 'Chờ duyệt',
-                pendingCancel: 'Yêu cầu hủy',
+                approved: 'Đã duyệt',
+                pending_cancel: 'Yêu cầu hủy',
                 all: 'Tất cả',
                 active: 'Đang diễn ra',
                 completed: 'Hoàn thành'
             },
             filter: {
-                searchPlaceholder: 'Tìm theo tên chiến dịch, địa điểm...',
+                searchPlaceholder: 'Tìm theo tên chiến dịch, địa điểm, người tạo...',
                 allCategories: 'Tất cả loại',
                 allPriorities: 'Tất cả mức ưu tiên',
                 reset: 'Đặt lại'
@@ -1519,8 +1566,12 @@ export default {
             },
             charts: {
                 campaignMonth: 'Chiến dịch theo tháng',
+                campaignWeek: 'Chiến dịch theo ngày',
+                campaignQuarter: 'Chiến dịch theo tháng trong quý',
+                campaignYear: 'Chiến dịch theo tháng trong năm',
                 campaigns: 'Chiến dịch',
                 volunteers: 'TNV tham gia',
+                periodSummary: '{campaigns} chiến dịch, {volunteers} lượt TNV trong kỳ đã chọn',
                 campaignStatus: 'Trạng thái chiến dịch',
                 topRegions: 'Top khu vực hoạt động',
                 volunteersUnit: 'TNV',

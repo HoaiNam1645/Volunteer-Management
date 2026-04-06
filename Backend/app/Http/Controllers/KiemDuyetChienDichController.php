@@ -39,6 +39,7 @@ class KiemDuyetChienDichController extends Controller
             'data' => [
                 'tabs' => [
                     ['value' => 'pending', 'api_value' => 'cho_duyet', 'count' => (int) ($statusCounts['cho_duyet'] ?? 0)],
+                    ['value' => 'approved', 'api_value' => 'da_duyet', 'count' => (int) ($statusCounts['da_duyet'] ?? 0)],
                     ['value' => 'pending_cancel', 'api_value' => 'yeu_cau_huy', 'count' => (int) ($statusCounts['yeu_cau_huy'] ?? 0)],
                     ['value' => 'all', 'api_value' => 'all', 'count' => (int) ((clone $baseQuery)->count())],
                     ['value' => 'active', 'api_value' => 'dang_dien_ra', 'count' => (int) ($statusCounts['dang_dien_ra'] ?? 0)],
@@ -104,6 +105,7 @@ class KiemDuyetChienDichController extends Controller
             'thong_ke' => [
                 'tong' => ChienDich::whereNull('xoa_luc')->count(),
                 'cho_duyet' => ChienDich::whereNull('xoa_luc')->where('trang_thai', 'cho_duyet')->count(),
+                'da_duyet' => ChienDich::whereNull('xoa_luc')->where('trang_thai', 'da_duyet')->count(),
                 'yeu_cau_huy' => ChienDich::whereNull('xoa_luc')->where('trang_thai', 'yeu_cau_huy')->count(),
                 'dang_dien_ra' => ChienDich::whereNull('xoa_luc')->where('trang_thai', 'dang_dien_ra')->count(),
                 'hoan_thanh' => ChienDich::whereNull('xoa_luc')->where('trang_thai', 'hoan_thanh')->count(),

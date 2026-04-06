@@ -76,9 +76,54 @@ class ThongKeTongQuanController extends Controller
         ];
 
         $activityChart = $this->buildTimeBuckets($period, $currentEnd, function (CarbonInterface $start, CarbonInterface $end) use ($usersBase, $campaignsBase) {
+            $registrationItems = (clone $usersBase)
+                ->whereBetween('tao_luc', [$start, $end])
+                ->orderByDesc('tao_luc')
+                ->get(['id', 'ho_ten', 'email', 'so_dien_thoai', 'anh_dai_dien', 'tao_luc', 'vai_tro', 'trang_thai'])
+                ->map(function (NguoiDung $user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->ho_ten,
+                        'email' => $user->email,
+                        'phone' => $user->so_dien_thoai,
+                        'avatar' => $user->anh_dai_dien,
+                        'created_at' => $user->tao_luc?->format('Y-m-d H:i:s'),
+                        'role' => $user->vai_tro,
+                        'status' => $user->trang_thai,
+                        'role_label' => $this->humanUserRole($user->vai_tro),
+                        'status_label' => $this->humanUserStatus($user->trang_thai),
+                        'status_badge_class' => $this->userStatusBadgeClass($user->trang_thai),
+                    ];
+                })
+                ->values();
+
+            $campaignItems = (clone $campaignsBase)
+                ->with(['nguoiTao:id,ho_ten,email'])
+                ->whereBetween('tao_luc', [$start, $end])
+                ->orderByDesc('tao_luc')
+                ->get(['id', 'nguoi_tao_id', 'tieu_de', 'dia_diem', 'so_xac_nhan', 'so_luong_toi_da', 'trang_thai', 'tao_luc'])
+                ->map(function (ChienDich $campaign) {
+                    return [
+                        'id' => $campaign->id,
+                        'title' => $campaign->tieu_de,
+                        'location' => $campaign->dia_diem,
+                        'volunteers' => (int) $campaign->so_xac_nhan,
+                        'target' => (int) $campaign->so_luong_toi_da,
+                        'status' => $campaign->trang_thai,
+                        'status_label' => $this->humanCampaignStatus($campaign->trang_thai),
+                        'status_badge_class' => $this->campaignStatusBadgeClass($campaign->trang_thai),
+                        'created_at' => $campaign->tao_luc?->format('Y-m-d H:i:s'),
+                        'creator_name' => $campaign->nguoiTao?->ho_ten,
+                        'creator_email' => $campaign->nguoiTao?->email,
+                    ];
+                })
+                ->values();
+
             return [
-                'registrations' => (clone $usersBase)->whereBetween('tao_luc', [$start, $end])->count(),
-                'campaigns' => (clone $campaignsBase)->whereBetween('tao_luc', [$start, $end])->count(),
+                'registrations' => $registrationItems->count(),
+                'campaigns' => $campaignItems->count(),
+                'registration_items' => $registrationItems,
+                'campaign_items' => $campaignItems,
             ];
         });
 
@@ -150,13 +195,23 @@ class ThongKeTongQuanController extends Controller
 
     public function thongKeKiemDuyet(Request $request)
     {
+        $reviewer = auth('api')->user();
         $period = $this->resolvePeriod($request->input('period'));
         ['current_start' => $currentStart, 'current_end' => $currentEnd, 'previous_start' => $previousStart, 'previous_end' => $previousEnd] = $this->resolveDateRange($period);
 
-        $campaignsBase = ChienDich::query()->whereNull('xoa_luc');
-        $reportsBase = BaoCaoChienDich::query();
-        $feedbackBase = PhanHoiTnv::query();
-        $registrationsBase = DangKyThamGia::query()->whereNotIn('trang_thai', ['da_huy', 'tu_choi']);
+        $campaignQueueBase = ChienDich::query()->whereNull('xoa_luc');
+        $reviewedCampaignsBase = ChienDich::query()
+            ->whereNull('xoa_luc')
+            ->where('duyet_boi', $reviewer->id);
+        $assignedReportsBase = BaoCaoChienDich::query()->where('nguoi_xu_ly_id', $reviewer->id);
+        $feedbackBase = PhanHoiTnv::query()->whereHas('chienDich', function ($query) use ($reviewer) {
+            $query->whereNull('xoa_luc')->where('duyet_boi', $reviewer->id);
+        });
+        $registrationsBase = DangKyThamGia::query()
+            ->whereNotIn('trang_thai', ['da_huy', 'tu_choi'])
+            ->whereHas('chienDich', function ($query) use ($reviewer) {
+                $query->whereNull('xoa_luc')->where('duyet_boi', $reviewer->id);
+            });
 
         $avgRating = round((float) ((clone $feedbackBase)->avg('so_sao') ?? 0), 1);
 
@@ -164,37 +219,37 @@ class ThongKeTongQuanController extends Controller
             'pending_review' => [
                 'key' => 'pending_review',
                 'label' => 'Chiến dịch chờ duyệt',
-                'value' => (clone $campaignsBase)->where('trang_thai', 'cho_duyet')->count(),
+                'value' => (clone $campaignQueueBase)->where('trang_thai', 'cho_duyet')->count(),
                 'icon' => 'fa-solid fa-hourglass-half',
                 'bg_color' => 'rgba(79,140,247,0.1)',
                 'color' => '#4f8cf7',
                 'trend' => $this->buildTrend(
-                    (clone $campaignsBase)->where('trang_thai', 'cho_duyet')->whereBetween('tao_luc', [$currentStart, $currentEnd])->count(),
-                    (clone $campaignsBase)->where('trang_thai', 'cho_duyet')->whereBetween('tao_luc', [$previousStart, $previousEnd])->count()
+                    (clone $campaignQueueBase)->where('trang_thai', 'cho_duyet')->whereBetween('tao_luc', [$currentStart, $currentEnd])->count(),
+                    (clone $campaignQueueBase)->where('trang_thai', 'cho_duyet')->whereBetween('tao_luc', [$previousStart, $previousEnd])->count()
                 ),
             ],
             'cancel_requests' => [
                 'key' => 'cancel_requests',
                 'label' => 'Yêu cầu hủy chờ xử lý',
-                'value' => (clone $campaignsBase)->where('trang_thai', 'yeu_cau_huy')->count(),
+                'value' => (clone $campaignQueueBase)->where('trang_thai', 'yeu_cau_huy')->count(),
                 'icon' => 'fa-solid fa-ban',
                 'bg_color' => 'rgba(253,126,20,0.1)',
                 'color' => '#fd7e14',
                 'trend' => $this->buildTrend(
-                    (clone $campaignsBase)->where('trang_thai', 'yeu_cau_huy')->whereBetween('cap_nhat_luc', [$currentStart, $currentEnd])->count(),
-                    (clone $campaignsBase)->where('trang_thai', 'yeu_cau_huy')->whereBetween('cap_nhat_luc', [$previousStart, $previousEnd])->count()
+                    (clone $campaignQueueBase)->where('trang_thai', 'yeu_cau_huy')->whereBetween('cap_nhat_luc', [$currentStart, $currentEnd])->count(),
+                    (clone $campaignQueueBase)->where('trang_thai', 'yeu_cau_huy')->whereBetween('cap_nhat_luc', [$previousStart, $previousEnd])->count()
                 ),
             ],
             'processing_reports' => [
                 'key' => 'processing_reports',
                 'label' => 'Báo cáo đang xử lý',
-                'value' => (clone $reportsBase)->whereIn('trang_thai', ['moi', 'dang_xu_ly'])->count(),
+                'value' => (clone $assignedReportsBase)->where('trang_thai', 'dang_xu_ly')->count(),
                 'icon' => 'fa-solid fa-triangle-exclamation',
                 'bg_color' => 'rgba(220,53,69,0.1)',
                 'color' => '#dc3545',
                 'trend' => $this->buildTrend(
-                    (clone $reportsBase)->whereIn('trang_thai', ['moi', 'dang_xu_ly'])->whereBetween('tao_luc', [$currentStart, $currentEnd])->count(),
-                    (clone $reportsBase)->whereIn('trang_thai', ['moi', 'dang_xu_ly'])->whereBetween('tao_luc', [$previousStart, $previousEnd])->count()
+                    (clone $assignedReportsBase)->where('trang_thai', 'dang_xu_ly')->whereBetween('cap_nhat_luc', [$currentStart, $currentEnd])->count(),
+                    (clone $assignedReportsBase)->where('trang_thai', 'dang_xu_ly')->whereBetween('cap_nhat_luc', [$previousStart, $previousEnd])->count()
                 ),
             ],
             'avg_rating' => [
@@ -211,22 +266,41 @@ class ThongKeTongQuanController extends Controller
             ],
         ];
 
-        $monthlyData = $this->buildTimeBuckets('year', $currentEnd, function (CarbonInterface $start, CarbonInterface $end) use ($campaignsBase, $registrationsBase) {
+        $periodReviewedCampaignsBase = (clone $reviewedCampaignsBase)
+            ->where(function ($query) use ($currentStart, $currentEnd) {
+                $query->whereBetween('duyet_luc', [$currentStart, $currentEnd])
+                    ->orWhere(function ($subQuery) use ($currentStart, $currentEnd) {
+                        $subQuery->whereNull('duyet_luc')
+                            ->whereBetween('tao_luc', [$currentStart, $currentEnd]);
+                    });
+            });
+        $periodRegistrationsBase = (clone $registrationsBase)
+            ->whereBetween('dang_ky_luc', [$currentStart, $currentEnd]);
+
+        $monthlyData = $this->buildTimeBuckets($period, $currentEnd, function (CarbonInterface $start, CarbonInterface $end) use ($reviewedCampaignsBase, $registrationsBase) {
             return [
-                'campaigns' => (clone $campaignsBase)->whereBetween('tao_luc', [$start, $end])->count(),
-                'volunteers' => (clone $registrationsBase)->whereBetween('tao_luc', [$start, $end])->count(),
+                'campaigns' => (clone $reviewedCampaignsBase)
+                    ->where(function ($query) use ($start, $end) {
+                        $query->whereBetween('duyet_luc', [$start, $end])
+                            ->orWhere(function ($subQuery) use ($start, $end) {
+                                $subQuery->whereNull('duyet_luc')
+                                    ->whereBetween('tao_luc', [$start, $end]);
+                            });
+                    })
+                    ->count(),
+                'volunteers' => (clone $registrationsBase)->whereBetween('dang_ky_luc', [$start, $end])->count(),
             ];
         });
 
         $statusCounts = [
-            ['label' => 'Chờ duyệt', 'count' => (clone $campaignsBase)->where('trang_thai', 'cho_duyet')->count(), 'color' => '#ffc107', 'icon' => 'fa-solid fa-hourglass-half'],
-            ['label' => 'Đã duyệt', 'count' => (clone $campaignsBase)->where('trang_thai', 'da_duyet')->count(), 'color' => '#20c997', 'icon' => 'fa-solid fa-check-double'],
-            ['label' => 'Đang diễn ra', 'count' => (clone $campaignsBase)->where('trang_thai', 'dang_dien_ra')->count(), 'color' => '#0d6efd', 'icon' => 'fa-solid fa-play'],
-            ['label' => 'Hoàn thành', 'count' => (clone $campaignsBase)->where('trang_thai', 'hoan_thanh')->count(), 'color' => '#6c757d', 'icon' => 'fa-solid fa-check'],
+            ['label' => 'Chờ duyệt', 'count' => (clone $campaignQueueBase)->where('trang_thai', 'cho_duyet')->count(), 'color' => '#ffc107', 'icon' => 'fa-solid fa-hourglass-half'],
+            ['label' => 'Đã duyệt', 'count' => (clone $reviewedCampaignsBase)->where('trang_thai', 'da_duyet')->count(), 'color' => '#20c997', 'icon' => 'fa-solid fa-check-double'],
+            ['label' => 'Đang diễn ra', 'count' => (clone $reviewedCampaignsBase)->where('trang_thai', 'dang_dien_ra')->count(), 'color' => '#0d6efd', 'icon' => 'fa-solid fa-play'],
+            ['label' => 'Hoàn thành', 'count' => (clone $reviewedCampaignsBase)->where('trang_thai', 'hoan_thanh')->count(), 'color' => '#6c757d', 'icon' => 'fa-solid fa-check'],
         ];
         $statusMax = max(1, ...collect($statusCounts)->pluck('count')->all());
 
-        $topRegionRows = (clone $campaignsBase)
+        $topRegionRows = (clone $periodReviewedCampaignsBase)
             ->selectRaw('dia_diem, COUNT(*) as total')
             ->whereNotNull('dia_diem')
             ->where('dia_diem', '!=', '')
@@ -243,8 +317,18 @@ class ThongKeTongQuanController extends Controller
         ])->values();
 
         $skillRows = collect(\DB::table('chien_dich_ky_nangs as cdk')
+            ->join('chien_dichs as cd', 'cd.id', '=', 'cdk.chien_dich_id')
             ->join('ky_nangs as kn', 'kn.id', '=', 'cdk.ky_nang_id')
             ->selectRaw('kn.ten as ten, COUNT(*) as total')
+            ->whereNull('cd.xoa_luc')
+            ->where('cd.duyet_boi', $reviewer->id)
+            ->where(function ($query) use ($currentStart, $currentEnd) {
+                $query->whereBetween('cd.duyet_luc', [$currentStart, $currentEnd])
+                    ->orWhere(function ($subQuery) use ($currentStart, $currentEnd) {
+                        $subQuery->whereNull('cd.duyet_luc')
+                            ->whereBetween('cd.tao_luc', [$currentStart, $currentEnd]);
+                    });
+            })
             ->groupBy('kn.id', 'kn.ten')
             ->orderByDesc('total')
             ->limit(6)
@@ -278,6 +362,10 @@ class ThongKeTongQuanController extends Controller
                 'period' => $period,
                 'kpis' => $kpis,
                 'monthly_data' => $monthlyData,
+                'period_summary' => [
+                    'campaigns' => (clone $periodReviewedCampaignsBase)->count(),
+                    'volunteers' => (clone $periodRegistrationsBase)->count(),
+                ],
                 'campaign_statuses' => collect($statusCounts)->map(fn (array $item) => [
                     'label' => $item['label'],
                     'count' => $item['count'],
@@ -331,17 +419,10 @@ class ThongKeTongQuanController extends Controller
 
     private function buildTrend(int|float $current, int|float $previous): array
     {
-        if ($previous <= 0) {
-            return [
-                'text' => $current > 0 ? '+' . $current . ' kỳ này' : 'Không đổi',
-                'positive' => $current >= 0,
-            ];
-        }
-
-        $change = round((($current - $previous) / $previous) * 100, 1);
+        $change = $current - $previous;
 
         return [
-            'text' => ($change > 0 ? '+' : '') . $change . '%',
+            'text' => $change === 0 ? '0' : (($change > 0 ? '+' : '') . $change),
             'positive' => $change >= 0,
         ];
     }

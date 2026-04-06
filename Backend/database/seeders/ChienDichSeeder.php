@@ -333,6 +333,10 @@ class ChienDichSeeder extends Seeder
             unset($cdData['skills_seed']);
             unset($cdData['khu_vuc_ten']);
 
+            $seedMonth = $now->copy()->startOfMonth()->subMonths(11 - ($index % 12));
+            $createdAt = $seedMonth->copy()->addDays(($index * 2) % 24)->setTime(8 + ($index % 6), 0);
+            $updatedAt = $createdAt->copy()->addDays(1 + ($index % 4));
+
             // Người tạo chiến dịch là TNV, luân phiên theo dữ liệu seed.
             $cdData['nguoi_tao_id'] = $nguoiTaoIds[$index % count($nguoiTaoIds)];
             $cdData['khu_vuc_id'] = $khuVucTen ? ($khuVucByName[$khuVucTen] ?? null) : null;
@@ -340,11 +344,12 @@ class ChienDichSeeder extends Seeder
             // Nếu đã duyệt / hoàn thành → gán KDV duyệt.
             if (in_array($cdData['trang_thai'], ['da_duyet', 'dang_dien_ra', 'hoan_thanh', 'tu_choi', 'yeu_cau_huy'])) {
                 $cdData['duyet_boi'] = $kiemDuyetVienIds[$index % count($kiemDuyetVienIds)];
-                $cdData['duyet_luc'] = $now->copy()->subDays(rand(1, 5));
+                $cdData['duyet_luc'] = $createdAt->copy()->addDays(1 + ($index % 3));
+                $updatedAt = $cdData['duyet_luc']->copy()->addDay();
             }
 
-            $cdData['tao_luc'] = $now;
-            $cdData['cap_nhat_luc'] = $now;
+            $cdData['tao_luc'] = $createdAt;
+            $cdData['cap_nhat_luc'] = $updatedAt;
 
             $cd = ChienDich::updateOrCreate(
                 ['tieu_de' => $cdData['tieu_de']],
@@ -395,9 +400,9 @@ class ChienDichSeeder extends Seeder
                     $soXacNhan = 0;
 
                     foreach ($selectedTnvIds as $indexTnv => $tnvId) {
-                        $dangKyData = $this->buildRegistrationSeedData($cd->trang_thai, $now, $indexTnv);
+                        $dangKyData = $this->buildRegistrationSeedData($cd, $indexTnv);
 
-                        DangKyThamGia::create([
+                        $dangKy = DangKyThamGia::create([
                             'chien_dich_id' => $cd->id,
                             'nguoi_dung_id' => $tnvId,
                             'trang_thai' => $dangKyData['trang_thai'],
@@ -408,6 +413,11 @@ class ChienDichSeeder extends Seeder
                             'ly_do_huy' => null,
                             'ghi_chu' => $dangKyData['ghi_chu'],
                         ]);
+                        $dangKy->timestamps = false;
+                        $dangKy->forceFill([
+                            'tao_luc' => $dangKyData['tao_luc'],
+                            'cap_nhat_luc' => $dangKyData['cap_nhat_luc'],
+                        ])->saveQuietly();
 
                         if (!in_array($dangKyData['trang_thai'], ['da_huy', 'tu_choi'], true)) {
                             $soDangKy++;
@@ -429,16 +439,20 @@ class ChienDichSeeder extends Seeder
         $this->command->info('✅ Đã seed ' . count($chienDichs) . ' chiến dịch + đăng ký tham gia.');
     }
 
-    private function buildRegistrationSeedData(string $trangThaiChienDich, Carbon $now, int $indexTnv): array
+    private function buildRegistrationSeedData(ChienDich $chienDich, int $indexTnv): array
     {
-        $dangKyLuc = $now->copy()->subDays(rand(2, 10));
+        $baseDate = ($chienDich->duyet_luc ?: $chienDich->tao_luc ?: Carbon::now())->copy();
+        $dangKyLuc = $baseDate->copy()->addDays(1 + ($indexTnv % 5))->setTime(9 + ($indexTnv % 6), 0);
+        $capNhatLuc = $dangKyLuc->copy()->addHours(4);
 
-        return match ($trangThaiChienDich) {
+        return match ($chienDich->trang_thai) {
             'da_duyet' => [
                 // Giữ lẫn cả người mới đăng ký và người đã xác nhận để test đủ flow.
                 'trang_thai' => $indexTnv % 2 === 0 ? 'da_dang_ky' : 'da_xac_nhan',
                 'dang_ky_luc' => $dangKyLuc,
                 'xac_nhan_luc' => $indexTnv % 2 === 0 ? null : $dangKyLuc->copy()->addDay(),
+                'tao_luc' => $dangKyLuc,
+                'cap_nhat_luc' => $capNhatLuc,
                 'ghi_chu' => $indexTnv % 2 === 0
                     ? 'Tình nguyện viên đã đăng ký và đang chờ xác nhận tham gia.'
                     : 'Tình nguyện viên đã xác nhận tham gia chiến dịch.',
@@ -448,24 +462,32 @@ class ChienDichSeeder extends Seeder
                 'trang_thai' => 'da_xac_nhan',
                 'dang_ky_luc' => $dangKyLuc,
                 'xac_nhan_luc' => $dangKyLuc->copy()->addDay(),
+                'tao_luc' => $dangKyLuc,
+                'cap_nhat_luc' => $capNhatLuc,
                 'ghi_chu' => 'Tình nguyện viên đã xác nhận, chiến dịch đang chờ xử lý yêu cầu hủy.',
             ],
             'dang_dien_ra' => [
                 'trang_thai' => 'dang_tham_gia',
                 'dang_ky_luc' => $dangKyLuc,
                 'xac_nhan_luc' => $dangKyLuc->copy()->addDay(),
+                'tao_luc' => $dangKyLuc,
+                'cap_nhat_luc' => $capNhatLuc,
                 'ghi_chu' => 'Tình nguyện viên đang tham gia chiến dịch.',
             ],
             'hoan_thanh' => [
                 'trang_thai' => 'hoan_thanh',
                 'dang_ky_luc' => $dangKyLuc,
                 'xac_nhan_luc' => $dangKyLuc->copy()->addDay(),
+                'tao_luc' => $dangKyLuc,
+                'cap_nhat_luc' => $capNhatLuc,
                 'ghi_chu' => 'Tình nguyện viên đã hoàn tất tham gia chiến dịch.',
             ],
             default => [
                 'trang_thai' => 'da_dang_ky',
                 'dang_ky_luc' => $dangKyLuc,
                 'xac_nhan_luc' => null,
+                'tao_luc' => $dangKyLuc,
+                'cap_nhat_luc' => $capNhatLuc,
                 'ghi_chu' => 'Tình nguyện viên đã đăng ký tham gia chiến dịch.',
             ],
         };

@@ -13,7 +13,7 @@
 		</div>
 
 		<div class="row g-3 mb-4">
-			<div class="col-xl-3 col-sm-6" v-for="stat in statsCards" :key="stat.label">
+			<div class="col-xl col-lg-4 col-sm-6" v-for="stat in statsCards" :key="stat.label">
 				<div class="card stat-card border-0 shadow-sm h-100">
 					<div class="card-body p-3">
 						<div class="d-flex align-items-start justify-content-between">
@@ -457,6 +457,7 @@ export default {
 			stats: {
 				tong: 0,
 				cho_duyet: 0,
+				da_duyet: 0,
 				yeu_cau_huy: 0,
 				dang_dien_ra: 0,
 				hoan_thanh: 0,
@@ -485,6 +486,7 @@ export default {
 			return [
 				{ label: this.$t('admin.campaignManagement.stats.total'), value: this.stats.tong || 0, icon: 'fa-solid fa-flag', bgClass: 'bg-primary bg-opacity-10 text-primary' },
 				{ label: this.$t('admin.campaignManagement.stats.pending'), value: this.stats.cho_duyet || 0, icon: 'fa-solid fa-hourglass-half', bgClass: 'bg-warning bg-opacity-10 text-warning' },
+				{ label: this.$t('admin.campaignManagement.stats.approved'), value: this.stats.da_duyet || 0, icon: 'fa-solid fa-circle-check', bgClass: 'bg-info bg-opacity-10 text-info' },
 				{ label: this.$t('admin.campaignManagement.stats.pendingCancel'), value: this.stats.yeu_cau_huy || 0, icon: 'fa-solid fa-ban', bgClass: 'bg-danger bg-opacity-10 text-danger' },
 				{ label: this.$t('admin.campaignManagement.stats.active'), value: this.stats.dang_dien_ra || 0, icon: 'fa-solid fa-circle-play', bgClass: 'bg-success bg-opacity-10 text-success' },
 			];
@@ -606,6 +608,7 @@ export default {
 				if (this.activeTab && this.activeTab !== 'all') {
 					params.trang_thai = {
 						pending: 'cho_duyet',
+						approved: 'da_duyet',
 						pending_cancel: 'yeu_cau_huy',
 						active: 'dang_dien_ra',
 						completed: 'hoan_thanh',
@@ -816,6 +819,7 @@ export default {
 		getTabIcon(tab) {
 			return {
 				pending: 'fa-solid fa-hourglass-half',
+				approved: 'fa-solid fa-circle-check',
 				pending_cancel: 'fa-solid fa-ban',
 				all: 'fa-solid fa-list',
 				active: 'fa-solid fa-circle-play',
@@ -825,6 +829,7 @@ export default {
 		getTabBadgeClass(tab) {
 			return {
 				pending: 'bg-warning text-dark',
+				approved: 'bg-info text-white',
 				pending_cancel: 'bg-danger',
 				all: 'bg-primary',
 				active: 'bg-success',
@@ -853,7 +858,7 @@ export default {
 			return {
 				pending: 'fa-solid fa-clock',
 				pending_cancel: 'fa-solid fa-ban',
-				approved: 'fa-solid fa-badge-check',
+				approved: 'fa-solid fa-circle-check',
 				active: 'fa-solid fa-circle-play',
 				completed: 'fa-solid fa-circle-check',
 				rejected: 'fa-solid fa-circle-xmark',

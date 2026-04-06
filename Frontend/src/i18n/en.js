@@ -25,6 +25,7 @@ export default {
         close: 'Close',
         loading: 'Loading...',
         processing: 'Processing...',
+        pleaseTryAgain: 'Please try again later.',
         noData: 'No data',
         notAvailable: '—',
         all: 'All',
@@ -808,6 +809,14 @@ export default {
         dashboard: {
             title: 'Dashboard',
             subtitle: 'Volunteer management system overview',
+            messages: {
+                loadFailed: 'Unable to load dashboard'
+            },
+            trend: {
+                increase: 'Up {value} compared to the previous period',
+                decrease: 'Down {value} compared to the previous period',
+                noChange: 'No change compared to the previous period'
+            },
             dateRange: {
                 last7Days: 'Last 7 days',
                 last30Days: 'Last 30 days',
@@ -839,6 +848,42 @@ export default {
                     admin: 'Administrator',
                     pending: 'Pending'
                 }
+            },
+            activity: {
+                close: 'Close list',
+                empty: 'No detailed data in this time bucket.',
+                registrationsTitle: 'New registrations - {label}',
+                campaignsTitle: 'Campaign list - {label}',
+                table: {
+                    user: 'User',
+                    role: 'Role',
+                    status: 'Status',
+                    time: 'Time',
+                    detail: 'Detail',
+                    campaign: 'Campaign',
+                    creator: 'Creator'
+                }
+            },
+            recentUsers: {
+                title: 'Recently registered users',
+                empty: 'No new users registered in this period.'
+            },
+            campaigns: {
+                title: 'Recent campaigns',
+                empty: 'No campaigns in this period.',
+                activeCountLabel: '{count} active'
+            },
+            modals: {
+                userTitle: 'User details',
+                campaignTitle: 'Campaign details',
+                role: 'Role',
+                status: 'Status',
+                phone: 'Phone number',
+                notUpdated: 'Not updated',
+                registeredAt: 'Registered at',
+                creator: 'Creator',
+                confirmedVolunteers: 'Confirmed volunteers',
+                createdAt: 'Created at'
             },
             pendingApprovals: {
                 title: 'Pending Accounts',
@@ -1124,19 +1169,21 @@ export default {
             stats: {
                 total: 'Total Campaigns',
                 pending: 'Pending',
+                approved: 'Approved',
                 pendingCancel: 'Cancel Requests',
                 active: 'Active',
                 completed: 'Completed'
             },
             tabs: {
                 pending: 'Pending',
-                pendingCancel: 'Cancel Requests',
+                approved: 'Approved',
+                pending_cancel: 'Cancel Requests',
                 all: 'All',
                 active: 'Active',
                 completed: 'Completed'
             },
             filter: {
-                searchPlaceholder: 'Search by campaign name, location...',
+                searchPlaceholder: 'Search by campaign name, location, creator...',
                 allCategories: 'All Categories',
                 allPriorities: 'All Priorities',
                 reset: 'Reset'
@@ -1520,8 +1567,12 @@ export default {
             },
             charts: {
                 campaignMonth: 'Campaigns by Month',
+                campaignWeek: 'Campaigns by Day',
+                campaignQuarter: 'Campaigns by Month in Quarter',
+                campaignYear: 'Campaigns by Month in Year',
                 campaigns: 'Campaigns',
                 volunteers: 'Volunteers Attended',
+                periodSummary: '{campaigns} campaigns, {volunteers} volunteer participations in the selected period',
                 campaignStatus: 'Campaign Statuses',
                 topRegions: 'Top Active Regions',
                 volunteersUnit: 'Vols',

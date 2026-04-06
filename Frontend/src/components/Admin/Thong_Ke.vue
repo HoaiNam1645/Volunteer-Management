@@ -45,19 +45,22 @@
 			<!-- Campaign Stats -->
 			<div class="col-lg-8">
 				<div class="card border-0 shadow-sm h-100">
-					<div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
-						<h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>{{ $t('admin.stats.charts.campaignMonth') }}</h6>
-						<div class="btn-group btn-group-sm">
-							<button class="btn" :class="chartView === 'campaigns' ? 'btn-primary' : 'btn-outline-secondary'" @click="chartView = 'campaigns'">{{ $t('admin.stats.charts.campaigns') }}</button>
-							<button class="btn" :class="chartView === 'volunteers' ? 'btn-primary' : 'btn-outline-secondary'" @click="chartView = 'volunteers'">{{ $t('admin.stats.charts.volunteers') }}</button>
+						<div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+							<h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>{{ chartTitle }}</h6>
+							<div class="btn-group btn-group-sm">
+								<button class="btn" :class="chartView === 'campaigns' ? 'btn-primary' : 'btn-outline-secondary'" @click="chartView = 'campaigns'">{{ $t('admin.stats.charts.campaigns') }}</button>
+								<button class="btn" :class="chartView === 'volunteers' ? 'btn-primary' : 'btn-outline-secondary'" @click="chartView = 'volunteers'">{{ $t('admin.stats.charts.volunteers') }}</button>
+							</div>
 						</div>
-					</div>
-					<div class="card-body">
-						<div class="d-flex align-items-end gap-3 justify-content-between" style="height: 220px;">
-							<div class="text-center flex-grow-1" v-for="month in monthlyData" :key="month.label">
-								<div class="d-flex align-items-end justify-content-center" style="height: 180px;">
-									<div class="month-bar" :style="{ 
-										height: (chartView === 'campaigns' ? month.campaigns : month.volunteers) / maxValue * 100 + '%',
+						<div class="card-body">
+							<div class="small text-muted mb-3">
+								{{ $t('admin.stats.charts.periodSummary', { campaigns: periodSummary.campaigns, volunteers: periodSummary.volunteers }) }}
+							</div>
+							<div class="d-flex align-items-end gap-3 justify-content-between" style="height: 220px;">
+								<div class="text-center flex-grow-1" v-for="month in monthlyData" :key="`${period}-${month.label}`">
+									<div class="d-flex align-items-end justify-content-center" style="height: 180px;">
+										<div class="month-bar" :style="{ 
+											height: (chartView === 'campaigns' ? month.campaigns : month.volunteers) / maxValue * 100 + '%',
 										background: chartView === 'campaigns' ? '#4f8cf7' : '#28a745'
 									}">
 										<span class="bar-value">{{ chartView === 'campaigns' ? month.campaigns : month.volunteers }}</span>
@@ -158,15 +161,19 @@ export default {
 		toast: { type: Object, default: null }
 	},
 	data() {
-		return {
-			period: 'month',
-			chartView: 'campaigns',
-			kpis: [],
-			monthlyData: [],
-			campaignStatuses: [],
-			topRegions: [],
-			topSkills: []
-		}
+			return {
+				period: 'month',
+				chartView: 'campaigns',
+				kpis: [],
+				monthlyData: [],
+				periodSummary: {
+					campaigns: 0,
+					volunteers: 0,
+				},
+				campaignStatuses: [],
+				topRegions: [],
+				topSkills: []
+			}
 	},
 	async created() {
 		await this.fetchStatistics();
@@ -179,6 +186,16 @@ export default {
 	computed: {
 		maxValue() {
 			return Math.max(1, ...this.monthlyData.map(m => this.chartView === 'campaigns' ? m.campaigns : m.volunteers), 1);
+		},
+		chartTitle() {
+			const key = {
+				week: 'campaignWeek',
+				month: 'campaignMonth',
+				quarter: 'campaignQuarter',
+				year: 'campaignYear',
+			}[this.period] || 'campaignMonth';
+
+			return this.$t(`admin.stats.charts.${key}`);
 		}
 	},
 	methods: {
@@ -196,10 +213,11 @@ export default {
 					color: item.color,
 				}));
 
-				this.monthlyData = payload.monthly_data || [];
-				this.campaignStatuses = (payload.campaign_statuses || []).map((item) => ({
-					label: item.label,
-					count: item.count,
+					this.monthlyData = payload.monthly_data || [];
+					this.periodSummary = payload.period_summary || { campaigns: 0, volunteers: 0 };
+					this.campaignStatuses = (payload.campaign_statuses || []).map((item) => ({
+						label: item.label,
+						count: item.count,
 					percent: item.percent,
 					icon: item.icon,
 					color: item.color,
