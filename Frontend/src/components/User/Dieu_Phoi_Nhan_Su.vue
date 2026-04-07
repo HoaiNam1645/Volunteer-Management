@@ -186,17 +186,17 @@
 												<nav v-if="totalPrimaryPages > 1">
 													<ul class="pagination pagination-sm mb-0">
 														<li class="page-item" :class="{ disabled: primaryPage === 1 }">
-															<button class="page-link" @click="primaryPage = Math.max(1, primaryPage - 1)">{{ $t('campaignList.prev') }}</button>
+															<button class="page-link" @click="changePage('primaryPage', primaryPage - 1, totalPrimaryPages)">{{ $t('pagination.prev') }}</button>
 														</li>
 														<li
-															v-for="page in totalPrimaryPages"
+															v-for="page in getVisiblePages(primaryPage, totalPrimaryPages)"
 															:key="'primary-page-' + page"
 															class="page-item"
-															:class="{ active: primaryPage === page }">
-															<button class="page-link" @click="primaryPage = page">{{ page }}</button>
+															:class="{ active: primaryPage === page, disabled: page === '...' }">
+															<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('primaryPage', page, totalPrimaryPages)">{{ page }}</button>
 														</li>
 														<li class="page-item" :class="{ disabled: primaryPage === totalPrimaryPages }">
-															<button class="page-link" @click="primaryPage = Math.min(totalPrimaryPages, primaryPage + 1)">{{ $t('campaignList.nextPage') }}</button>
+															<button class="page-link" @click="changePage('primaryPage', primaryPage + 1, totalPrimaryPages)">{{ $t('pagination.next') }}</button>
 														</li>
 													</ul>
 												</nav>
@@ -256,17 +256,17 @@
 									<nav v-if="totalExcludedPages > 1">
 										<ul class="pagination pagination-sm mb-0">
 											<li class="page-item" :class="{ disabled: excludedPage === 1 }">
-												<button class="page-link" @click="excludedPage = Math.max(1, excludedPage - 1)">{{ $t('campaignList.prev') }}</button>
+												<button class="page-link" @click="changePage('excludedPage', excludedPage - 1, totalExcludedPages)">{{ $t('pagination.prev') }}</button>
 											</li>
 											<li
-												v-for="page in totalExcludedPages"
+												v-for="page in getVisiblePages(excludedPage, totalExcludedPages)"
 												:key="'excluded-page-' + page"
 												class="page-item"
-												:class="{ active: excludedPage === page }">
-												<button class="page-link" @click="excludedPage = page">{{ page }}</button>
+												:class="{ active: excludedPage === page, disabled: page === '...' }">
+												<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('excludedPage', page, totalExcludedPages)">{{ page }}</button>
 											</li>
 											<li class="page-item" :class="{ disabled: excludedPage === totalExcludedPages }">
-												<button class="page-link" @click="excludedPage = Math.min(totalExcludedPages, excludedPage + 1)">{{ $t('campaignList.nextPage') }}</button>
+												<button class="page-link" @click="changePage('excludedPage', excludedPage + 1, totalExcludedPages)">{{ $t('pagination.next') }}</button>
 											</li>
 										</ul>
 									</nav>
@@ -332,17 +332,17 @@
 								<nav v-if="totalRecommendationPages > 1">
 									<ul class="pagination pagination-sm mb-0">
 										<li class="page-item" :class="{ disabled: recommendationPage === 1 }">
-											<button class="page-link" @click="recommendationPage = Math.max(1, recommendationPage - 1)">{{ $t('campaignList.prev') }}</button>
+											<button class="page-link" @click="changePage('recommendationPage', recommendationPage - 1, totalRecommendationPages)">{{ $t('pagination.prev') }}</button>
 										</li>
 										<li
-											v-for="page in totalRecommendationPages"
+											v-for="page in getVisiblePages(recommendationPage, totalRecommendationPages)"
 											:key="'recommend-page-' + page"
 											class="page-item"
-											:class="{ active: recommendationPage === page }">
-											<button class="page-link" @click="recommendationPage = page">{{ page }}</button>
+											:class="{ active: recommendationPage === page, disabled: page === '...' }">
+											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('recommendationPage', page, totalRecommendationPages)">{{ page }}</button>
 										</li>
 										<li class="page-item" :class="{ disabled: recommendationPage === totalRecommendationPages }">
-											<button class="page-link" @click="recommendationPage = Math.min(totalRecommendationPages, recommendationPage + 1)">{{ $t('campaignList.nextPage') }}</button>
+											<button class="page-link" @click="changePage('recommendationPage', recommendationPage + 1, totalRecommendationPages)">{{ $t('pagination.next') }}</button>
 										</li>
 									</ul>
 								</nav>
@@ -389,13 +389,13 @@
 								<nav v-if="totalProfileHighlightPages > 1">
 									<ul class="pagination pagination-sm mb-0">
 										<li class="page-item" :class="{ disabled: profileHighlightPage === 1 }">
-											<button class="page-link" @click="profileHighlightPage = Math.max(1, profileHighlightPage - 1)">{{ $t('campaignList.prev') }}</button>
+											<button class="page-link" @click="changePage('profileHighlightPage', profileHighlightPage - 1, totalProfileHighlightPages)">{{ $t('pagination.prev') }}</button>
 										</li>
-										<li v-for="page in totalProfileHighlightPages" :key="'profile-page-' + page" class="page-item" :class="{ active: profileHighlightPage === page }">
-											<button class="page-link" @click="profileHighlightPage = page">{{ page }}</button>
+										<li v-for="page in getVisiblePages(profileHighlightPage, totalProfileHighlightPages)" :key="'profile-page-' + page" class="page-item" :class="{ active: profileHighlightPage === page, disabled: page === '...' }">
+											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('profileHighlightPage', page, totalProfileHighlightPages)">{{ page }}</button>
 										</li>
 										<li class="page-item" :class="{ disabled: profileHighlightPage === totalProfileHighlightPages }">
-											<button class="page-link" @click="profileHighlightPage = Math.min(totalProfileHighlightPages, profileHighlightPage + 1)">{{ $t('campaignList.nextPage') }}</button>
+											<button class="page-link" @click="changePage('profileHighlightPage', profileHighlightPage + 1, totalProfileHighlightPages)">{{ $t('pagination.next') }}</button>
 										</li>
 									</ul>
 								</nav>
@@ -874,6 +874,18 @@ export default {
 			this.syncRouteQuery(newValue);
 			this.loadCoordinationData();
 		},
+		totalPrimaryPages(total) {
+			this.primaryPage = this.clampPage(this.primaryPage, total);
+		},
+		totalExcludedPages(total) {
+			this.excludedPage = this.clampPage(this.excludedPage, total);
+		},
+		totalRecommendationPages(total) {
+			this.recommendationPage = this.clampPage(this.recommendationPage, total);
+		},
+		totalProfileHighlightPages(total) {
+			this.profileHighlightPage = this.clampPage(this.profileHighlightPage, total);
+		},
 	},
 	async mounted() {
 		await this.loadCampaigns();
@@ -1022,19 +1034,48 @@ export default {
 						.filter(Boolean)
 				)];
 			},
-			resetPagination() {
-				this.recommendationPage = 1;
-				this.primaryPage = 1;
-				this.backupPage = 1;
-				this.excludedPage = 1;
-				this.profileHighlightPage = 1;
-			},
+		resetPagination() {
+			this.recommendationPage = 1;
+			this.primaryPage = 1;
+			this.backupPage = 1;
+			this.excludedPage = 1;
+			this.profileHighlightPage = 1;
+		},
+		clampPage(page, totalPages) {
+			const total = Math.max(1, Number(totalPages || 1));
+			const current = Number(page || 1);
+			return Math.min(total, Math.max(1, current));
+		},
+		changePage(pageKey, nextPage, totalPages) {
+			this[pageKey] = this.clampPage(nextPage, totalPages);
+		},
+		getVisiblePages(currentPage, totalPages) {
+			const current = this.clampPage(currentPage, totalPages);
+			const total = Math.max(1, Number(totalPages || 1));
+			if (total <= 7) {
+				return Array.from({ length: total }, (_, index) => index + 1);
+			}
+
+			const pages = [1];
+			const start = Math.max(2, current - 1);
+			const end = Math.min(total - 1, current + 1);
+
+			if (start > 2) pages.push('...');
+			for (let page = start; page <= end; page += 1) {
+				pages.push(page);
+			}
+			if (end < total - 1) pages.push('...');
+			pages.push(total);
+
+			return pages;
+		},
 		getTotalPages(items) {
 			return Math.max(1, Math.ceil((items?.length || 0) / this.pageSize));
 		},
 		paginateItems(items, page) {
 			const list = Array.isArray(items) ? items : [];
-			const start = (page - 1) * this.pageSize;
+			const safePage = this.clampPage(page, this.getTotalPages(list));
+			const start = (safePage - 1) * this.pageSize;
 			return list.slice(start, start + this.pageSize);
 		},
 		getVolunteerListMeta(volunteer) {
@@ -1241,6 +1282,7 @@ export default {
 					params: {
 						per_page: 100,
 						trang_thai: 'da_duyet',
+						for_coordination: 1,
 					},
 				});
 				const items = Array.isArray(res.data?.data) ? res.data.data : [];

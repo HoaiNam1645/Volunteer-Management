@@ -8,16 +8,7 @@
 				{ label: $t('common.home'), to: '/' },
 				{ label: $t('coordinator.campaignManagement'), to: '/quan-ly-chien-dich' },
 				{ label: campaign.title }
-			]">
-			<template #actions>
-				<router-link to="/quan-ly-chien-dich" class="btn btn-outline-secondary btn-sm">
-					<i class="fa-solid fa-arrow-left me-1"></i>{{ $t('common.back') }}
-				</router-link>
-				<button class="btn btn-primary btn-sm" @click="isEditing = true" v-if="!isEditing && canManageCampaigns">
-					<i class="fa-regular fa-pen-to-square me-1"></i>{{ $t('common.edit') }}
-				</button>
-			</template>
-		</PageHeader>
+			]" />
 
 		<!-- Status Banner -->
 		<div class="alert d-flex align-items-center gap-2 mb-4 border-0 shadow-sm" :class="statusAlertClass">
@@ -171,9 +162,17 @@
 				<!-- Registered Volunteers List -->
 				<div class="card border-0 shadow-sm">
 					<div class="card-header bg-white border-bottom px-4 py-3">
-						<div class="d-flex align-items-center justify-content-between">
+						<div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
 							<h6 class="fw-bold mb-0"><i class="fa-solid fa-user-group me-2 text-success"></i>{{ $t('campaignDetail.registeredVolunteers') }}</h6>
-							<span class="badge bg-success text-white shadow-sm">{{ volunteers.length }} {{ $t('common.people') }}</span>
+							<div class="d-flex align-items-center gap-2 flex-wrap">
+								<label class="small text-muted fw-semibold mb-0">{{ $t('campaignDetail.filterStatusLabel') }}</label>
+								<select class="form-select form-select-sm" style="min-width: 220px;" v-model="selectedVolunteerStatusFilter">
+									<option v-for="option in volunteerStatusFilterOptions" :key="option.value" :value="option.value">
+										{{ option.label }}
+									</option>
+								</select>
+								<span class="badge bg-success text-white shadow-sm">{{ filteredVolunteers.length }}/{{ volunteers.length }} {{ $t('common.people') }}</span>
+							</div>
 						</div>
 					</div>
 					<div class="card-body p-0">
@@ -189,7 +188,7 @@
 									</tr>
 								</thead>
 								<tbody>
-									<tr v-for="vol in volunteers" :key="vol.registrationId">
+									<tr v-for="vol in paginatedVolunteers" :key="vol.registrationId">
 										<td class="ps-4">
 											<div class="d-flex align-items-center gap-2">
 												<div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center rounded-circle fw-bold shadow-sm" style="width:36px;height:36px;font-size:13px">
@@ -234,14 +233,49 @@
 											<span v-else class="text-muted small">—</span>
 										</td>
 									</tr>
-									<tr v-if="volunteers.length === 0">
+									<tr v-if="filteredVolunteers.length === 0">
 										<td :colspan="canManageCampaigns ? 5 : 4" class="text-center py-4 text-muted">
 											<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
-											{{ $t('campaignDetail.noVolunteers') }}
+											{{ volunteers.length === 0 ? $t('campaignDetail.noVolunteers') : $t('campaignDetail.noVolunteersByFilter') }}
 										</td>
 									</tr>
 								</tbody>
 							</table>
+						</div>
+						<div v-if="filteredVolunteers.length > 0" class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-4 py-3 border-top bg-light-subtle">
+							<div class="small text-muted">
+								{{ $t('campaignDetail.volunteerPagination', volunteerPaginationMeta) }}
+							</div>
+							<nav v-if="volunteerTotalPages > 1" aria-label="Volunteer pagination">
+								<ul class="pagination pagination-sm mb-0">
+									<li class="page-item" :class="{ disabled: volunteerPage === 1 }">
+										<button class="page-link" type="button" @click="changeVolunteerPage(volunteerPage - 1)" :disabled="volunteerPage === 1">
+											{{ $t('pagination.prev') }}
+										</button>
+									</li>
+									<li
+										v-for="page in volunteerVisiblePages"
+										:key="`volunteer-page-${page}`"
+										class="page-item"
+										:class="{ active: volunteerPage === page, disabled: page === '...' }"
+									>
+										<span v-if="page === '...'" class="page-link">...</span>
+										<button
+											v-else
+											class="page-link"
+											type="button"
+											@click="changeVolunteerPage(page)"
+										>
+											{{ page }}
+										</button>
+									</li>
+									<li class="page-item" :class="{ disabled: volunteerPage === volunteerTotalPages }">
+										<button class="page-link" type="button" @click="changeVolunteerPage(volunteerPage + 1)" :disabled="volunteerPage === volunteerTotalPages">
+											{{ $t('pagination.next') }}
+										</button>
+									</li>
+								</ul>
+							</nav>
 						</div>
 					</div>
 				</div>
@@ -367,13 +401,7 @@
 							<button v-if="canViewCoordination" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push({ path: '/dieu-phoi-nhan-su', query: { campaign_id: String(campaign.id) } })">
 								<i class="fa-solid fa-people-arrows" style="width:16px"></i><span>Đi đến màn điều phối</span>
 							</button>
-							<button class="btn btn-outline-success btn-sm d-flex align-items-center gap-2">
-								<i class="fa-solid fa-bell" style="width:16px"></i><span>{{ $t('campaignDetail.sendAssignmentNotification') }}</span>
-							</button>
-							<button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2">
-								<i class="fa-solid fa-file-export" style="width:16px"></i><span>{{ $t('campaignDetail.exportReport') }}</span>
-							</button>
-							<button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2" v-if="campaign.status !== 'cancelled' && campaign.status !== 'completed'">
+							<button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2" v-if="campaign.status !== 'cancelled' && campaign.status !== 'completed'" @click="confirmCancel(campaign)">
 								<i class="fa-solid fa-ban" style="width:16px"></i><span>{{ $t('campaignDetail.cancelCampaign') }}</span>
 							</button>
 						</div>
@@ -422,6 +450,34 @@
 			</div>
 		</div>
 		<div class="modal-backdrop fade show" v-if="showRateModal" @click="showRateModal = false"></div>
+
+		<ConfirmModal
+			ref="cancelModal"
+			modalId="detailCancelCampaignModal"
+			:title="$t('coordinator.cancelCampaignTitle')"
+			:message="$t('coordinator.cancelCampaignMsg')"
+			:detail="cancelTarget?.title || ''"
+			icon="fa-solid fa-triangle-exclamation"
+			variant="danger"
+			:confirmText="$t('coordinator.confirmCancelBtn')"
+			confirmIcon="fa-solid fa-ban"
+			:cancelText="$t('coordinator.keepBtn')"
+			:dismissOnConfirm="false"
+			@confirm="cancelCampaign">
+			<template #warning>
+				<div class="bg-warning bg-opacity-10 rounded-3 p-3 mb-3 text-start">
+					<small class="text-warning fw-semibold"><i class="fa-solid fa-info-circle me-1"></i>{{ $t('coordinator.cancelWarningTitle') }}</small>
+					<ul class="mb-0 mt-1 small text-muted ps-3">
+						<li>{{ $t('coordinator.cancelWarning1') }}</li>
+						<li>{{ $t('coordinator.cancelWarning2') }}</li>
+					</ul>
+				</div>
+				<div class="text-start mt-3">
+					<label class="form-label fw-semibold small">Lý do hủy <span class="text-danger">*</span></label>
+					<textarea class="form-control" rows="2" v-model="cancelReason" placeholder="Vui lòng nhập lý do hủy chiến dịch..." required></textarea>
+				</div>
+			</template>
+		</ConfirmModal>
 
 		<ConfirmModal
 			ref="statusModal"
@@ -477,10 +533,15 @@ export default {
 			campaignTypes: [],
 			skillsList: [],
 			volunteers: [],
+			selectedVolunteerStatusFilter: 'all',
+			volunteerPage: 1,
+			volunteerPageSize: 8,
 			showRateModal: false,
 			rateTarget: null,
 			modalRating: 0,
 			modalComment: '',
+			cancelTarget: null,
+			cancelReason: '',
 			statusTarget: null,
 			nextStatusTarget: null,
 			statusForceProceed: false,
@@ -517,6 +578,60 @@ export default {
 		},
 		progressPercent() { return this.campaign.maxVolunteers ? Math.round(this.campaign.registered / this.campaign.maxVolunteers * 100) : 0; },
 		ratedCount() { return this.volunteers.filter(v => v.rating > 0).length; },
+		volunteerStatusFilterOptions() {
+			const seen = new Set();
+			const options = [{
+				value: 'all',
+				label: this.$t('campaignDetail.allVolunteerStatuses'),
+			}];
+
+			this.volunteers.forEach((volunteer) => {
+				const status = volunteer?.status;
+				if (!status || seen.has(status)) return;
+				seen.add(status);
+				options.push({
+					value: status,
+					label: this.getVolunteerStatusLabel(status),
+				});
+			});
+
+			return options;
+		},
+		filteredVolunteers() {
+			if (this.selectedVolunteerStatusFilter === 'all') {
+				return this.volunteers;
+			}
+			return this.volunteers.filter((volunteer) => volunteer.status === this.selectedVolunteerStatusFilter);
+		},
+		volunteerTotalPages() {
+			return Math.max(1, Math.ceil(this.filteredVolunteers.length / this.volunteerPageSize));
+		},
+		paginatedVolunteers() {
+			const safePage = this.clampVolunteerPage(this.volunteerPage);
+			const start = (safePage - 1) * this.volunteerPageSize;
+			return this.filteredVolunteers.slice(start, start + this.volunteerPageSize);
+		},
+		volunteerVisiblePages() {
+			return this.getVisibleVolunteerPages(this.volunteerPage, this.volunteerTotalPages);
+		},
+		volunteerPaginationMeta() {
+			const total = this.filteredVolunteers.length;
+			if (total === 0) {
+				return { page: 1, totalPages: 1, from: 0, to: 0, total: 0 };
+			}
+
+			const safePage = this.clampVolunteerPage(this.volunteerPage);
+			const from = (safePage - 1) * this.volunteerPageSize + 1;
+			const to = Math.min(safePage * this.volunteerPageSize, total);
+
+			return {
+				page: safePage,
+				totalPages: this.volunteerTotalPages,
+				from,
+				to,
+				total,
+			};
+		},
 		canManageCampaigns() {
 			try {
 				const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -618,7 +733,40 @@ export default {
 			if (Number.isNaN(date.getTime())) return value;
 			return date.toLocaleString('vi-VN');
 		},
+		clampVolunteerPage(page) {
+			const total = Math.max(1, this.volunteerTotalPages);
+			const current = Number(page || 1);
+			return Math.min(total, Math.max(1, current));
+		},
+		changeVolunteerPage(page) {
+			this.volunteerPage = this.clampVolunteerPage(page);
+		},
+		getVisibleVolunteerPages(currentPage, totalPages) {
+			const current = this.clampVolunteerPage(currentPage);
+			const total = Math.max(1, Number(totalPages || 1));
+			if (total <= 7) {
+				return Array.from({ length: total }, (_, index) => index + 1);
+			}
+
+			const pages = [1];
+			const start = Math.max(2, current - 1);
+			const end = Math.min(total - 1, current + 1);
+
+			if (start > 2) pages.push('...');
+			for (let page = start; page <= end; page += 1) {
+				pages.push(page);
+			}
+			if (end < total - 1) pages.push('...');
+			pages.push(total);
+
+			return pages;
+		},
 		setVolRating(vol, star) { vol.rating = star; },
+		confirmCancel(campaign) {
+			this.cancelTarget = campaign;
+			this.cancelReason = '';
+			this.$refs.cancelModal.show();
+		},
 		confirmStatusChange(nextStatus) {
 			this.statusTarget = this.campaign;
 			this.nextStatusTarget = nextStatus;
@@ -706,6 +854,24 @@ export default {
 					this.nextStatusTarget = null;
 					this.statusForceProceed = false;
 				}
+			}
+		},
+		async cancelCampaign() {
+			if (!this.cancelTarget) return;
+			if (!this.cancelReason.trim()) {
+				this.toast?.showToast('warning', 'Cảnh báo', 'Vui lòng nhập lý do hủy chiến dịch!');
+				return;
+			}
+			try {
+				const res = await api.put(`/tinh-nguyen-vien/chien-dich/${this.cancelTarget.id}/huy`, { ly_do: this.cancelReason.trim() });
+				if (res.data.status === 1) {
+					this.toast?.showToast('success', 'Thành công!', res.data.message);
+					this.$refs.cancelModal.hide();
+					await this.loadCampaignDetail();
+				}
+			} catch (err) {
+				const msg = err.response?.data?.message || 'Có lỗi xảy ra.';
+				this.toast?.showToast('error', 'Lỗi', msg);
 			}
 		},
 		async updateVolunteerStatus(volunteer) {
@@ -815,6 +981,12 @@ export default {
 							ratingComment: ''
 						};
 					});
+					const currentFilter = this.selectedVolunteerStatusFilter;
+					const availableStatuses = new Set(this.volunteers.map((volunteer) => volunteer.status));
+					if (currentFilter !== 'all' && !availableStatuses.has(currentFilter)) {
+						this.selectedVolunteerStatusFilter = 'all';
+					}
+					this.volunteerPage = 1;
 					this.$nextTick(() => this.geocodeAndShowMap());
 				}
 			} catch (err) {
@@ -905,6 +1077,14 @@ export default {
 				this.initDetailMap(16.0544, 108.2022);
 			}
 		}
+	},
+	watch: {
+		selectedVolunteerStatusFilter() {
+			this.volunteerPage = 1;
+		},
+		filteredVolunteers() {
+			this.volunteerPage = this.clampVolunteerPage(this.volunteerPage);
+		},
 	},
 	mounted() {
 		if (!document.getElementById('leaflet-css')) {

@@ -289,6 +289,10 @@ export default {
         featuredCampaigns: 'Featured Campaigns',
         featuredCampaignsDesc: 'Campaigns that are currently looking for volunteers',
         registered: 'Registered',
+        upcomingCampaigns: 'Upcoming Campaigns',
+        upcomingCampaignsDesc: 'Approved campaigns that will begin soon',
+        startsOn: 'Starts',
+        noUpcomingCampaigns: 'There are no upcoming campaigns to display yet.',
         completedCampaigns: 'Completed Campaigns',
         completedCampaignsDesc: 'Meaningful journeys that have closed successfully',
         latestArticles: 'Latest Articles',
@@ -363,6 +367,8 @@ export default {
         latitude: 'Latitude',
         longitude: 'Longitude',
         registeredVolunteers: 'Registered Volunteers List',
+        filterStatusLabel: 'Filter by status',
+        allVolunteerStatuses: 'All statuses',
         volunteerCol: 'Volunteer',
         skillsCol: 'Skills',
         areaCol: 'Area',
@@ -370,6 +376,8 @@ export default {
         actionCol: 'Action',
         saveStatusBtn: 'Save',
         noVolunteers: 'No volunteers registered yet',
+        noVolunteersByFilter: 'No volunteers match this status filter',
+        volunteerPagination: 'Page {page} / {totalPages} · Showing {from}-{to} / {total} volunteers',
         rateVolunteers: 'Rate Volunteers',
         rateVolunteersTitle: 'Rate Volunteers',
         rated: 'rated',
@@ -854,6 +862,7 @@ export default {
                 empty: 'No detailed data in this time bucket.',
                 registrationsTitle: 'New registrations - {label}',
                 campaignsTitle: 'Campaign list - {label}',
+                pagination: 'Page {page} / {totalPages} · Showing {from}-{to} / {total} items',
                 table: {
                     user: 'User',
                     role: 'Role',
@@ -1246,6 +1255,8 @@ export default {
                 coordinatorLabel: 'Coordinator',
                 creatorLabel: 'Creator',
                 description: 'Campaign Description',
+                cancelReasonTitle: 'Cancel request reason',
+                cancelRequestLabel: 'The campaign creator submitted this cancel request:',
                 skills: 'Required Skills',
                 map: 'Campaign Location',
                 lat: 'Latitude',
@@ -1271,6 +1282,8 @@ export default {
                 approveCancelTitle: 'Approve Cancel Request',
                 approveCancelMessage: 'Are you sure you want to approve the cancel request for "{title}"?',
                 approveCancelDetail: 'The campaign will be cancelled and the creator will be notified.',
+                cancelReasonTitle: 'Cancel request details',
+                cancelReasonDetail: 'Cancel reason: {reason}',
                 approveCancelBtn: 'Approve Cancel',
                 startTitle: 'Start Campaign',
                 startMessage: 'Confirm changing campaign "{title}" to Active?',
@@ -1305,6 +1318,17 @@ export default {
                     dang_xu_ly: 'Processing',
                     da_xu_ly: 'Resolved',
                     tu_choi: 'Rejected'
+                }
+            },
+            volunteerModal: {
+                title: 'Registered volunteers',
+                empty: 'No volunteers have registered for this campaign yet',
+                table: {
+                    volunteer: 'Volunteer',
+                    skills: 'Skills',
+                    area: 'Area',
+                    status: 'Status',
+                    time: 'Time'
                 }
             },
             history: {
@@ -1593,11 +1617,19 @@ export default {
         dashboard: {
             title: 'Dashboard',
             subtitle: 'Volunteer management system overview',
+            messages: {
+                loadFailed: 'Unable to load dashboard'
+            },
             period: {
                 week: 'Last 7 days',
                 month: 'Last 30 days',
                 quarter: '3 months',
                 year: 'This year'
+            },
+            trend: {
+                increase: 'Up {value} compared to the previous period',
+                decrease: 'Down {value} compared to the previous period',
+                noChange: 'No change compared to the previous period'
             },
             stats: {
                 totalUsers: 'Total Users',
@@ -1620,6 +1652,21 @@ export default {
                     pending: 'Pending'
                 }
             },
+            activity: {
+                close: 'Close list',
+                empty: 'No detailed data in this time bucket.',
+                registrationsTitle: 'New registrations - {label}',
+                campaignsTitle: 'Campaign list - {label}',
+                table: {
+                    user: 'User',
+                    role: 'Role',
+                    status: 'Status',
+                    time: 'Time',
+                    detail: 'Detail',
+                    campaign: 'Campaign',
+                    creator: 'Creator'
+                }
+            },
             approval: {
                 title: 'Pending Approvals',
                 viewAll: 'View All',
@@ -1631,9 +1678,27 @@ export default {
                     rejectMsg: '"{name}" has been rejected'
                 }
             },
+            recentUsers: {
+                title: 'Recently registered users',
+                empty: 'No new users registered in this period.'
+            },
             campaigns: {
                 title: 'Recent Campaigns',
-                activeCount: '{count} active'
+                activeCount: '{count} active',
+                empty: 'No campaigns in this period.',
+                activeCountLabel: '{count} active'
+            },
+            modals: {
+                userTitle: 'User details',
+                campaignTitle: 'Campaign details',
+                role: 'Role',
+                status: 'Status',
+                phone: 'Phone number',
+                notUpdated: 'Not updated',
+                registeredAt: 'Registered at',
+                creator: 'Creator',
+                confirmedVolunteers: 'Confirmed volunteers',
+                createdAt: 'Created at'
             }
         }
     },

@@ -56,6 +56,25 @@ class ChienDichController extends Controller
             $query->where('muc_do_uu_tien', $request->muc_do_uu_tien);
         }
 
+        if (filter_var($request->input('for_coordination', false), FILTER_VALIDATE_BOOLEAN)) {
+            $today = Carbon::today()->toDateString();
+
+            $query
+                ->where('trang_thai', 'da_duyet')
+                ->where(function ($subQuery) use ($today) {
+                    $subQuery->whereNull('han_dang_ky')
+                        ->orWhereDate('han_dang_ky', '>=', $today);
+                })
+                ->where(function ($subQuery) use ($today) {
+                    $subQuery->whereNull('ngay_ket_thuc')
+                        ->orWhereDate('ngay_ket_thuc', '>=', $today);
+                })
+                ->where(function ($subQuery) {
+                    $subQuery->whereNull('so_luong_toi_da')
+                        ->orWhereColumn('so_dang_ky', '<', 'so_luong_toi_da');
+                });
+        }
+
         $paginated = $query->orderByDesc('tao_luc')->paginate($perPage);
 
         $mapped = $paginated->getCollection()->map(function ($cd) {
@@ -373,7 +392,7 @@ class ChienDichController extends Controller
         $user = auth('api')->user();
         $hanDangKy = $request->han_dang_ky
             ? Carbon::parse($request->han_dang_ky)->toDateString()
-            : now()->toDateString();
+            : Carbon::parse($request->ngay_bat_dau)->toDateString();
         $imagePayload = $this->xuLyDanhSachAnhChienDich($request);
 
         $cd = DB::transaction(function () use ($request, $user, $hanDangKy, $imagePayload) {
@@ -461,7 +480,7 @@ class ChienDichController extends Controller
 
         $hanDangKy = $request->han_dang_ky
             ? Carbon::parse($request->han_dang_ky)->toDateString()
-            : ($cd->han_dang_ky?->toDateString() ?? $cd->tao_luc?->toDateString() ?? now()->toDateString());
+            : ($cd->han_dang_ky?->toDateString() ?? Carbon::parse($request->ngay_bat_dau)->toDateString());
         $imagePayload = $this->xuLyDanhSachAnhChienDich($request, $cd);
 
         DB::transaction(function () use ($request, $cd, $hanDangKy, $imagePayload) {

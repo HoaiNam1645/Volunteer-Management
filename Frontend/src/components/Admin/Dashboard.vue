@@ -136,7 +136,7 @@
 									</tr>
 								</thead>
 								<tbody>
-									<tr v-for="item in selectedActivityItems" :key="`${selectedActivity.type}-${item.id}`">
+									<tr v-for="item in paginatedSelectedActivityItems" :key="`${selectedActivity.type}-${item.id}`">
 										<template v-if="selectedActivity.type === 'registrations'">
 											<td>
 												<div class="d-flex align-items-center gap-2">
@@ -179,6 +179,35 @@
 									</tr>
 								</tbody>
 							</table>
+						</div>
+						<div v-if="selectedActivityTotalPages > 1" class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-3 border-top bg-light-subtle">
+							<div class="text-muted small">
+								{{ $t('admin.dashboard.activity.pagination', {
+									page: selectedActivityPage,
+									totalPages: selectedActivityTotalPages,
+									from: selectedActivityRange.from,
+									to: selectedActivityRange.to,
+									total: selectedActivityItems.length
+								}) }}
+							</div>
+							<div class="d-flex align-items-center gap-2">
+								<button type="button" class="btn btn-sm btn-outline-secondary" :disabled="selectedActivityPage === 1" @click="changeSelectedActivityPage(selectedActivityPage - 1)">
+									{{ $t('pagination.prev') }}
+								</button>
+								<button
+									v-for="page in visibleSelectedActivityPages"
+									:key="`activity-page-${page}`"
+									type="button"
+									class="btn btn-sm"
+									:class="page === selectedActivityPage ? 'btn-primary' : 'btn-outline-secondary'"
+									@click="changeSelectedActivityPage(page)"
+								>
+									{{ page }}
+								</button>
+								<button type="button" class="btn btn-sm btn-outline-secondary" :disabled="selectedActivityPage === selectedActivityTotalPages" @click="changeSelectedActivityPage(selectedActivityPage + 1)">
+									{{ $t('pagination.next') }}
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -294,49 +323,180 @@
 		<div class="modal-backdrop fade show" v-if="showUserDetailModal" @click="showUserDetailModal = false"></div>
 
 		<div class="modal fade" :class="{ show: showCampaignDetailModal }" :style="showCampaignDetailModal ? 'display: block;' : ''" tabindex="-1">
-			<div class="modal-dialog modal-dialog-centered">
-				<div class="modal-content border-0 shadow" v-if="detailCampaign">
-					<div class="modal-header border-0 pb-0">
-						<h5 class="modal-title fw-bold"><i class="fa-solid fa-flag text-primary me-2"></i>{{ $t('admin.dashboard.modals.campaignTitle') }}</h5>
-						<button type="button" class="btn-close" @click="showCampaignDetailModal = false"></button>
+			<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+				<div class="modal-content border-0 shadow">
+					<div v-if="showCampaignDetailLoading" class="p-5 text-center text-muted">
+						<div class="spinner-border text-primary mb-3"></div>
+						<div>{{ $t('common.loading') }}</div>
 					</div>
-					<div class="modal-body">
-						<h5 class="fw-bold mb-1">{{ detailCampaign.title }}</h5>
-						<div class="text-muted small mb-3">{{ detailCampaign.location }}</div>
-						<div class="row g-3">
-							<div class="col-6">
-								<div class="p-3 bg-light rounded-3 text-center h-100">
-									<span class="text-muted small d-block">{{ $t('admin.dashboard.modals.creator') }}</span>
-									<span class="fw-semibold small">{{ detailCampaign.creator_name || '—' }}</span>
+					<template v-else-if="detailCampaign">
+						<div class="modal-header border-0" :style="{ background: detailCampaign.color }">
+							<div class="d-flex align-items-center gap-3">
+								<div class="rounded-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px; background-color: rgba(255,255,255,0.2);">
+									<i :class="detailCampaign.icon" class="text-white fs-5"></i>
+								</div>
+								<div class="text-white">
+									<h5 class="fw-bold mb-0">{{ detailCampaign.title }}</h5>
+									<span class="small opacity-75">{{ detailCampaign.categoryName }}</span>
 								</div>
 							</div>
-							<div class="col-6">
-								<div class="p-3 bg-light rounded-3 text-center h-100">
-									<span class="text-muted small d-block">{{ $t('admin.dashboard.modals.status') }}</span>
-									<span class="badge rounded-pill mt-1" :class="detailCampaign.status_badge_class">{{ detailCampaign.status_label }}</span>
+							<button type="button" class="btn-close btn-close-white" @click="closeCampaignDetailModal"></button>
+						</div>
+						<div class="modal-body p-4">
+							<div class="row g-3 mb-4">
+								<div class="col-sm-6 col-xl-3">
+									<div class="detail-info-card">
+										<div class="detail-icon bg-danger text-white"><i class="fa-solid fa-location-dot"></i></div>
+										<div>
+											<div class="small text-muted">{{ $t('admin.campaignManagement.detailModal.location') }}</div>
+											<div class="fw-semibold small">{{ detailCampaign.location }}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-6 col-xl-3">
+									<div class="detail-info-card">
+										<div class="detail-icon bg-primary text-white"><i class="fa-solid fa-calendar-days"></i></div>
+										<div>
+											<div class="small text-muted">{{ $t('admin.campaignManagement.detailModal.time') }}</div>
+											<div class="fw-semibold small">{{ formatDate(detailCampaign.startDate) }} — {{ formatDate(detailCampaign.endDate) }}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-6 col-xl-3">
+									<div class="detail-info-card">
+										<div class="detail-icon bg-success text-white"><i class="fa-solid fa-users"></i></div>
+										<div>
+											<div class="small text-muted">{{ $t('admin.campaignManagement.detailModal.requiredVolunteers') }}</div>
+											<div class="fw-semibold small">{{ detailCampaign.maxVolunteers }} {{ $t('admin.campaignManagement.detailModal.people') }} ({{ detailCampaign.registered }} {{ $t('admin.campaignManagement.detailModal.registered') }})</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-6 col-xl-3">
+									<div class="detail-info-card">
+										<div class="detail-icon bg-warning text-dark"><i class="fa-solid fa-bolt"></i></div>
+										<div>
+											<div class="small text-muted">{{ $t('admin.campaignManagement.detailModal.priority') }}</div>
+											<div class="fw-semibold small"><span class="badge rounded-pill" :class="getCampaignPriorityClass(detailCampaign.priority)">{{ getCampaignPriorityLabel(detailCampaign.priority) }}</span></div>
+										</div>
+									</div>
 								</div>
 							</div>
-							<div class="col-6">
-								<div class="p-3 bg-light rounded-3 text-center h-100">
-									<span class="text-muted small d-block">{{ $t('admin.dashboard.modals.confirmedVolunteers') }}</span>
-									<span class="fw-semibold small">{{ detailCampaign.volunteers }}/{{ detailCampaign.target }}</span>
+
+							<div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded-3">
+								<div class="coordinator-avatar-lg" :style="{ background: detailCampaign.creatorColor }">{{ detailCampaign.creatorInitial }}</div>
+								<div>
+									<div class="fw-bold">{{ detailCampaign.creator }}</div>
+									<div class="text-muted small">{{ detailCampaign.creatorEmail }}</div>
+								</div>
+								<span class="badge bg-info ms-auto">{{ $t('admin.campaignManagement.detailModal.creatorLabel') }}</span>
+							</div>
+
+							<div class="mb-4">
+								<h6 class="fw-bold small mb-2"><i class="fa-solid fa-file-lines text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.description') }}</h6>
+								<p class="text-muted small mb-0 lh-lg">{{ detailCampaign.description || '—' }}</p>
+							</div>
+
+							<div class="mb-4">
+								<h6 class="fw-bold small mb-2"><i class="fa-solid fa-gears text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.skills') }}</h6>
+								<div class="d-flex flex-wrap gap-2">
+									<span v-for="skill in detailCampaign.skills" :key="skill.id || skill.ten || skill" class="badge bg-white text-primary border border-primary px-3 py-2" style="font-size:12px">
+										{{ skill.ten || skill }}
+									</span>
+									<span v-if="!detailCampaign.skills.length" class="text-muted small">—</span>
 								</div>
 							</div>
-							<div class="col-6">
-								<div class="p-3 bg-light rounded-3 text-center h-100">
-									<span class="text-muted small d-block">{{ $t('admin.dashboard.modals.createdAt') }}</span>
-									<span class="fw-semibold small">{{ formatDateTime(detailCampaign.created_at) }}</span>
+
+							<div class="mb-4" v-if="detailCampaign.location">
+								<h6 class="fw-bold small mb-2"><i class="fa-solid fa-map-location-dot text-danger me-2"></i>{{ $t('admin.campaignManagement.detailModal.map') }}</h6>
+								<div id="dashboard-campaign-detail-map" class="admin-detail-map-wrapper rounded-3 border"></div>
+								<div class="d-flex gap-2 mt-2" v-if="campaignDetailMapLat">
+									<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ $t('admin.campaignManagement.detailModal.lat') }}: {{ campaignDetailMapLat }}</span>
+									<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ $t('admin.campaignManagement.detailModal.lng') }}: {{ campaignDetailMapLng }}</span>
+								</div>
+							</div>
+
+							<div class="row g-4">
+								<div class="col-lg-6">
+									<div class="detail-section-card h-100">
+										<div class="d-flex align-items-center justify-content-between mb-3">
+											<h6 class="fw-bold mb-0"><i class="fa-solid fa-comments text-warning me-2"></i>{{ $t('admin.campaignManagement.feedback.title') }}</h6>
+											<span class="badge bg-light text-dark">{{ detailCampaign.feedbacks.length }}</span>
+										</div>
+										<div v-if="detailCampaign.feedbacks.length === 0" class="text-muted small">{{ $t('admin.campaignManagement.feedback.empty') }}</div>
+										<div v-for="feedback in detailCampaign.feedbacks" :key="feedback.id" class="feedback-item border rounded-3 p-3 mb-2">
+											<div class="d-flex justify-content-between gap-3 flex-wrap mb-2">
+												<div>
+													<div class="fw-semibold small">{{ feedback.nguoi_dung?.ho_ten || '—' }}</div>
+													<div class="text-muted" style="font-size: 12px;">{{ feedback.nguoi_dung?.email || '—' }}</div>
+												</div>
+												<div class="text-warning small fw-semibold">
+													<i class="fa-solid fa-star me-1"></i>{{ feedback.so_sao }}/5
+												</div>
+											</div>
+											<div class="small text-muted mb-2">{{ feedback.nhan_xet || '—' }}</div>
+											<div class="d-flex flex-wrap gap-1">
+												<span v-for="tag in feedback.the_phan_hoi" :key="tag.id" class="badge bg-light text-dark border">{{ tag.ten }}</span>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-lg-6">
+									<div class="detail-section-card h-100">
+										<div class="d-flex align-items-center justify-content-between mb-3">
+											<h6 class="fw-bold mb-0"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>{{ $t('admin.campaignManagement.reports.title') }}</h6>
+											<span class="badge bg-light text-dark">{{ detailCampaign.reports.length }}</span>
+										</div>
+										<div v-if="detailCampaign.reports.length === 0" class="text-muted small">{{ $t('admin.campaignManagement.reports.empty') }}</div>
+										<div v-for="report in detailCampaign.reports" :key="report.id" class="feedback-item border rounded-3 p-3 mb-2">
+											<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-2">
+												<div>
+													<div class="fw-semibold small">{{ report.tieu_de }}</div>
+													<div class="text-muted" style="font-size: 12px;">{{ report.nguoi_gui?.ho_ten || '—' }} • {{ formatDateTime(report.tao_luc) }}</div>
+												</div>
+												<span class="badge rounded-pill" :class="getCampaignReportStatusClass(report.trang_thai)">{{ getCampaignReportStatusLabel(report.trang_thai) }}</span>
+											</div>
+											<div class="small text-muted mb-2">{{ report.noi_dung }}</div>
+											<div class="small mb-2" v-if="report.phan_hoi_xu_ly">
+												<strong>{{ $t('admin.campaignManagement.reports.responseLabel') }}:</strong> {{ report.phan_hoi_xu_ly }}
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="detail-section-card mt-4">
+								<div class="d-flex align-items-center justify-content-between mb-3">
+									<h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i>{{ $t('admin.campaignManagement.history.title') }}</h6>
+									<span class="badge bg-light text-dark">{{ detailCampaign.history.length }}</span>
+								</div>
+								<div v-if="detailCampaign.history.length === 0" class="text-muted small">{{ $t('admin.campaignManagement.history.empty') }}</div>
+								<div v-for="item in detailCampaign.history" :key="item.id" class="history-item d-flex gap-3 py-2 border-bottom">
+									<div class="history-dot"></div>
+									<div class="flex-grow-1">
+										<div class="d-flex justify-content-between gap-3 flex-wrap">
+											<div class="fw-semibold small">{{ getCampaignHistoryLabel(item.hanh_dong) }}</div>
+											<div class="text-muted" style="font-size: 12px;">{{ formatDateTime(item.tao_luc) }}</div>
+										</div>
+										<div class="small text-muted" v-if="item.nguoi_thuc_hien">{{ item.nguoi_thuc_hien.ho_ten }}</div>
+										<div class="small mt-1" v-if="item.tu_trang_thai || item.den_trang_thai">
+											<span class="badge bg-light text-dark border">{{ item.tu_trang_thai || '—' }}</span>
+											<i class="fa-solid fa-arrow-right mx-2 text-muted"></i>
+											<span class="badge bg-light text-dark border">{{ item.den_trang_thai || '—' }}</span>
+										</div>
+										<div class="small text-muted mt-1" v-if="item.ghi_chu">{{ item.ghi_chu }}</div>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-					<div class="modal-footer border-0 pt-0">
-						<button type="button" class="btn btn-light rounded-pill px-4" @click="showCampaignDetailModal = false">{{ $t('common.close') }}</button>
-					</div>
+						<div class="modal-footer border-0 bg-light py-3">
+							<button type="button" class="btn btn-light rounded-pill px-4" @click="closeCampaignDetailModal">{{ $t('admin.campaignManagement.detailModal.close') }}</button>
+						</div>
+					</template>
 				</div>
 			</div>
 		</div>
-		<div class="modal-backdrop fade show" v-if="showCampaignDetailModal" @click="showCampaignDetailModal = false"></div>
+		<div class="modal-backdrop fade show" v-if="showCampaignDetailModal" @click="closeCampaignDetailModal"></div>
 	</div>
 </template>
 
@@ -356,10 +516,16 @@ export default {
 			stats: [],
 			chartData: [],
 			selectedActivity: null,
+			selectedActivityPage: 1,
+			selectedActivityPageSize: 10,
 			showUserDetailModal: false,
 			showCampaignDetailModal: false,
+			showCampaignDetailLoading: false,
 			detailUser: null,
 			detailCampaign: null,
+			campaignDetailMap: null,
+			campaignDetailMapLat: '',
+			campaignDetailMapLng: '',
 			roleDistribution: [],
 			recentUsers: [],
 			recentCampaigns: [],
@@ -368,6 +534,12 @@ export default {
 	async created() {
 		this.loadCurrentUser();
 		await this.fetchDashboard();
+	},
+	beforeUnmount() {
+		if (this.campaignDetailMap) {
+			this.campaignDetailMap.remove();
+			this.campaignDetailMap = null;
+		}
 	},
 	computed: {
 		canManageUsers() {
@@ -394,6 +566,38 @@ export default {
 			return this.selectedActivity.type === 'registrations'
 				? this.$t('admin.dashboard.activity.registrationsTitle', { label: this.selectedActivity.label })
 				: this.$t('admin.dashboard.activity.campaignsTitle', { label: this.selectedActivity.label });
+		},
+		selectedActivityTotalPages() {
+			return Math.max(1, Math.ceil(this.selectedActivityItems.length / this.selectedActivityPageSize));
+		},
+		paginatedSelectedActivityItems() {
+			const currentPage = Math.min(this.selectedActivityPage, this.selectedActivityTotalPages);
+			const start = (currentPage - 1) * this.selectedActivityPageSize;
+			return this.selectedActivityItems.slice(start, start + this.selectedActivityPageSize);
+		},
+		selectedActivityRange() {
+			if (!this.selectedActivityItems.length) {
+				return { from: 0, to: 0 };
+			}
+			const currentPage = Math.min(this.selectedActivityPage, this.selectedActivityTotalPages);
+			const from = (currentPage - 1) * this.selectedActivityPageSize + 1;
+			const to = Math.min(currentPage * this.selectedActivityPageSize, this.selectedActivityItems.length);
+			return { from, to };
+		},
+		visibleSelectedActivityPages() {
+			const total = this.selectedActivityTotalPages;
+			const current = Math.min(this.selectedActivityPage, total);
+			const start = Math.max(1, current - 1);
+			const end = Math.min(total, start + 2);
+			const adjustedStart = Math.max(1, end - 2);
+			return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
+		},
+	},
+	watch: {
+		selectedActivityItems() {
+			if (this.selectedActivityPage > this.selectedActivityTotalPages) {
+				this.selectedActivityPage = this.selectedActivityTotalPages;
+			}
 		},
 	},
 	methods: {
@@ -437,14 +641,123 @@ export default {
 		},
 		selectActivityBucket(item, type) {
 			this.selectedActivity = { ...item, type };
+			this.selectedActivityPage = 1;
+		},
+		changeSelectedActivityPage(page) {
+			if (page < 1 || page > this.selectedActivityTotalPages) return;
+			this.selectedActivityPage = page;
 		},
 		openUserDetail(user) {
 			this.detailUser = user;
 			this.showUserDetailModal = true;
 		},
-		openCampaignDetail(campaign) {
-			this.detailCampaign = campaign;
+		async openCampaignDetail(campaign) {
+			if (!campaign?.id) return;
+			this.ensureLeaflet();
 			this.showCampaignDetailModal = true;
+			this.showCampaignDetailLoading = true;
+			this.detailCampaign = null;
+			this.campaignDetailMapLat = '';
+			this.campaignDetailMapLng = '';
+			try {
+				const { data } = await api.get(`/kiem-duyet/chien-dich/${campaign.id}`);
+				if (data?.status === 1 && data?.data) {
+					this.detailCampaign = this.mapCampaignDetail(data.data);
+					this.$nextTick(() => setTimeout(() => this.geocodeCampaignDetailMap(), 250));
+				}
+			} catch (error) {
+				this.showCampaignDetailModal = false;
+				if (this.toast) {
+					this.toast.error(
+						this.$t('admin.dashboard.messages.loadFailed'),
+						error?.response?.data?.message || this.$t('common.pleaseTryAgain')
+					);
+				}
+			} finally {
+				this.showCampaignDetailLoading = false;
+			}
+		},
+		closeCampaignDetailModal() {
+			this.showCampaignDetailModal = false;
+			this.showCampaignDetailLoading = false;
+			this.detailCampaign = null;
+			this.campaignDetailMapLat = '';
+			this.campaignDetailMapLng = '';
+			if (this.campaignDetailMap) {
+				this.campaignDetailMap.remove();
+				this.campaignDetailMap = null;
+			}
+		},
+		mapCampaignDetail(item) {
+			const campaignType = item.loai_chien_dich || {};
+			const creatorName = item.nguoi_tao?.ho_ten || item.creator_name || '—';
+			const priority = {
+				khan_cap: 'urgent',
+				cao: 'high',
+				trung_binh: 'medium',
+				thap: 'low',
+			}[item.muc_do_uu_tien] || 'medium';
+			const baseColor = campaignType.mau_sac || '#0d6efd';
+
+			return {
+				id: item.id,
+				title: item.tieu_de || item.title || '—',
+				description: item.mo_ta || '',
+				location: item.dia_diem || item.location || '—',
+				latitude: item.vi_do || null,
+				longitude: item.kinh_do || null,
+				startDate: item.ngay_bat_dau || null,
+				endDate: item.ngay_ket_thuc || null,
+				maxVolunteers: Number(item.so_luong_toi_da || item.target || 0),
+				registered: Number(item.so_dang_ky || item.volunteers || 0),
+				priority,
+				status: item.trang_thai || item.status || '',
+				categoryName: campaignType.ten || this.$t('admin.campaignManagement.filter.allCategories'),
+				creator: creatorName,
+				creatorEmail: item.nguoi_tao?.email || item.creator_email || '—',
+				creatorInitial: creatorName.charAt(0).toUpperCase(),
+				creatorColor: this.pickAvatarColor(item.nguoi_tao?.id || item.id),
+				skills: item.ky_nangs || [],
+				color: `linear-gradient(135deg, ${baseColor}, ${this.lightenColor(baseColor)})`,
+				icon: campaignType.bieu_tuong ? `fa-solid ${campaignType.bieu_tuong}` : 'fa-solid fa-flag',
+				feedbacks: item.feedbacks || [],
+				reports: item.bao_caos || [],
+				history: item.lich_su_kiem_duyet || [],
+			};
+		},
+		getCampaignPriorityLabel(priority) {
+			return this.$t(`admin.campaignManagement.priorities.${priority}`);
+		},
+		getCampaignPriorityClass(priority) {
+			return { urgent: 'bg-danger text-white', high: 'bg-warning text-dark', medium: 'bg-info text-white', low: 'bg-light text-muted border' }[priority] || 'bg-secondary';
+		},
+		getCampaignReportStatusLabel(status) {
+			return this.$t(`admin.campaignManagement.reports.statuses.${status}`);
+		},
+		getCampaignReportStatusClass(status) {
+			return {
+				moi: 'bg-warning text-dark',
+				dang_xu_ly: 'bg-info text-white',
+				da_xu_ly: 'bg-success text-white',
+				tu_choi: 'bg-secondary text-white',
+			}[status] || 'bg-light text-dark';
+		},
+		getCampaignHistoryLabel(action) {
+			return this.$t(`admin.campaignManagement.history.actions.${action}`);
+		},
+		pickAvatarColor(seed) {
+			const colors = ['#0d6efd', '#198754', '#6f42c1', '#dc3545', '#fd7e14', '#0dcaf0'];
+			return colors[seed % colors.length];
+		},
+		lightenColor(hex) {
+			if (!hex || !hex.startsWith('#') || hex.length < 7) return '#6ea8fe';
+			let r = parseInt(hex.slice(1, 3), 16);
+			let g = parseInt(hex.slice(3, 5), 16);
+			let b = parseInt(hex.slice(5, 7), 16);
+			r = Math.min(255, r + 40);
+			g = Math.min(255, g + 40);
+			b = Math.min(255, b + 40);
+			return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 		},
 		getTrendText(stat) {
 			const rawText = `${stat?.trend?.text || ''}`.trim();
@@ -489,11 +802,72 @@ export default {
 			const date = new Date(value);
 			return Number.isNaN(date.getTime()) ? value : `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
 		},
+		formatDate(value) {
+			if (!value) return '—';
+			const date = new Date(value);
+			return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN');
+		},
 		campaignThumbStyle(campaign) {
 			if (campaign.image) {
 				return { backgroundImage: `url(${campaign.image})` };
 			}
 			return { background: 'linear-gradient(135deg, #4f8cf7, #77a6ff)' };
+		},
+		ensureLeaflet() {
+			if (!document.getElementById('leaflet-css')) {
+				const link = document.createElement('link');
+				link.id = 'leaflet-css';
+				link.rel = 'stylesheet';
+				link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+				document.head.appendChild(link);
+			}
+			if (!window.L) {
+				const script = document.createElement('script');
+				script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+				document.head.appendChild(script);
+			}
+		},
+		initCampaignDetailMap(lat, lng) {
+			this.$nextTick(() => {
+				const container = document.getElementById('dashboard-campaign-detail-map');
+				if (!container || !window.L) return;
+				if (this.campaignDetailMap) {
+					this.campaignDetailMap.remove();
+					this.campaignDetailMap = null;
+				}
+
+				this.campaignDetailMap = window.L.map(container, {
+					center: [lat, lng],
+					zoom: 13,
+					zoomControl: true,
+					scrollWheelZoom: false,
+				});
+
+				window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					maxZoom: 19,
+					attribution: '&copy; OpenStreetMap contributors'
+				}).addTo(this.campaignDetailMap);
+
+				window.L.marker([lat, lng]).addTo(this.campaignDetailMap);
+				setTimeout(() => this.campaignDetailMap?.invalidateSize(), 200);
+			});
+		},
+		async geocodeCampaignDetailMap() {
+			if (!this.detailCampaign?.location) return;
+			try {
+				const query = encodeURIComponent(this.detailCampaign.location);
+				const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
+				const data = await response.json();
+				if (data && data.length > 0) {
+					this.campaignDetailMapLat = parseFloat(data[0].lat).toFixed(6);
+					this.campaignDetailMapLng = parseFloat(data[0].lon).toFixed(6);
+					this.initCampaignDetailMap(parseFloat(data[0].lat), parseFloat(data[0].lon));
+				} else {
+					this.initCampaignDetailMap(16.0544, 108.2022);
+				}
+			} catch (_error) {
+				this.initCampaignDetailMap(16.0544, 108.2022);
+			}
 		},
 	}
 }
@@ -641,6 +1015,69 @@ export default {
 	line-clamp: 1;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+}
+
+.coordinator-avatar-lg {
+	width: 48px;
+	height: 48px;
+	min-width: 48px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 700;
+	border-radius: 50%;
+	font-size: 20px;
+}
+
+.detail-info-card {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 14px;
+	background: #f8f9fa;
+	border-radius: 12px;
+}
+
+.detail-icon {
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+}
+
+.detail-section-card {
+	background: #fff;
+	border: 1px solid #e9ecef;
+	border-radius: 16px;
+	padding: 1rem;
+}
+
+.feedback-item:last-child {
+	margin-bottom: 0 !important;
+}
+
+.history-item:last-child {
+	border-bottom: none !important;
+}
+
+.history-dot {
+	width: 10px;
+	height: 10px;
+	min-width: 10px;
+	border-radius: 50%;
+	background: #0d6efd;
+	margin-top: 8px;
+}
+
+.admin-detail-map-wrapper {
+	height: 260px;
+	width: 100%;
+	z-index: 0;
 }
 
 @media (max-width: 575px) {

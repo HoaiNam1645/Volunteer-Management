@@ -63,13 +63,10 @@
 				</div>
 				<div v-if="campaigns.length" class="row g-4">
 					<div class="col-lg-4 col-md-6" v-for="(campaign, index) in campaigns" :key="index">
-						<div class="card h-100 campaign-card">
-							<div class="card-img-top campaign-banner" :style="{ backgroundImage: campaign.image ? `url(${campaign.image})` : campaign.color, backgroundSize: 'cover', backgroundPosition: 'center' }">
-								<span class="badge bg-light text-dark">{{ campaign.tag }}</span>
-								<div class="campaign-banner-icon">
-									<i :class="campaign.icon"></i>
+							<div class="card h-100 campaign-card">
+								<div class="card-img-top campaign-banner" :style="{ backgroundImage: campaign.image ? `url(${campaign.image})` : campaign.color, backgroundSize: 'cover', backgroundPosition: 'center' }">
+									<span class="badge bg-light text-dark">{{ campaign.tag }}</span>
 								</div>
-							</div>
 							<div class="card-body">
 								<h5 class="card-title fw-bold">{{ campaign.title }}</h5>
 								<p class="card-text text-muted small">{{ campaign.description }}</p>
@@ -113,6 +110,62 @@
 		</section>
 
 		<!-- Chiến dịch đã hoàn thành -->
+		<section class="py-5 upcoming-section" id="upcoming-campaigns">
+			<div class="container">
+				<div class="d-flex align-items-center justify-content-between mb-4">
+					<div>
+						<h4 class="fw-bold mb-1"><i class="fa-solid fa-calendar-day text-primary me-2"></i>{{ $t('home.upcomingCampaigns') }}</h4>
+						<p class="text-muted mb-0">{{ $t('home.upcomingCampaignsDesc') }}</p>
+					</div>
+					<router-link to="/danh-sach-chien-dich" class="btn btn-outline-primary btn-sm">{{ $t('common.viewAll') }} <i class="fa-solid fa-arrow-right ms-1"></i></router-link>
+				</div>
+				<div v-if="upcomingCampaigns.length" class="row g-4">
+					<div class="col-lg-4 col-md-6" v-for="(campaign, index) in upcomingCampaigns" :key="`upcoming-${index}`">
+						<div class="card h-100 campaign-card upcoming-card">
+							<div class="card-img-top campaign-banner" :style="{ backgroundImage: campaign.image ? `url(${campaign.image})` : campaign.color, backgroundSize: 'cover', backgroundPosition: 'center' }">
+								<span class="badge upcoming-badge">{{ $t('home.startsOn') }} {{ campaign.date }}</span>
+							</div>
+							<div class="card-body">
+								<h5 class="card-title fw-bold">{{ campaign.title }}</h5>
+								<p class="card-text text-muted small">{{ campaign.description }}</p>
+								<div class="d-flex gap-3 text-muted small mb-3 flex-wrap">
+									<span><i class="fa-solid fa-location-dot me-1"></i>{{ campaign.location }}</span>
+									<span><i class="fa-solid fa-hourglass-start me-1"></i>{{ $t('home.startsOn') }} {{ campaign.date }}</span>
+								</div>
+								<div class="mb-3">
+									<div class="d-flex justify-content-between mb-1">
+										<small class="text-muted">{{ $t('home.registered') }}</small>
+										<small class="fw-bold">{{ campaign.registered }}/{{ campaign.total }}</small>
+									</div>
+									<div class="progress" style="height: 6px;">
+										<div class="progress-bar bg-primary" role="progressbar" :style="{ width: getProgressWidth(campaign) + '%' }"></div>
+									</div>
+								</div>
+							</div>
+							<div class="card-footer bg-transparent border-top">
+								<div class="d-flex gap-2">
+									<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
+										{{ $t('common.viewDetails') }}
+									</router-link>
+									<router-link to="/danh-sach-chien-dich" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
+										{{ $t('home.viewCampaigns') }}
+									</router-link>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div v-else class="card border-0 shadow-sm">
+					<div class="card-body py-5 text-center text-muted">
+						<div v-if="isLoading" class="spinner-border text-primary mb-3" role="status"></div>
+						<i v-else class="fa-solid fa-calendar-plus d-block fs-1 mb-3 text-primary opacity-50"></i>
+						<p class="mb-0">{{ $t('home.noUpcomingCampaigns') }}</p>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Chiến dịch đã hoàn thành -->
 		<section class="py-5 bg-light" id="completed-campaigns">
 			<div class="container">
 				<div class="d-flex align-items-center justify-content-between mb-4">
@@ -127,9 +180,6 @@
 						<div class="card h-100 campaign-card opacity-75">
 							<div class="card-img-top campaign-banner" :style="{ backgroundImage: campaign.image ? `url(${campaign.image})` : campaign.color, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(30%)' }">
 								<span class="badge bg-success text-white">{{ $t('common.completed') }}</span>
-								<div class="campaign-banner-icon">
-									<i :class="campaign.icon"></i>
-								</div>
 							</div>
 							<div class="card-body">
 								<h5 class="card-title fw-bold text-muted">{{ campaign.title }}</h5>
@@ -202,6 +252,7 @@ export default {
 				campaignCount: 0,
 				provinceCount: 0,
 			},
+			upcomingCampaigns: [],
 			completedCampaigns: [],
 			campaigns: [],
 			isLoading: false,
@@ -234,6 +285,9 @@ export default {
 				this.campaigns = Array.isArray(payload.featured_campaigns)
 					? payload.featured_campaigns.map((campaign) => this.mapCampaignForUi(campaign))
 					: [];
+				this.upcomingCampaigns = Array.isArray(payload.upcoming_campaigns)
+					? payload.upcoming_campaigns.map((campaign) => this.mapCampaignForUi(campaign))
+					: [];
 				this.completedCampaigns = Array.isArray(payload.completed_campaigns)
 					? payload.completed_campaigns.map((campaign) => this.mapCampaignForUi(campaign, true))
 					: [];
@@ -244,6 +298,7 @@ export default {
 					provinceCount: 0,
 				};
 				this.campaigns = [];
+				this.upcomingCampaigns = [];
 				this.completedCampaigns = [];
 			} finally {
 				this.isLoading = false;
@@ -454,6 +509,20 @@ export default {
 	justify-content: center;
 	font-size: 22px;
 	color: white;
+}
+
+.upcoming-section {
+	background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(13, 110, 253, 0));
+}
+
+.upcoming-card {
+	border-color: rgba(13, 110, 253, 0.12);
+}
+
+.upcoming-badge {
+	background: rgba(255, 255, 255, 0.94);
+	color: #0d6efd;
+	font-weight: 700;
 }
 
 /* ===== Steps ===== */

@@ -5,11 +5,6 @@
 				<h4 class="fw-bold mb-1"><i class="fa-solid fa-flag text-primary me-2"></i>{{ $t('admin.campaignManagement.title') }}</h4>
 				<p class="text-muted mb-0 small">{{ $t('admin.campaignManagement.subtitle') }}</p>
 			</div>
-			<div class="d-flex gap-2">
-				<button class="btn btn-outline-success btn-sm rounded-pill px-3" @click="exportReport">
-					<i class="fa-solid fa-file-export me-1"></i>{{ $t('admin.campaignManagement.exportReport') }}
-				</button>
-			</div>
 		</div>
 
 		<div class="row g-3 mb-4">
@@ -21,7 +16,7 @@
 								<p class="text-muted small mb-1">{{ stat.label }}</p>
 								<h3 class="fw-bold mb-0">{{ stat.value }}</h3>
 							</div>
-							<div class="stat-icon" :class="stat.bgClass">
+							<div class="stat-icon" :style="stat.iconStyle">
 								<i :class="stat.icon"></i>
 							</div>
 						</div>
@@ -123,7 +118,9 @@
 								</td>
 								<td class="text-center">
 									<div class="d-flex flex-column align-items-center">
-										<span class="fw-bold small">{{ c.registered }}/{{ c.maxVolunteers }}</span>
+										<button type="button" class="btn btn-sm p-0 border-0 bg-transparent shadow-none volunteer-count-btn" @click="openVolunteerListModal(c)">
+											<span class="fw-bold small text-dark">{{ c.registered }}/{{ c.maxVolunteers }}</span>
+										</button>
 										<div class="progress mt-1" style="width: 50px; height: 4px;">
 											<div class="progress-bar bg-success" :style="{ width: getProgress(c) + '%' }"></div>
 										</div>
@@ -184,7 +181,7 @@
 								<span class="small opacity-75">{{ detailTarget.categoryName }}</span>
 							</div>
 						</div>
-						<button type="button" class="btn-close btn-close-white" @click="showDetailModal = false"></button>
+						<button type="button" class="btn-close btn-close-white" @click="closeDetailModal"></button>
 					</div>
 					<div class="modal-body p-4">
 						<div class="row g-3 mb-4">
@@ -238,6 +235,19 @@
 						<div class="mb-4">
 							<h6 class="fw-bold small mb-2"><i class="fa-solid fa-file-lines text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.description') }}</h6>
 							<p class="text-muted small mb-0 lh-lg">{{ detailTarget.description || '—' }}</p>
+						</div>
+
+						<div v-if="detailTarget.cancelReason" class="alert alert-danger border-0 shadow-sm mb-4 cancel-reason-alert">
+							<div class="d-flex align-items-start gap-3">
+								<div class="detail-icon bg-danger text-white flex-shrink-0">
+									<i class="fa-solid fa-ban"></i>
+								</div>
+								<div>
+									<div class="fw-bold small text-danger mb-1">{{ $t('admin.campaignManagement.detailModal.cancelReasonTitle') }}</div>
+									<div class="small text-dark mb-1">{{ $t('admin.campaignManagement.detailModal.cancelRequestLabel') }}</div>
+									<div class="small lh-lg mb-0">{{ detailTarget.cancelReason }}</div>
+								</div>
+							</div>
 						</div>
 
 						<div class="mb-4">
@@ -337,12 +347,73 @@
 						</div>
 					</div>
 					<div class="modal-footer border-0 bg-light py-3">
-						<button type="button" class="btn btn-light rounded-pill px-4" @click="showDetailModal = false">{{ $t('admin.campaignManagement.detailModal.close') }}</button>
+						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeDetailModal">{{ $t('admin.campaignManagement.detailModal.close') }}</button>
 					</div>
 				</div>
 			</div>
 		</div>
-		<div class="modal-backdrop fade show" v-if="showDetailModal" @click="showDetailModal = false"></div>
+		<div class="modal-backdrop fade show" v-if="showDetailModal" @click="closeDetailModal"></div>
+
+		<div class="modal fade" :class="{ show: showVolunteerListModal }" :style="showVolunteerListModal ? 'display: block;' : ''" tabindex="-1">
+			<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+				<div class="modal-content border-0 shadow">
+					<div class="modal-header border-0 pb-0">
+						<div>
+							<h5 class="modal-title fw-bold"><i class="fa-solid fa-user-group text-success me-2"></i>{{ $t('admin.campaignManagement.volunteerModal.title') }}</h5>
+							<div class="text-muted small" v-if="volunteerListTarget">{{ volunteerListTarget.title }}</div>
+						</div>
+						<button type="button" class="btn-close" @click="closeVolunteerListModal"></button>
+					</div>
+					<div class="modal-body pt-3">
+						<div v-if="volunteerListLoading" class="text-center py-4 text-muted">
+							<div class="spinner-border text-primary mb-3"></div>
+							<div>{{ $t('common.loading') }}</div>
+						</div>
+						<div v-else-if="!volunteerRegistrations.length" class="text-center py-4 text-muted">
+							<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
+							{{ $t('admin.campaignManagement.volunteerModal.empty') }}
+						</div>
+						<div v-else class="table-responsive">
+							<table class="table table-hover align-middle mb-0">
+								<thead class="table-light">
+									<tr>
+										<th>{{ $t('admin.campaignManagement.volunteerModal.table.volunteer') }}</th>
+										<th>{{ $t('admin.campaignManagement.volunteerModal.table.skills') }}</th>
+										<th>{{ $t('admin.campaignManagement.volunteerModal.table.area') }}</th>
+										<th>{{ $t('admin.campaignManagement.volunteerModal.table.status') }}</th>
+										<th>{{ $t('admin.campaignManagement.volunteerModal.table.time') }}</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="item in volunteerRegistrations" :key="item.id">
+										<td>
+											<div class="fw-semibold small">{{ item.name }}</div>
+											<div class="text-muted" style="font-size: 12px;">{{ item.email }}</div>
+										</td>
+										<td>
+											<div class="d-flex flex-wrap gap-1">
+												<span v-for="skill in item.skills" :key="`${item.id}-${skill}`" class="badge bg-light text-dark border">{{ skill }}</span>
+												<span v-if="!item.skills.length" class="text-muted small">—</span>
+											</div>
+										</td>
+										<td><span class="text-muted small">{{ item.area }}</span></td>
+										<td>
+											<span class="badge rounded-pill" :class="getRegistrationStatusClass(item.status)">{{ getRegistrationStatusLabel(item.status) }}</span>
+											<div v-if="item.cancelReason" class="small text-muted mt-1">{{ item.cancelReason }}</div>
+										</td>
+										<td><span class="text-muted small">{{ formatDateTime(item.statusTime || item.registeredAt) }}</span></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<div class="modal-footer border-0 pt-0">
+						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeVolunteerListModal">{{ $t('common.close') }}</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal-backdrop fade show" v-if="showVolunteerListModal" @click="closeVolunteerListModal"></div>
 
 		<div class="modal fade" :class="{ show: showRejectModal }" :style="showRejectModal ? 'display: block;' : ''" tabindex="-1">
 			<div class="modal-dialog modal-dialog-centered">
@@ -410,6 +481,7 @@
 
 		<ConfirmModal ref="confirmModal" :modalId="'reviewCampaignConfirmModal'"
 			:title="confirmConfig.title" :message="confirmConfig.message" :detail="confirmConfig.detail"
+			:detailList="confirmConfig.detailList" :detailListTitle="confirmConfig.detailListTitle"
 			:icon="confirmConfig.icon" :variant="confirmConfig.variant"
 			:confirmText="confirmConfig.confirmText" :confirmIcon="confirmConfig.confirmIcon"
 			:dismissOnConfirm="false"
@@ -463,16 +535,20 @@ export default {
 				hoan_thanh: 0,
 			},
 			showDetailModal: false,
+			showVolunteerListModal: false,
 			showRejectModal: false,
 			showReportModal: false,
 			detailTarget: null,
+			volunteerListTarget: null,
+			volunteerListLoading: false,
+			volunteerRegistrations: [],
 			rejectTarget: null,
 			rejectMode: 'campaign',
 			rejectReason: '',
 			reportTarget: null,
 			reportStatus: 'dang_xu_ly',
 			reportResponse: '',
-			confirmConfig: { title: '', message: '', detail: '', icon: '', variant: '', confirmText: '', confirmIcon: '' },
+			confirmConfig: { title: '', message: '', detail: '', detailList: [], detailListTitle: '', icon: '', variant: '', confirmText: '', confirmIcon: '' },
 			pendingAction: null,
 			actionTarget: null,
 			adminMap: null,
@@ -484,11 +560,11 @@ export default {
 	computed: {
 		statsCards() {
 			return [
-				{ label: this.$t('admin.campaignManagement.stats.total'), value: this.stats.tong || 0, icon: 'fa-solid fa-flag', bgClass: 'bg-primary bg-opacity-10 text-primary' },
-				{ label: this.$t('admin.campaignManagement.stats.pending'), value: this.stats.cho_duyet || 0, icon: 'fa-solid fa-hourglass-half', bgClass: 'bg-warning bg-opacity-10 text-warning' },
-				{ label: this.$t('admin.campaignManagement.stats.approved'), value: this.stats.da_duyet || 0, icon: 'fa-solid fa-circle-check', bgClass: 'bg-info bg-opacity-10 text-info' },
-				{ label: this.$t('admin.campaignManagement.stats.pendingCancel'), value: this.stats.yeu_cau_huy || 0, icon: 'fa-solid fa-ban', bgClass: 'bg-danger bg-opacity-10 text-danger' },
-				{ label: this.$t('admin.campaignManagement.stats.active'), value: this.stats.dang_dien_ra || 0, icon: 'fa-solid fa-circle-play', bgClass: 'bg-success bg-opacity-10 text-success' },
+				{ label: this.$t('admin.campaignManagement.stats.total'), value: this.stats.tong || 0, icon: 'fa-solid fa-flag', iconStyle: this.getStatIconStyle('#0d6efd') },
+				{ label: this.$t('admin.campaignManagement.stats.pending'), value: this.stats.cho_duyet || 0, icon: 'fa-solid fa-hourglass-half', iconStyle: this.getStatIconStyle('#f59f00') },
+				{ label: this.$t('admin.campaignManagement.stats.approved'), value: this.stats.da_duyet || 0, icon: 'fa-solid fa-check-circle', iconStyle: this.getStatIconStyle('#22b8cf') },
+				{ label: this.$t('admin.campaignManagement.stats.pendingCancel'), value: this.stats.yeu_cau_huy || 0, icon: 'fa-solid fa-times-circle', iconStyle: this.getStatIconStyle('#ff4d6d') },
+				{ label: this.$t('admin.campaignManagement.stats.active'), value: this.stats.dang_dien_ra || 0, icon: 'fa-solid fa-play', iconStyle: this.getStatIconStyle('#22c55e') },
 			];
 		},
 		filteredCampaigns() {
@@ -499,6 +575,7 @@ export default {
 		this.ensureLeaflet();
 		this.syncFiltersFromRoute();
 		await Promise.all([this.loadFilterMeta(), this.loadCampaigns()]);
+		await this.openDetailFromRouteQuery();
 	},
 	beforeUnmount() {
 		if (this.searchDebounceTimer) {
@@ -512,10 +589,11 @@ export default {
 	watch: {
 		'$route.query': {
 			deep: true,
-			handler() {
+			async handler() {
 				if (this.suspendRouteWatcher) return;
 				this.syncFiltersFromRoute();
-				this.loadCampaigns();
+				await this.loadCampaigns();
+				await this.openDetailFromRouteQuery();
 			},
 		},
 		activeTab() {
@@ -566,12 +644,22 @@ export default {
 				this.suspendFilterReload = false;
 			});
 		},
+		async openDetailFromRouteQuery() {
+			const detailId = Number(this.$route.query?.detail || 0);
+			if (!detailId) return;
+			if (this.detailTarget?.id === detailId && this.showDetailModal) return;
+			const existing = this.campaigns.find((item) => item.id === detailId);
+			await this.openDetailModal(existing || { id: detailId });
+		},
 		buildRouteQuery() {
 			const query = {};
 			if (this.activeTab && this.activeTab !== 'pending') query.tab = this.activeTab;
 			if (this.searchQuery.trim()) query.search = this.searchQuery.trim();
 			if (this.filterCategory) query.category = this.filterCategory;
 			if (this.filterPriority) query.priority = this.filterPriority;
+			const currentDetailId = this.$route.query?.detail;
+			if (this.showDetailModal && this.detailTarget?.id) query.detail = String(this.detailTarget.id);
+			else if (typeof currentDetailId === 'string' && currentDetailId.trim()) query.detail = currentDetailId;
 			return query;
 		},
 		async syncRouteQuery() {
@@ -667,12 +755,15 @@ export default {
 				color: loai.mau_sac ? `linear-gradient(135deg, ${loai.mau_sac}, ${this.lightenColor(loai.mau_sac)})` : 'linear-gradient(135deg, #0d6efd, #6610f2)',
 				icon: loai.bieu_tuong ? `fa-solid ${loai.bieu_tuong}` : 'fa-solid fa-flag',
 				lyDo: item.ly_do_tu_choi || '',
+				cancelReason: item.ly_do_huy_yeu_cau || item.ly_do_tu_choi || '',
+				registrations: item.danh_sach_dang_ky || [],
 				feedbacks: item.feedbacks || [],
 				reports: item.bao_caos || [],
 				history: item.lich_su_kiem_duyet || [],
 			};
 		},
 		async openDetailModal(campaign) {
+			if (!campaign?.id) return;
 			this.showDetailModal = true;
 			this.detailTarget = { ...campaign, feedbacks: [], reports: [], history: [] };
 			this.adminMapLat = '';
@@ -684,11 +775,72 @@ export default {
 					this.detailTarget.feedbacks = res.data.data.feedbacks || [];
 					this.detailTarget.reports = res.data.data.bao_caos || [];
 					this.detailTarget.history = res.data.data.lich_su_kiem_duyet || [];
+					await this.syncRouteQuery();
 					this.$nextTick(() => setTimeout(() => this.geocodeAdminMap(), 300));
 				}
 			} catch (error) {
 				this.showError(error.response?.data?.message || 'Không tải được chi tiết chiến dịch.');
 			}
+		},
+		async closeDetailModal() {
+			this.showDetailModal = false;
+			this.detailTarget = null;
+			this.adminMapLat = '';
+			this.adminMapLng = '';
+			await this.syncRouteQuery();
+		},
+		mapRegistrationForModal(item) {
+			const volunteer = item?.nguoi_dung || {};
+			return {
+				id: item?.id,
+				name: volunteer.ho_ten || '—',
+				email: volunteer.email || '—',
+				skills: (volunteer.ky_nangs || []).map((skill) => skill.ten).filter(Boolean),
+				area: (volunteer.khu_vucs || []).map((area) => area.ten).filter(Boolean).join(', ') || '—',
+				status: item?.trang_thai || '',
+				registeredAt: item?.dang_ky_luc || null,
+				statusTime: item?.xac_nhan_luc || item?.duyet_luc || item?.huy_luc || item?.dang_ky_luc || null,
+				cancelReason: item?.ly_do_huy || item?.ghi_chu || '',
+			};
+		},
+		getRegistrationStatusLabel(status) {
+			return this.$t(`campaignRegistration.statuses.${status}`);
+		},
+		getRegistrationStatusClass(status) {
+			return {
+				da_dang_ky: 'bg-warning text-dark',
+				da_duyet: 'bg-info text-white',
+				da_xac_nhan: 'bg-success text-white',
+				tu_choi: 'bg-danger text-white',
+				dang_tham_gia: 'bg-primary text-white',
+				hoan_thanh: 'bg-secondary text-white',
+				da_huy: 'bg-light text-muted border',
+			}[status] || 'bg-light text-dark border';
+		},
+		async openVolunteerListModal(campaign) {
+			if (!campaign?.id) return;
+			this.showVolunteerListModal = true;
+			this.volunteerListTarget = campaign;
+			this.volunteerRegistrations = [];
+			this.volunteerListLoading = true;
+			try {
+				const res = await api.get(`/kiem-duyet/chien-dich/${campaign.id}`);
+				if (res.data.status === 1) {
+					const mappedCampaign = this.mapCampaignFromApi(res.data.data);
+					this.volunteerListTarget = mappedCampaign;
+					this.volunteerRegistrations = (res.data.data.danh_sach_dang_ky || []).map((item) => this.mapRegistrationForModal(item));
+				}
+			} catch (error) {
+				this.showError(error.response?.data?.message || 'Không tải được danh sách TNV đăng ký.');
+			} finally {
+				this.volunteerListLoading = false;
+			}
+		},
+		closeVolunteerListModal() {
+			this.showVolunteerListModal = false;
+			this.volunteerListTarget = null;
+			this.volunteerRegistrations = [];
+			this.volunteerListLoading = false;
 		},
 		openRejectModal(campaign, mode) {
 			this.rejectTarget = campaign;
@@ -750,6 +902,8 @@ export default {
 				title: this.$t('admin.campaignManagement.confirm.approveTitle'),
 				message: this.$t('admin.campaignManagement.confirm.approveMessage', { title: c.title }),
 				detail: this.$t('admin.campaignManagement.confirm.approveDetail'),
+				detailList: [],
+				detailListTitle: '',
 				icon: 'fa-solid fa-check-circle',
 				variant: 'success',
 				confirmText: this.$t('admin.campaignManagement.confirm.approveBtn'),
@@ -760,10 +914,16 @@ export default {
 		confirmApproveCancel(c) {
 			this.actionTarget = c;
 			this.pendingAction = 'approve_cancel';
+			const detailList = [this.$t('admin.campaignManagement.confirm.approveCancelDetail')];
+			if (c.cancelReason) {
+				detailList.push(this.$t('admin.campaignManagement.confirm.cancelReasonDetail', { reason: c.cancelReason }));
+			}
 			this.confirmConfig = {
 				title: this.$t('admin.campaignManagement.confirm.approveCancelTitle'),
 				message: this.$t('admin.campaignManagement.confirm.approveCancelMessage', { title: c.title }),
-				detail: this.$t('admin.campaignManagement.confirm.approveCancelDetail'),
+				detail: '',
+				detailList,
+				detailListTitle: this.$t('admin.campaignManagement.confirm.cancelReasonTitle'),
 				icon: 'fa-solid fa-ban',
 				variant: 'danger',
 				confirmText: this.$t('admin.campaignManagement.confirm.approveCancelBtn'),
@@ -790,6 +950,8 @@ export default {
 				this.actionLoading = false;
 				this.pendingAction = null;
 				this.actionTarget = null;
+				this.confirmConfig.detailList = [];
+				this.confirmConfig.detailListTitle = '';
 			}
 		},
 		async refreshAfterAction(detailId = null) {
@@ -866,6 +1028,12 @@ export default {
 				draft: 'fa-solid fa-file-lines',
 			}[status] || 'fa-solid fa-circle';
 		},
+		getStatIconStyle(color) {
+			return {
+				backgroundColor: `${color}1a`,
+				color,
+			};
+		},
 		getProgress(campaign) {
 			return campaign.maxVolunteers ? Math.round((campaign.registered / campaign.maxVolunteers) * 100) : 0;
 		},
@@ -913,9 +1081,6 @@ export default {
 		},
 		showError(message) {
 			this.toast?.showToast('error', this.$t('admin.campaignManagement.toast.errorTitle'), message);
-		},
-		exportReport() {
-			this.toast?.showToast('info', this.$t('admin.campaignManagement.toast.exportTitle'), this.$t('admin.campaignManagement.exportReportAlert'));
 		},
 		lightenColor(hex) {
 			if (!hex || !hex.startsWith('#') || hex.length < 7) return '#6ea8fe';
@@ -981,6 +1146,15 @@ export default {
 	display: flex; align-items: center; justify-content: center;
 	font-size: 16px;
 }
+.volunteer-count-btn {
+	color: inherit;
+	text-decoration: none;
+}
+.volunteer-count-btn:hover .fw-bold,
+.volunteer-count-btn:focus .fw-bold {
+	color: #0d6efd !important;
+	text-decoration: underline;
+}
 .coordinator-avatar,
 .coordinator-avatar-lg {
 	display: flex; align-items: center; justify-content: center;
@@ -1002,6 +1176,9 @@ export default {
 	border: 1px solid #e9ecef;
 	border-radius: 16px;
 	padding: 1rem;
+}
+.cancel-reason-alert {
+	background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.04));
 }
 .feedback-item:last-child { margin-bottom: 0 !important; }
 .history-item:last-child { border-bottom: none !important; }

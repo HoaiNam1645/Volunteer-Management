@@ -29,6 +29,16 @@ class TrangChuController extends Controller
             ->limit(3)
             ->get();
 
+        $upcomingCampaigns = ChienDich::query()
+            ->whereNull('xoa_luc')
+            ->where('trang_thai', 'da_duyet')
+            ->whereDate('ngay_bat_dau', '>', now()->toDateString())
+            ->with(['loaiChienDich:id,ten,bieu_tuong,mau_sac'])
+            ->orderBy('ngay_bat_dau')
+            ->orderByRaw("FIELD(muc_do_uu_tien, 'khan_cap', 'cao', 'trung_binh', 'thap')")
+            ->limit(3)
+            ->get();
+
         $campaignLocations = ChienDich::query()
             ->whereNull('xoa_luc')
             ->whereIn('trang_thai', ['da_duyet', 'dang_dien_ra', 'hoan_thanh'])
@@ -64,6 +74,9 @@ class TrangChuController extends Controller
                     ->map(fn (ChienDich $campaign) => $this->mapCampaignCard($campaign))
                     ->values(),
                 'completed_campaigns' => $completedCampaigns
+                    ->map(fn (ChienDich $campaign) => $this->mapCampaignCard($campaign))
+                    ->values(),
+                'upcoming_campaigns' => $upcomingCampaigns
                     ->map(fn (ChienDich $campaign) => $this->mapCampaignCard($campaign))
                     ->values(),
             ],

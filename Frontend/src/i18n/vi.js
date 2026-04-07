@@ -288,6 +288,10 @@ export default {
         featuredCampaigns: 'Chiến dịch nổi bật',
         featuredCampaignsDesc: 'Các chiến dịch đang cần tình nguyện viên tham gia',
         registered: 'Đã đăng ký',
+        upcomingCampaigns: 'Chiến dịch sắp bắt đầu',
+        upcomingCampaignsDesc: 'Những chiến dịch đã duyệt và chuẩn bị khởi động trong thời gian tới',
+        startsOn: 'Bắt đầu',
+        noUpcomingCampaigns: 'Chưa có chiến dịch sắp bắt đầu để hiển thị.',
         completedCampaigns: 'Chiến dịch đã hoàn thành',
         completedCampaignsDesc: 'Những chặng đường ý nghĩa đã khép lại thành công',
         latestArticles: 'Bài viết mới nhất',
@@ -362,6 +366,8 @@ export default {
         latitude: 'Vĩ độ',
         longitude: 'Kinh độ',
         registeredVolunteers: 'Danh sách TNV đã đăng ký',
+        filterStatusLabel: 'Lọc trạng thái',
+        allVolunteerStatuses: 'Tất cả trạng thái',
         volunteerCol: 'Tình nguyện viên',
         skillsCol: 'Kỹ năng',
         areaCol: 'Khu vực',
@@ -369,6 +375,8 @@ export default {
         actionCol: 'Thao tác',
         saveStatusBtn: 'Lưu',
         noVolunteers: 'Chưa có TNV nào đăng ký',
+        noVolunteersByFilter: 'Không có TNV nào khớp với bộ lọc trạng thái này',
+        volunteerPagination: 'Trang {page} / {totalPages} · Hiển thị {from}-{to} / {total} TNV',
         rateVolunteers: 'Đánh giá tình nguyện viên',
         rateVolunteersTitle: 'Đánh giá tình nguyện viên',
         rated: 'đã đánh giá',
@@ -853,6 +861,7 @@ export default {
                 empty: 'Không có dữ liệu chi tiết trong mốc thời gian này.',
                 registrationsTitle: 'Danh sách đăng ký mới - {label}',
                 campaignsTitle: 'Danh sách chiến dịch - {label}',
+                pagination: 'Trang {page} / {totalPages} · Hiển thị {from}-{to} / {total} mục',
                 table: {
                     user: 'Người dùng',
                     role: 'Vai trò',
@@ -1245,6 +1254,8 @@ export default {
                 coordinatorLabel: 'Kiểm duyệt viên',
                 creatorLabel: 'Người tạo',
                 description: 'Mô tả chiến dịch',
+                cancelReasonTitle: 'Lý do yêu cầu hủy',
+                cancelRequestLabel: 'Người tạo đã gửi yêu cầu hủy chiến dịch với nội dung:',
                 skills: 'Kỹ năng yêu cầu',
                 map: 'Địa điểm chiến dịch',
                 lat: 'Vĩ độ',
@@ -1270,6 +1281,8 @@ export default {
                 approveCancelTitle: 'Duyệt yêu cầu hủy',
                 approveCancelMessage: 'Bạn có chắc chắn muốn duyệt yêu cầu hủy của chiến dịch "{title}"?',
                 approveCancelDetail: 'Chiến dịch sẽ chuyển sang trạng thái đã hủy và người tạo sẽ nhận được thông báo.',
+                cancelReasonTitle: 'Thông tin yêu cầu hủy',
+                cancelReasonDetail: 'Lý do hủy: {reason}',
                 approveCancelBtn: 'Duyệt hủy',
                 startTitle: 'Bắt đầu chiến dịch',
                 startMessage: 'Xác nhận chuyển chiến dịch "{title}" sang Đang diễn ra?',
@@ -1304,6 +1317,17 @@ export default {
                     dang_xu_ly: 'Đang xử lý',
                     da_xu_ly: 'Đã xử lý',
                     tu_choi: 'Từ chối'
+                }
+            },
+            volunteerModal: {
+                title: 'Danh sách TNV đăng ký',
+                empty: 'Chưa có TNV nào đăng ký chiến dịch này',
+                table: {
+                    volunteer: 'Tình nguyện viên',
+                    skills: 'Kỹ năng',
+                    area: 'Khu vực',
+                    status: 'Trạng thái',
+                    time: 'Thời gian'
                 }
             },
             history: {
@@ -1592,11 +1616,19 @@ export default {
         dashboard: {
             title: 'Bảng điều khiển',
             subtitle: 'Tổng quan hệ thống quản lý tình nguyện viên',
+            messages: {
+                loadFailed: 'Không thể tải dashboard'
+            },
             period: {
                 week: '7 ngày qua',
                 month: '30 ngày qua',
                 quarter: '3 tháng',
                 year: 'Năm nay'
+            },
+            trend: {
+                increase: 'Tăng {value} so với kỳ trước',
+                decrease: 'Giảm {value} so với kỳ trước',
+                noChange: 'Không đổi so với kỳ trước'
             },
             stats: {
                 totalUsers: 'Tổng người dùng',
@@ -1619,6 +1651,21 @@ export default {
                     pending: 'Chờ duyệt'
                 }
             },
+            activity: {
+                close: 'Đóng danh sách',
+                empty: 'Không có dữ liệu chi tiết trong mốc thời gian này.',
+                registrationsTitle: 'Danh sách đăng ký mới - {label}',
+                campaignsTitle: 'Danh sách chiến dịch - {label}',
+                table: {
+                    user: 'Người dùng',
+                    role: 'Vai trò',
+                    status: 'Trạng thái',
+                    time: 'Thời gian',
+                    detail: 'Chi tiết',
+                    campaign: 'Chiến dịch',
+                    creator: 'Người tạo'
+                }
+            },
             approval: {
                 title: 'Tài khoản chờ duyệt',
                 viewAll: 'Xem tất cả',
@@ -1630,9 +1677,27 @@ export default {
                     rejectMsg: '"{name}" đã bị từ chối'
                 }
             },
+            recentUsers: {
+                title: 'Người dùng đăng ký gần đây',
+                empty: 'Chưa có người dùng đăng ký mới trong giai đoạn này.'
+            },
             campaigns: {
                 title: 'Chiến dịch gần đây',
-                activeCount: '{count} đang hoạt động'
+                activeCount: '{count} đang hoạt động',
+                empty: 'Chưa có chiến dịch nào trong giai đoạn này.',
+                activeCountLabel: '{count} đang hoạt động'
+            },
+            modals: {
+                userTitle: 'Chi tiết người dùng',
+                campaignTitle: 'Chi tiết chiến dịch',
+                role: 'Vai trò',
+                status: 'Trạng thái',
+                phone: 'Số điện thoại',
+                notUpdated: 'Chưa cập nhật',
+                registeredAt: 'Thời gian đăng ký',
+                creator: 'Người tạo',
+                confirmedVolunteers: 'Tình nguyện viên xác nhận',
+                createdAt: 'Ngày tạo'
             }
         }
     },

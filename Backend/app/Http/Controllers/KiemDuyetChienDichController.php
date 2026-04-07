@@ -323,6 +323,9 @@ class KiemDuyetChienDichController extends Controller
                 'kyNangs:ky_nangs.id,ten',
                 'nguoiTao:id,ho_ten,email',
                 'duyetBoi:id,ho_ten,email',
+                'dangKyThamGias.nguoiDung:id,ho_ten,email',
+                'dangKyThamGias.nguoiDung.kyNangs:id,ten',
+                'dangKyThamGias.nguoiDung.khuVucs:id,ten',
                 'feedbacks.nguoiDung:id,ho_ten,email',
                 'feedbacks.thePhanHois:id,ten',
                 'baoCaos.nguoiGui:id,ho_ten,email',
@@ -347,6 +350,7 @@ class KiemDuyetChienDichController extends Controller
             'muc_do_uu_tien' => $cd->muc_do_uu_tien,
             'trang_thai' => $cd->trang_thai,
             'ly_do_tu_choi' => $cd->ly_do_tu_choi,
+            'ly_do_huy_yeu_cau' => $cd->trang_thai === 'yeu_cau_huy' ? $cd->ly_do_tu_choi : null,
             'loai_chien_dich' => $cd->loaiChienDich,
             'nguoi_tao' => $cd->nguoiTao,
             'duyet_boi' => $cd->duyetBoi,
@@ -365,6 +369,11 @@ class KiemDuyetChienDichController extends Controller
                 'id' => $kyNang->id,
                 'ten' => $kyNang->ten,
             ])->values(),
+            'danh_sach_dang_ky' => $cd->dangKyThamGias
+                ->sortByDesc(fn ($dangKy) => $dangKy->dang_ky_luc ?? $dangKy->tao_luc)
+                ->values()
+                ->map(fn ($dangKy) => $this->mapDangKyThamGia($dangKy))
+                ->values(),
             'feedbacks' => $cd->feedbacks->map(fn ($feedback) => $this->mapFeedback($feedback))->values(),
             'bao_caos' => $cd->baoCaos->map(fn ($baoCao) => $this->mapBaoCao($baoCao))->values(),
             'lich_su_kiem_duyet' => $cd->lichSuKiemDuyets->sortByDesc('tao_luc')->values()->map(function ($item) {
@@ -384,6 +393,35 @@ class KiemDuyetChienDichController extends Controller
                 ];
             })->values(),
         ]);
+    }
+
+    private function mapDangKyThamGia($dangKy): array
+    {
+        $nguoiDung = $dangKy->nguoiDung;
+
+        return [
+            'id' => $dangKy->id,
+            'trang_thai' => $dangKy->trang_thai,
+            'dang_ky_luc' => $dangKy->dang_ky_luc?->format('Y-m-d H:i:s'),
+            'duyet_luc' => $dangKy->duyet_luc?->format('Y-m-d H:i:s'),
+            'xac_nhan_luc' => $dangKy->xac_nhan_luc?->format('Y-m-d H:i:s'),
+            'huy_luc' => $dangKy->huy_luc?->format('Y-m-d H:i:s'),
+            'ly_do_huy' => $dangKy->ly_do_huy,
+            'ghi_chu' => $dangKy->ghi_chu,
+            'nguoi_dung' => $nguoiDung ? [
+                'id' => $nguoiDung->id,
+                'ho_ten' => $nguoiDung->ho_ten,
+                'email' => $nguoiDung->email,
+                'ky_nangs' => $nguoiDung->kyNangs->map(fn ($kyNang) => [
+                    'id' => $kyNang->id,
+                    'ten' => $kyNang->ten,
+                ])->values(),
+                'khu_vucs' => $nguoiDung->khuVucs->map(fn ($khuVuc) => [
+                    'id' => $khuVuc->id,
+                    'ten' => $khuVuc->ten,
+                ])->values(),
+            ] : null,
+        ];
     }
 
     private function mapFeedback($feedback): array
