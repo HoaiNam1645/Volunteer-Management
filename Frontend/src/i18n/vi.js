@@ -1848,6 +1848,8 @@ export default {
         primaryGroup: 'Nhóm nên mời trước',
         backupGroup: 'Nhóm dự phòng',
         excludedGroup: 'Cần bổ sung trước khi mời',
+        searchExcludedVolunteerLabel: 'Tìm theo tên TNV',
+        searchExcludedVolunteerPlaceholder: 'Nhập tên tình nguyện viên trong nhóm này...',
         selectAll: 'Chọn tất cả',
         primaryDesc: 'Đây là nhóm nên ưu tiên mời ngay vì cân bằng tốt giữa kỹ năng, lịch, khoảng cách và độ tin cậy.',
         backupDesc: 'Đây là nhóm vẫn nên giữ sẵn để mời bổ sung khi nhóm chính từ chối hoặc thiếu người.',

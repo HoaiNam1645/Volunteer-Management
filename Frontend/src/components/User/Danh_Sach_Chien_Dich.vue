@@ -123,7 +123,7 @@
 			<div class="row g-4">
 				<!-- LEFT: Filters (Sidebar for Desktop) -->
 				<div class="col-lg-3 d-none d-lg-block">
-					<div class="card border-0 shadow-sm position-sticky" style="top: 20px;">
+					<div class="card border-0 shadow-sm campaign-filter-sidebar">
 						<div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
 							<h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-2 text-primary"></i>{{ $t('campaignList.filters') }}</h6>
 							<a href="#" class="small text-muted text-decoration-none" @click.prevent="clearFilters">{{ $t('campaignList.clearFilter') }}</a>
@@ -1253,6 +1253,18 @@ export default {
 	border-radius: 0.5rem 0.5rem 0 0;
 }
 
+.campaign-filter-sidebar {
+	position: sticky;
+	top: 132px;
+	max-height: calc(100vh - 152px);
+	overflow: hidden;
+}
+
+.campaign-filter-sidebar .card-body {
+	max-height: calc(100vh - 216px);
+	overflow-y: auto;
+}
+
 .avatar-sm {
 	width: 24px;
 	height: 24px;
@@ -1472,6 +1484,17 @@ export default {
 @media (max-width: 767.98px) {
 	.compare-detail-grid {
 		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 1199.98px) {
+	.campaign-filter-sidebar {
+		top: 120px;
+		max-height: calc(100vh - 140px);
+	}
+
+	.campaign-filter-sidebar .card-body {
+		max-height: calc(100vh - 204px);
 	}
 }
 </style>

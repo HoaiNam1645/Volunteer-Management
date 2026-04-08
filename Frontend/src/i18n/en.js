@@ -1849,6 +1849,8 @@ export default {
         primaryGroup: 'Primary invite group',
         backupGroup: 'Backup group',
         excludedGroup: 'Need improvement before inviting',
+        searchExcludedVolunteerLabel: 'Search volunteers by name',
+        searchExcludedVolunteerPlaceholder: 'Enter a volunteer name in this group...',
         selectAll: 'Select all',
         primaryDesc: 'This group should be invited first because it balances skills, schedule, distance, and reliability well.',
         backupDesc: 'This group should be kept as backup in case the primary group declines or more people are needed.',

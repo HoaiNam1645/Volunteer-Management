@@ -224,7 +224,18 @@
 										<label class="form-check-label" :for="'select-excluded-all'">{{ $t('coordinationScreen.selectAll') }}</label>
 									</div>
 								</div>
-								<span class="badge bg-secondary text-white rounded-pill">{{ excludedVolunteers.length }}</span>
+								<span class="badge bg-secondary text-white rounded-pill">{{ filteredExcludedVolunteers.length }}</span>
+							</div>
+							<div class="mb-3">
+								<label class="form-label fw-semibold small">{{ $t('coordinationScreen.searchExcludedVolunteerLabel') }}</label>
+								<div class="input-group">
+									<span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted small"></i></span>
+									<input
+										v-model.trim="excludedVolunteerSearchQuery"
+										type="text"
+										class="form-control border-start-0"
+										:placeholder="$t('coordinationScreen.searchExcludedVolunteerPlaceholder')">
+								</div>
 							</div>
 								<div v-for="item in paginatedExcludedVolunteers" :key="'excluded-' + item.id" class="list-row-card list-row-card-excluded">
 									<div class="form-check flex-shrink-0 mb-0">
@@ -251,7 +262,7 @@
 										</div>
 									</div>
 							<div class="mt-2">
-								<div class="small text-muted mb-2">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedExcludedVolunteers.length, total: excludedVolunteers.length }) }}</div>
+								<div class="small text-muted mb-2">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedExcludedVolunteers.length, total: filteredExcludedVolunteers.length }) }}</div>
 								<div class="d-flex justify-content-end">
 									<nav v-if="totalExcludedPages > 1">
 										<ul class="pagination pagination-sm mb-0">
@@ -637,6 +648,7 @@ export default {
 			isLoadingRecommendations: false,
 				inviteLoading: false,
 				pageSize: 8,
+				excludedVolunteerSearchQuery: '',
 				recommendationPage: 1,
 				primaryPage: 1,
 				backupPage: 1,
@@ -821,11 +833,16 @@ export default {
 		totalBackupPages() {
 			return this.getTotalPages(this.allocationBackup);
 		},
+			filteredExcludedVolunteers() {
+				const keyword = this.excludedVolunteerSearchQuery.trim().toLowerCase();
+				if (!keyword) return this.excludedVolunteers;
+				return this.excludedVolunteers.filter((item) => String(item?.ho_ten || '').toLowerCase().includes(keyword));
+			},
 			paginatedExcludedVolunteers() {
-				return this.paginateItems(this.excludedVolunteers, this.excludedPage);
+				return this.paginateItems(this.filteredExcludedVolunteers, this.excludedPage);
 			},
 			totalExcludedPages() {
-				return this.getTotalPages(this.excludedVolunteers);
+				return this.getTotalPages(this.filteredExcludedVolunteers);
 			},
 			profileHighlightVolunteers() {
 				const merged = [
@@ -882,6 +899,9 @@ export default {
 		},
 		totalRecommendationPages(total) {
 			this.recommendationPage = this.clampPage(this.recommendationPage, total);
+		},
+		excludedVolunteerSearchQuery() {
+			this.excludedPage = 1;
 		},
 		totalProfileHighlightPages(total) {
 			this.profileHighlightPage = this.clampPage(this.profileHighlightPage, total);

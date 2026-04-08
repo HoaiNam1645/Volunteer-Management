@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SendMailJob;
 use App\Models\ChienDich;
+use App\Models\DangKyThamGia;
 use App\Models\LichSuKiemDuyetChienDich;
 use App\Models\LoaiChienDich;
 use App\Models\ThongBao;
@@ -681,6 +682,26 @@ class ChienDichController extends Controller
         $trangThaiMoi = $request->string('trang_thai')->value();
         $ghiChu = trim((string) $request->input('ghi_chu', ''));
 
+        if ($trangThaiMoi === 'da_duyet') {
+            $chienDichTrungLich = $this->timChienDichTrungNgayBatDauKhiDuyet($dangKy->nguoi_dung_id, $cd);
+
+            if ($chienDichTrungLich) {
+                $thoiGianTrungLich = $this->dinhDangKhoangThoiGianChienDich($chienDichTrungLich);
+
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'Không thể duyệt tình nguyện viên này vì họ đã được duyệt ở chiến dịch "' . $chienDichTrungLich->tieu_de . '"' . ($thoiGianTrungLich ? ' (' . $thoiGianTrungLich . ')' : '') . ' có ngày bắt đầu trùng với chiến dịch hiện tại.',
+                    'data' => [
+                        'conflict_campaign' => [
+                            'id' => $chienDichTrungLich->id,
+                            'tieu_de' => $chienDichTrungLich->tieu_de,
+                            'thoi_gian' => $thoiGianTrungLich,
+                        ],
+                    ],
+                ], 422);
+            }
+        }
+
         if ($trangThaiCu === $trangThaiMoi && $ghiChu === trim((string) ($dangKy->ghi_chu ?? ''))) {
             return response()->json([
                 'status' => 1,
@@ -1135,6 +1156,41 @@ class ChienDichController extends Controller
         }
 
         return $noiDung;
+    }
+
+    private function timChienDichTrungNgayBatDauKhiDuyet(int $nguoiDungId, ChienDich $chienDichHienTai): ?ChienDich
+    {
+        $ngayBatDauHienTai = $chienDichHienTai->ngay_bat_dau ?? $chienDichHienTai->ngay_ket_thuc;
+
+        if (!$ngayBatDauHienTai) {
+            return null;
+        }
+
+        $dangKyTrungNgay = DangKyThamGia::query()
+            ->where('nguoi_dung_id', $nguoiDungId)
+            ->whereIn('trang_thai', ['da_duyet', 'dang_tham_gia'])
+            ->whereHas('chienDich', function ($query) use ($chienDichHienTai, $ngayBatDauHienTai) {
+                $query->whereNull('xoa_luc')
+                    ->where('id', '!=', $chienDichHienTai->id)
+                    ->whereDate('ngay_bat_dau', $ngayBatDauHienTai->toDateString());
+            })
+            ->with('chienDich:id,tieu_de,ngay_bat_dau,ngay_ket_thuc')
+            ->orderByDesc('duyet_luc')
+            ->first();
+
+        return $dangKyTrungNgay?->chienDich;
+    }
+
+    private function dinhDangKhoangThoiGianChienDich(ChienDich $chienDich): ?string
+    {
+        $ngayBatDau = $chienDich->ngay_bat_dau ?? $chienDich->ngay_ket_thuc;
+        $ngayKetThuc = $chienDich->ngay_ket_thuc ?? $chienDich->ngay_bat_dau;
+
+        if (!$ngayBatDau || !$ngayKetThuc) {
+            return null;
+        }
+
+        return $ngayBatDau->format('d/m/Y') . ' - ' . $ngayKetThuc->format('d/m/Y');
     }
 
     private function taoThongBaoCapNhatTrangThaiChienDich(int $nguoiDungId, int $nguoiGuiId, string $tieuDe, string $noiDung, int $campaignId): void
