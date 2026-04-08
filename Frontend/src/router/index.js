@@ -110,6 +110,10 @@ const routes = [
     },
     {
         path: '/admin/chien-dich',
+        redirect: '/kiem-duyet-vien/chien-dich',
+    },
+    {
+        path: '/kiem-duyet-vien/chien-dich',
         component: () => import('../components/Kiem_Duyet_Vien/Quan_Ly_Chien_Dich.vue'),
         meta: { layout: 'admin', permissions: ['campaign_review.view'] }
     },
@@ -125,6 +129,10 @@ const routes = [
     },
     {
         path: '/admin/thong-ke',
+        redirect: '/kiem-duyet-vien/thong-ke',
+    },
+    {
+        path: '/kiem-duyet-vien/thong-ke',
         component: () => import('../components/Admin/Thong_Ke.vue'),
         meta: { layout: 'admin', permissions: ['statistics.view'] }
     },
@@ -172,11 +180,12 @@ router.beforeEach((to, from, next) => {
     const role = currentUser?.vai_tro || null;
     const hasToken = Boolean(localStorage.getItem('token'));
     const isAuthenticated = Boolean(role && hasToken);
-    const isAdminRoute = to.path.startsWith('/admin');
+    const isAdminRoute = to.path.startsWith('/admin') || to.path.startsWith('/kiem-duyet-vien');
+    const isReviewerRoute = to.path.startsWith('/kiem-duyet-vien');
     const hasRoutePermission = hasAnyPermission(currentUser, to.meta.permissions || []);
 
     if (role === 'kiem_duyet_vien' && to.path === '/admin') {
-        return next('/admin/thong-ke');
+        return next('/kiem-duyet-vien/thong-ke');
     }
 
     if (to.meta.guestOnly && isAuthenticated) {
@@ -189,6 +198,10 @@ router.beforeEach((to, from, next) => {
 
     if (!role && isAdminRoute) {
         return next('/');
+    }
+
+    if (isReviewerRoute && role !== 'kiem_duyet_vien') {
+        return next(getAuthenticatedHome(role));
     }
 
     if (role !== 'kiem_duyet_vien' && role !== 'quan_tri_vien' && isAdminRoute) {

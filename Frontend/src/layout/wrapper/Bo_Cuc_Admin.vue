@@ -28,7 +28,7 @@
 							</router-link>
 						</li>
 						<li class="nav-item" v-if="can('statistics.view') && isReviewer">
-							<router-link to="/admin/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/admin/thong-ke') || (isReviewer && $route.path === '/admin') }">
+							<router-link to="/kiem-duyet-vien/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/kiem-duyet-vien/thong-ke') || (isReviewer && $route.path === '/admin') }">
 								<i class="fa-solid fa-chart-pie"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.statistics') }}</span>
 							</router-link>
@@ -36,7 +36,7 @@
 					</ul>
 				</div>
 
-				<div class="nav-section" v-if="can('user_management.view') || can('campaign_review.view') || can('category_management.view')">
+				<div class="nav-section" v-if="can('user_management.view') || (can('campaign_review.view') && isReviewer) || can('category_management.view')">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.management') }}</span>
 					<ul class="nav flex-column">
 						<li class="nav-item" v-if="can('user_management.view')">
@@ -45,8 +45,8 @@
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.users') }}</span>
 							</router-link>
 						</li>
-						<li class="nav-item" v-if="can('campaign_review.view')">
-							<router-link to="/admin/chien-dich" class="nav-link" :class="{ active: $route.path.startsWith('/admin/chien-dich') }">
+						<li class="nav-item" v-if="can('campaign_review.view') && isReviewer">
+							<router-link to="/kiem-duyet-vien/chien-dich" class="nav-link" :class="{ active: $route.path.startsWith('/kiem-duyet-vien/chien-dich') }">
 								<i class="fa-solid fa-flag"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.campaigns') }}</span>
 							</router-link>
@@ -114,8 +114,8 @@
 							</li>
 							<li>
 								<router-link
-									v-if="can('campaign_review.view')"
-									to="/admin/chien-dich"
+									v-if="can('campaign_review.view') && isReviewer"
+									to="/kiem-duyet-vien/chien-dich"
 									class="dropdown-item p-3 border-bottom text-wrap"
 								>
 									<div class="d-flex gap-3">
@@ -128,7 +128,7 @@
 										</div>
 									</div>
 								</router-link>
-								<div v-else class="dropdown-item p-3 border-bottom text-wrap">
+								<div v-else-if="isReviewer" class="dropdown-item p-3 border-bottom text-wrap">
 									<div class="d-flex gap-3">
 										<div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
 											<i class="fa-solid fa-flag"></i>

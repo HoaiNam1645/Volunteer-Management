@@ -96,11 +96,11 @@ export const USER_PERMISSION_GROUPS = [
 
 export const ADMIN_ROUTE_PERMISSIONS = [
 	{ path: '/admin', permission: 'dashboard.view' },
-	{ path: '/admin/chien-dich', permission: 'campaign_review.view' },
+	{ path: '/kiem-duyet-vien/chien-dich', permission: 'campaign_review.view' },
 	{ path: '/admin/nguoi-dung', permission: 'user_management.view' },
 	{ path: '/admin/danh-muc', permission: 'category_management.view' },
 	{ path: '/admin/ai-goi-y', permission: 'ai_management.view' },
-	{ path: '/admin/thong-ke', permission: 'statistics.view' },
+	{ path: '/kiem-duyet-vien/thong-ke', permission: 'statistics.view' },
 	{ path: '/admin/phan-quyen', permission: 'permission_management.view' },
 	{ path: '/admin/phan-quyen-nguoi-dung', permission: 'permission_management.view' },
 ];
@@ -183,7 +183,7 @@ export function hasAnyPermission(user, permissions = []) {
 
 export function getFirstAccessibleAdminRoute(user) {
 	if (user?.vai_tro === 'kiem_duyet_vien' && hasPermission(user, 'statistics.view')) {
-		return '/admin/thong-ke';
+		return '/kiem-duyet-vien/thong-ke';
 	}
 
 	const match = ADMIN_ROUTE_PERMISSIONS.find((route) => hasPermission(user, route.permission));
