@@ -143,143 +143,6 @@
 					</div>
 				</div>
 
-				<!-- Địa điểm chiến dịch (Map) -->
-				<div class="card border-0 shadow-sm mb-4">
-					<div class="card-body p-4">
-						<h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-map-location-dot me-2 text-danger"></i>{{ $t('campaignDetail.campaignLocation') }}</h6>
-						<div class="d-flex align-items-center gap-2 mb-3">
-							<i class="fa-solid fa-location-dot text-danger"></i>
-							<span class="fw-medium text-dark">{{ campaign.location }}</span>
-						</div>
-						<div id="dpv-detail-map" class="detail-map-wrapper rounded-3 border overflow-hidden mb-2"></div>
-						<div class="d-flex gap-3" v-if="mapLatitude">
-							<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ $t('campaignDetail.latitude') }}: {{ mapLatitude }}</span>
-							<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ $t('campaignDetail.longitude') }}: {{ mapLongitude }}</span>
-						</div>
-					</div>
-				</div>
-
-				<!-- Registered Volunteers List -->
-				<div class="card border-0 shadow-sm">
-					<div class="card-header bg-white border-bottom px-4 py-3">
-						<div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-							<h6 class="fw-bold mb-0"><i class="fa-solid fa-user-group me-2 text-success"></i>{{ $t('campaignDetail.registeredVolunteers') }}</h6>
-							<div class="d-flex align-items-center gap-2 flex-wrap">
-								<label class="small text-muted fw-semibold mb-0">{{ $t('campaignDetail.filterStatusLabel') }}</label>
-								<select class="form-select form-select-sm" style="min-width: 220px;" v-model="selectedVolunteerStatusFilter">
-									<option v-for="option in volunteerStatusFilterOptions" :key="option.value" :value="option.value">
-										{{ option.label }}
-									</option>
-								</select>
-								<span class="badge bg-success text-white shadow-sm">{{ filteredVolunteers.length }}/{{ volunteers.length }} {{ $t('common.people') }}</span>
-							</div>
-						</div>
-					</div>
-					<div class="card-body p-0">
-						<div class="table-responsive">
-							<table class="table table-hover align-middle mb-0">
-								<thead class="bg-light">
-									<tr>
-										<th class="fw-semibold text-muted small text-uppercase py-3 ps-4 border-0">{{ $t('campaignDetail.volunteerCol') }}</th>
-										<th class="fw-semibold text-muted small text-uppercase py-3 border-0 d-none d-md-table-cell">{{ $t('campaignDetail.skillsCol') }}</th>
-										<th class="fw-semibold text-muted small text-uppercase py-3 border-0 d-none d-sm-table-cell">{{ $t('campaignDetail.areaCol') }}</th>
-										<th class="fw-semibold text-muted small text-uppercase py-3 border-0 text-center">{{ $t('campaignDetail.statusCol') }}</th>
-										<th v-if="canManageCampaigns" class="fw-semibold text-muted small text-uppercase py-3 pe-4 border-0 text-end">{{ $t('campaignDetail.actionCol') }}</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr v-for="vol in paginatedVolunteers" :key="vol.registrationId">
-										<td class="ps-4">
-											<div class="d-flex align-items-center gap-2">
-												<div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center rounded-circle fw-bold shadow-sm" style="width:36px;height:36px;font-size:13px">
-													{{ vol.name.charAt(0) }}
-												</div>
-												<div>
-													<div class="fw-semibold text-dark small">{{ vol.name }}</div>
-													<div class="text-muted" style="font-size:11px">{{ vol.email }}</div>
-												</div>
-											</div>
-										</td>
-										<td class="d-none d-md-table-cell">
-											<div class="d-flex flex-wrap gap-1">
-												<span v-for="s in vol.skills" :key="s" class="badge bg-light text-muted border" style="font-size:11px">{{ s }}</span>
-											</div>
-										</td>
-										<td class="d-none d-sm-table-cell"><span class="text-muted small">{{ vol.area }}</span></td>
-										<td class="text-center">
-											<span class="badge rounded-pill" :class="getVolunteerStatusClass(vol.status)">
-												{{ getVolunteerStatusLabel(vol.status) }}
-											</span>
-											<div class="text-muted mt-1" style="font-size:11px" v-if="getVolunteerStatusTime(vol)">
-												{{ formatDateTime(getVolunteerStatusTime(vol)) }}
-											</div>
-										</td>
-										<td v-if="canManageCampaigns" class="text-end pe-4">
-											<div v-if="shouldShowVolunteerStatusSelect(vol)" class="d-flex justify-content-end align-items-center gap-2">
-												<select class="form-select form-select-sm volunteer-status-select" style="min-width: 180px;" v-model="vol.pendingStatus" :disabled="vol.updating || !canEditVolunteerStatus(vol)">
-													<option v-for="option in getVolunteerStatusOptions(vol)" :key="option.value" :value="option.value">
-														{{ option.label }}
-													</option>
-												</select>
-												<button
-													v-if="canEditVolunteerStatus(vol)"
-													class="btn btn-sm btn-outline-primary"
-													@click="updateVolunteerStatus(vol)"
-													:disabled="vol.updating || vol.pendingStatus === vol.status"
-												>
-													<i :class="vol.updating ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-floppy-disk'" class="me-1"></i>{{ $t('campaignDetail.saveStatusBtn') }}
-												</button>
-											</div>
-											<span v-else class="text-muted small">—</span>
-										</td>
-									</tr>
-									<tr v-if="filteredVolunteers.length === 0">
-										<td :colspan="canManageCampaigns ? 5 : 4" class="text-center py-4 text-muted">
-											<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
-											{{ volunteers.length === 0 ? $t('campaignDetail.noVolunteers') : $t('campaignDetail.noVolunteersByFilter') }}
-										</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-						<div v-if="filteredVolunteers.length > 0" class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-4 py-3 border-top bg-light-subtle">
-							<div class="small text-muted">
-								{{ $t('campaignDetail.volunteerPagination', volunteerPaginationMeta) }}
-							</div>
-							<nav v-if="volunteerTotalPages > 1" aria-label="Volunteer pagination">
-								<ul class="pagination pagination-sm mb-0">
-									<li class="page-item" :class="{ disabled: volunteerPage === 1 }">
-										<button class="page-link" type="button" @click="changeVolunteerPage(volunteerPage - 1)" :disabled="volunteerPage === 1">
-											{{ $t('pagination.prev') }}
-										</button>
-									</li>
-									<li
-										v-for="page in volunteerVisiblePages"
-										:key="`volunteer-page-${page}`"
-										class="page-item"
-										:class="{ active: volunteerPage === page, disabled: page === '...' }"
-									>
-										<span v-if="page === '...'" class="page-link">...</span>
-										<button
-											v-else
-											class="page-link"
-											type="button"
-											@click="changeVolunteerPage(page)"
-										>
-											{{ page }}
-										</button>
-									</li>
-									<li class="page-item" :class="{ disabled: volunteerPage === volunteerTotalPages }">
-										<button class="page-link" type="button" @click="changeVolunteerPage(volunteerPage + 1)" :disabled="volunteerPage === volunteerTotalPages">
-											{{ $t('pagination.next') }}
-										</button>
-									</li>
-								</ul>
-							</nav>
-						</div>
-					</div>
-				</div>
-
 				<!-- Rate Volunteers (only for completed campaigns) -->
 				<div class="card border-0 shadow-sm mt-4" v-if="campaign.status === 'completed'">
 					<div class="card-header bg-white border-bottom px-4 py-3">
@@ -339,10 +202,10 @@
 			<!-- RIGHT: Sidebar -->
 			<div class="col-lg-4">
 				<!-- Progress Card -->
-				<div class="card border-0 shadow-sm mb-4">
-					<div class="card-body p-4 text-center">
-						<h6 class="fw-bold text-dark mb-3">{{ $t('campaignDetail.registrationProgress') }}</h6>
-						<div class="progress-circle-wrapper mx-auto mb-3">
+				<div class="card border-0 shadow-sm mb-4 progress-card-compact">
+					<div class="card-body p-3 text-center">
+						<h6 class="fw-bold text-dark mb-2">{{ $t('campaignDetail.registrationProgress') }}</h6>
+						<div class="progress-circle-wrapper mx-auto mb-2">
 							<svg viewBox="0 0 120 120" class="progress-circle">
 								<circle cx="60" cy="60" r="52" fill="none" stroke="#e9ecef" stroke-width="10" />
 								<circle cx="60" cy="60" r="52" fill="none" stroke="#0d6efd" stroke-width="10"
@@ -356,7 +219,7 @@
 								<div class="text-muted small">{{ $t('campaignDetail.complete') }}</div>
 							</div>
 						</div>
-						<div class="bg-light rounded-3 p-3">
+						<div class="bg-light rounded-3 px-3 py-2">
 							<div class="row text-center">
 								<div class="col-6 border-end">
 									<div class="fs-5 fw-bold text-success">{{ campaign.registered }}</div>
@@ -405,6 +268,145 @@
 								<i class="fa-solid fa-ban" style="width:16px"></i><span>{{ $t('campaignDetail.cancelCampaign') }}</span>
 							</button>
 						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="campaign-detail-fullwidth-sections">
+			<!-- Địa điểm chiến dịch (Map) -->
+			<div class="card border-0 shadow-sm mb-4">
+				<div class="card-body p-4">
+					<h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-map-location-dot me-2 text-danger"></i>{{ $t('campaignDetail.campaignLocation') }}</h6>
+					<div class="d-flex align-items-center gap-2 mb-3">
+						<i class="fa-solid fa-location-dot text-danger"></i>
+						<span class="fw-medium text-dark">{{ campaign.location }}</span>
+					</div>
+					<div id="dpv-detail-map" class="detail-map-wrapper rounded-3 border overflow-hidden mb-2"></div>
+					<div class="d-flex gap-3 flex-wrap" v-if="mapLatitude">
+						<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ $t('campaignDetail.latitude') }}: {{ mapLatitude }}</span>
+						<span class="badge bg-light text-muted border px-3 py-2"><i class="fa-solid fa-crosshairs me-1"></i>{{ $t('campaignDetail.longitude') }}: {{ mapLongitude }}</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Registered Volunteers List -->
+			<div class="card border-0 shadow-sm">
+				<div class="card-header bg-white border-bottom px-4 py-3">
+					<div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+						<h6 class="fw-bold mb-0"><i class="fa-solid fa-user-group me-2 text-success"></i>{{ $t('campaignDetail.registeredVolunteers') }}</h6>
+						<div class="d-flex align-items-center gap-2 flex-wrap">
+							<label class="small text-muted fw-semibold mb-0">{{ $t('campaignDetail.filterStatusLabel') }}</label>
+							<select class="form-select form-select-sm" style="min-width: 220px;" v-model="selectedVolunteerStatusFilter">
+								<option v-for="option in volunteerStatusFilterOptions" :key="option.value" :value="option.value">
+									{{ option.label }}
+								</option>
+							</select>
+							<span class="badge bg-success text-white shadow-sm">{{ filteredVolunteers.length }}/{{ volunteers.length }} {{ $t('common.people') }}</span>
+						</div>
+					</div>
+				</div>
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-hover align-middle mb-0">
+							<thead class="bg-light">
+								<tr>
+									<th class="fw-semibold text-muted small text-uppercase py-3 ps-4 border-0">{{ $t('campaignDetail.volunteerCol') }}</th>
+									<th class="fw-semibold text-muted small text-uppercase py-3 border-0 d-none d-md-table-cell">{{ $t('campaignDetail.skillsCol') }}</th>
+									<th class="fw-semibold text-muted small text-uppercase py-3 border-0 d-none d-sm-table-cell">{{ $t('campaignDetail.areaCol') }}</th>
+									<th class="fw-semibold text-muted small text-uppercase py-3 border-0 text-center">{{ $t('campaignDetail.statusCol') }}</th>
+									<th v-if="canManageCampaigns" class="fw-semibold text-muted small text-uppercase py-3 pe-4 border-0 text-end">{{ $t('campaignDetail.actionCol') }}</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr v-for="vol in paginatedVolunteers" :key="vol.registrationId">
+									<td class="ps-4">
+										<div class="d-flex align-items-center gap-2">
+											<div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center rounded-circle fw-bold shadow-sm" style="width:36px;height:36px;font-size:13px">
+												{{ vol.name.charAt(0) }}
+											</div>
+											<div>
+												<div class="fw-semibold text-dark small">{{ vol.name }}</div>
+												<div class="text-muted" style="font-size:11px">{{ vol.email }}</div>
+											</div>
+										</div>
+									</td>
+									<td class="d-none d-md-table-cell">
+										<div class="d-flex flex-wrap gap-1">
+											<span v-for="s in vol.skills" :key="s" class="badge bg-light text-muted border" style="font-size:11px">{{ s }}</span>
+										</div>
+									</td>
+									<td class="d-none d-sm-table-cell"><span class="text-muted small">{{ vol.area }}</span></td>
+									<td class="text-center">
+										<span class="badge rounded-pill" :class="getVolunteerStatusClass(vol.status)">
+											{{ getVolunteerStatusLabel(vol.status) }}
+										</span>
+										<div class="text-muted mt-1" style="font-size:11px" v-if="getVolunteerStatusTime(vol)">
+											{{ formatDateTime(getVolunteerStatusTime(vol)) }}
+										</div>
+									</td>
+									<td v-if="canManageCampaigns" class="text-end pe-4">
+										<div v-if="shouldShowVolunteerStatusSelect(vol)" class="d-flex justify-content-end align-items-center gap-2">
+											<select class="form-select form-select-sm volunteer-status-select" style="min-width: 180px;" v-model="vol.pendingStatus" :disabled="vol.updating || !canEditVolunteerStatus(vol)">
+												<option v-for="option in getVolunteerStatusOptions(vol)" :key="option.value" :value="option.value">
+													{{ option.label }}
+												</option>
+											</select>
+											<button
+												v-if="canEditVolunteerStatus(vol)"
+												class="btn btn-sm btn-outline-primary"
+												@click="updateVolunteerStatus(vol)"
+												:disabled="vol.updating || vol.pendingStatus === vol.status"
+											>
+												<i :class="vol.updating ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-floppy-disk'" class="me-1"></i>{{ $t('campaignDetail.saveStatusBtn') }}
+											</button>
+										</div>
+										<span v-else class="text-muted small">—</span>
+									</td>
+								</tr>
+								<tr v-if="filteredVolunteers.length === 0">
+									<td :colspan="canManageCampaigns ? 5 : 4" class="text-center py-4 text-muted">
+										<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
+										{{ volunteers.length === 0 ? $t('campaignDetail.noVolunteers') : $t('campaignDetail.noVolunteersByFilter') }}
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<div v-if="filteredVolunteers.length > 0" class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-4 py-3 border-top bg-light-subtle">
+						<div class="small text-muted">
+							{{ $t('campaignDetail.volunteerPagination', volunteerPaginationMeta) }}
+						</div>
+						<nav v-if="volunteerTotalPages > 1" aria-label="Volunteer pagination">
+							<ul class="pagination pagination-sm mb-0">
+								<li class="page-item" :class="{ disabled: volunteerPage === 1 }">
+									<button class="page-link" type="button" @click="changeVolunteerPage(volunteerPage - 1)" :disabled="volunteerPage === 1">
+										{{ $t('pagination.prev') }}
+									</button>
+								</li>
+								<li
+									v-for="page in volunteerVisiblePages"
+									:key="`volunteer-page-${page}`"
+									class="page-item"
+									:class="{ active: volunteerPage === page, disabled: page === '...' }"
+								>
+									<span v-if="page === '...'" class="page-link">...</span>
+									<button
+										v-else
+										class="page-link"
+										type="button"
+										@click="changeVolunteerPage(page)"
+									>
+										{{ page }}
+									</button>
+								</li>
+								<li class="page-item" :class="{ disabled: volunteerPage === volunteerTotalPages }">
+									<button class="page-link" type="button" @click="changeVolunteerPage(volunteerPage + 1)" :disabled="volunteerPage === volunteerTotalPages">
+										{{ $t('pagination.next') }}
+									</button>
+								</li>
+							</ul>
+						</nav>
 					</div>
 				</div>
 			</div>
@@ -1126,6 +1128,19 @@ export default {
 	height: 130px;
 	position: relative;
 }
+
+.progress-card-compact .progress-circle-wrapper {
+	width: 112px;
+	height: 112px;
+}
+
+.progress-card-compact .progress-circle-text .fs-3 {
+	font-size: 2rem !important;
+}
+
+.campaign-detail-fullwidth-sections {
+	margin-top: 1.5rem;
+}
 .gallery-thumb {
 	opacity: 0.75;
 	transition: all 0.2s ease;
@@ -1155,7 +1170,7 @@ export default {
 }
 
 .detail-map-wrapper {
-	height: 280px;
+	height: 320px;
 	width: 100%;
 	z-index: 0;
 }
