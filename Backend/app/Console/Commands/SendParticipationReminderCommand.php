@@ -11,29 +11,34 @@ use Illuminate\Support\Facades\Log;
 
 class SendParticipationReminderCommand extends Command
 {
+    private const REMINDER_DELAY_HOURS = 24;
+
     protected $signature = 'campaigns:send-participation-reminders';
 
-    protected $description = 'Gui email nhac tinh nguyen vien xac nhan tham gia mot lan trong vong 72 gio truoc khi chien dich bat dau.';
+    protected $description = 'Gui email nhac tinh nguyen vien xac nhan tham gia 1 lan sau 24 gio ke tu luc dang ky.';
 
     public function handle(): int
     {
         try {
-            $today = Carbon::today();
-            $targetDate = $today->copy()->addDays(3);
+            $threshold = now()->subHours(self::REMINDER_DELAY_HOURS);
 
             Log::info('Bat dau command gui email nhac xac nhan tham gia.', [
-                'tu_ngay' => $today->toDateString(),
-                'den_ngay' => $targetDate->toDateString(),
+                'nguong_nhac' => $threshold->toDateTimeString(),
+                'delay_hours' => self::REMINDER_DELAY_HOURS,
                 'started_at' => now()->toDateTimeString(),
             ]);
 
             $dangKys = DangKyThamGia::query()
                 ->where('trang_thai', 'da_dang_ky')
-                ->whereHas('chienDich', function ($query) use ($today, $targetDate) {
+                ->whereNotNull('dang_ky_luc')
+                ->where('dang_ky_luc', '<=', $threshold)
+                ->whereHas('chienDich', function ($query) {
                     $query->whereNull('xoa_luc')
                         ->where('trang_thai', 'da_duyet')
-                        ->whereDate('ngay_bat_dau', '>=', $today->toDateString())
-                        ->whereDate('ngay_bat_dau', '<=', $targetDate->toDateString());
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('han_dang_ky')
+                                ->orWhereDate('han_dang_ky', '>=', now()->toDateString());
+                        });
                 })
                 ->with([
                     'chienDich:id,tieu_de,dia_diem,ngay_bat_dau,ngay_ket_thuc,han_dang_ky,trang_thai',
@@ -43,8 +48,8 @@ class SendParticipationReminderCommand extends Command
 
             Log::info('Da tai danh sach dang ky can xem xet gui nhac.', [
                 'count' => $dangKys->count(),
-                'tu_ngay' => $today->toDateString(),
-                'den_ngay' => $targetDate->toDateString(),
+                'nguong_nhac' => $threshold->toDateTimeString(),
+                'delay_hours' => self::REMINDER_DELAY_HOURS,
             ]);
 
             $sent = 0;
@@ -70,9 +75,11 @@ class SendParticipationReminderCommand extends Command
                     }
 
                     $cacheKey = $this->cacheKey($dangKy->id);
-                    $expiresAt = $campaign->ngay_bat_dau
-                        ? $campaign->ngay_bat_dau->copy()->endOfDay()
-                        : now()->addDays(4);
+                    $expiresAt = $campaign->han_dang_ky
+                        ? $campaign->han_dang_ky->copy()->endOfDay()
+                        : ($campaign->ngay_bat_dau
+                            ? $campaign->ngay_bat_dau->copy()->endOfDay()
+                            : now()->addDays(30));
 
                     if (!Cache::add($cacheKey, now()->toDateTimeString(), $expiresAt)) {
                         $skipped++;
@@ -124,8 +131,8 @@ class SendParticipationReminderCommand extends Command
             }
 
             Log::info('Ket thuc command gui email nhac xac nhan tham gia.', [
-                'tu_ngay' => $today->toDateString(),
-                'den_ngay' => $targetDate->toDateString(),
+                'nguong_nhac' => $threshold->toDateTimeString(),
+                'delay_hours' => self::REMINDER_DELAY_HOURS,
                 'sent' => $sent,
                 'skipped' => $skipped,
                 'finished_at' => now()->toDateTimeString(),

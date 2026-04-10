@@ -14,7 +14,7 @@
         'xac_nhan_tham_gia' => ['bg' => '#ECFDF5', 'accent' => '#059669', 'title' => 'Xác nhận tham gia thành công', 'message' => 'Bạn đã xác nhận tham gia chiến dịch. Hệ thống đã ghi nhận thông tin của bạn.'],
         'huy_dang_ky' => ['bg' => '#FEF2F2', 'accent' => '#DC2626', 'title' => 'Hủy đăng ký thành công', 'message' => 'Đăng ký tham gia của bạn đã được hủy thành công.'],
         'loi_moi_tham_gia' => ['bg' => '#EEF2FF', 'accent' => '#4F46E5', 'title' => 'Thư mời xác nhận tham gia chiến dịch', 'message' => 'Bạn đang được người điều phối mời tham gia chiến dịch này. Nếu phù hợp, hãy mở chi tiết chiến dịch và xác nhận tham gia để hệ thống ghi nhận chính thức.'],
-        'nhac_xac_nhan_tham_gia' => ['bg' => '#FFF7ED', 'accent' => '#EA580C', 'title' => 'Nhắc nhở xác nhận tham gia', 'message' => 'Chiến dịch sắp bắt đầu trong 72 giờ tới. Nếu bạn vẫn tham gia, hãy xác nhận để ban tổ chức chủ động nhân sự.'],
+        'nhac_xac_nhan_tham_gia' => ['bg' => '#FFF7ED', 'accent' => '#EA580C', 'title' => 'Nhắc nhở xác nhận tham gia', 'message' => 'Bạn đã đăng ký chiến dịch này hơn 24 giờ nhưng chưa xác nhận tham gia. Nếu vẫn sẵn sàng đồng hành, hãy xác nhận để ban tổ chức chủ động sắp xếp nhân sự.'],
         'nhac_chu_chien_dich_sap_bat_dau' => ['bg' => '#EEF2FF', 'accent' => '#4F46E5', 'title' => 'Nhắc nhở chiến dịch sắp bắt đầu', 'message' => 'Chiến dịch của bạn sắp bắt đầu trong vòng 72 giờ tới. Hãy kiểm tra lại nhân sự, địa điểm và các đầu việc cần chuẩn bị.'],
     ];
     $theme = $themes[$loai] ?? $themes['xac_nhan_dang_ky'];

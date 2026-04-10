@@ -1179,6 +1179,7 @@ export default {
                 pending: 'Chờ duyệt',
                 approved: 'Đã duyệt',
                 pendingCancel: 'Yêu cầu hủy',
+                cancelled: 'Đã hủy',
                 active: 'Đang diễn ra',
                 completed: 'Hoàn thành'
             },
@@ -1186,6 +1187,7 @@ export default {
                 pending: 'Chờ duyệt',
                 approved: 'Đã duyệt',
                 pending_cancel: 'Yêu cầu hủy',
+                cancelled: 'Đã hủy',
                 all: 'Tất cả',
                 active: 'Đang diễn ra',
                 completed: 'Hoàn thành'

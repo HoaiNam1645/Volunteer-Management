@@ -1180,6 +1180,7 @@ export default {
                 pending: 'Pending',
                 approved: 'Approved',
                 pendingCancel: 'Cancel Requests',
+                cancelled: 'Cancelled',
                 active: 'Active',
                 completed: 'Completed'
             },
@@ -1187,6 +1188,7 @@ export default {
                 pending: 'Pending',
                 approved: 'Approved',
                 pending_cancel: 'Cancel Requests',
+                cancelled: 'Cancelled',
                 all: 'All',
                 active: 'Active',
                 completed: 'Completed'
