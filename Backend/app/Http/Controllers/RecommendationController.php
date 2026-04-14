@@ -104,6 +104,8 @@ class RecommendationController extends Controller
             'de_xuat_uu_tien' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'rat_phu_hop')),
             'du_phong_phu_hop' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'phu_hop')),
             'can_nhac_them' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'can_nhac')),
+            'o_xa_nhung_dung_khu_vuc' => $result['remote_area_matches'],
+            'remote_area_matches' => $result['remote_area_matches'],
             'all' => $result['recommendations'],
             'excluded' => $result['excluded'],
         ];
@@ -113,6 +115,7 @@ class RecommendationController extends Controller
             $payload = array_merge($payload, [
                 'recommended_primary' => $allocation['recommended_primary'],
                 'recommended_backup' => $allocation['recommended_backup'],
+                'remote_area_matches' => $allocation['remote_area_matches'],
                 'resource_summary' => $allocation['resource_summary'],
                 'risk_flags' => $allocation['risk_flags'],
             ]);

@@ -89,23 +89,17 @@ class MatchingScoreService
     {
         $score = 0;
 
-        $campaignAreaId = (int) ($context['campaign_area_id'] ?? 0);
-        $volunteerAreaIds = array_map('intval', $context['volunteer_area_ids'] ?? []);
-        if ($campaignAreaId > 0 && in_array($campaignAreaId, $volunteerAreaIds, true)) {
-            $score += 60;
-        }
-
         $campaignTypeId = (int) ($context['campaign_type_id'] ?? 0);
         $historyTypeIds = array_map('intval', $context['history_type_ids'] ?? []);
         if ($campaignTypeId > 0 && in_array($campaignTypeId, $historyTypeIds, true)) {
-            $score += 25;
+            $score += 65;
         }
 
         $campaignWeekDays = $context['campaign_week_days'] ?? [];
         $volunteerDays = $context['volunteer_days'] ?? [];
         $timePreference = $context['time_preference'] ?? null;
         if ($timePreference && $timePreference !== 'linh_hoat' && !empty(array_intersect($campaignWeekDays, $volunteerDays))) {
-            $score += 15;
+            $score += 35;
         }
 
         return min(100, round($score, 2));

@@ -8,6 +8,7 @@ use App\Models\DangKyThamGia;
 use App\Models\LichSuKiemDuyetChienDich;
 use App\Models\LoaiChienDich;
 use App\Models\ThongBao;
+use App\Services\AreaResolutionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -17,6 +18,11 @@ use Illuminate\Support\Facades\Storage;
 
 class ChienDichController extends Controller
 {
+    public function __construct(
+        private readonly AreaResolutionService $areaResolutionService,
+    ) {
+    }
+
     // ======================== DANH SÁCH CHIẾN DỊCH CỦA NGƯỜI TẠO ========================
     public function danhSach(Request $request)
     {
@@ -27,6 +33,7 @@ class ChienDichController extends Controller
             ->whereNull('xoa_luc')
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
+                'khuVuc:id,ten',
                 'kyNangs:ky_nangs.id,ten',
                 'hinhAnhChienDich:id,chien_dich_id,duong_dan_anh,thu_tu',
                 'nguoiTao:id,ho_ten,email',
@@ -86,6 +93,7 @@ class ChienDichController extends Controller
                 'anh_bia'             => $cd->anh_bia,
                 'danh_sach_anh'       => $cd->danh_sach_anh,
                 'dia_diem'            => $cd->dia_diem,
+                'khu_vuc'             => $cd->khuVuc ? ['id' => $cd->khuVuc->id, 'ten' => $cd->khuVuc->ten] : null,
                 'vi_do'               => $cd->vi_do,
                 'kinh_do'             => $cd->kinh_do,
                 'ngay_bat_dau'        => $cd->ngay_bat_dau?->format('Y-m-d'),
@@ -138,6 +146,7 @@ class ChienDichController extends Controller
             ->whereNull('xoa_luc')
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
+                'khuVuc:id,ten',
                 'kyNangs:ky_nangs.id,ten',
                 'hinhAnhChienDich:id,chien_dich_id,duong_dan_anh,thu_tu',
                 'nguoiTao:id,ho_ten,email',
@@ -165,6 +174,7 @@ class ChienDichController extends Controller
                 'anh_bia'             => $cd->anh_bia,
                 'danh_sach_anh'       => $cd->danh_sach_anh,
                 'dia_diem'            => $cd->dia_diem,
+                'khu_vuc'             => $cd->khuVuc ? ['id' => $cd->khuVuc->id, 'ten' => $cd->khuVuc->ten] : null,
                 'vi_do'               => $cd->vi_do,
                 'kinh_do'             => $cd->kinh_do,
                 'ngay_bat_dau'        => $cd->ngay_bat_dau?->format('Y-m-d'),
@@ -397,6 +407,11 @@ class ChienDichController extends Controller
         $imagePayload = $this->xuLyDanhSachAnhChienDich($request);
 
         $cd = DB::transaction(function () use ($request, $user, $hanDangKy, $imagePayload) {
+            $campaignAreaId = $this->areaResolutionService->resolveCampaignAreaId(
+                null,
+                $request->dia_diem
+            );
+
             $cd = ChienDich::create([
                 'nguoi_tao_id'        => $user->id,
                 'loai_chien_dich_id' => $request->loai_chien_dich_id,
@@ -404,6 +419,7 @@ class ChienDichController extends Controller
                 'mo_ta'              => $request->mo_ta,
                 'anh_bia'            => $imagePayload['anh_bia'],
                 'dia_diem'           => $request->dia_diem,
+                'khu_vuc_id'         => $campaignAreaId,
                 'vi_do'              => $request->vi_do,
                 'kinh_do'            => $request->kinh_do,
                 'ngay_bat_dau'       => $request->ngay_bat_dau,
@@ -485,12 +501,18 @@ class ChienDichController extends Controller
         $imagePayload = $this->xuLyDanhSachAnhChienDich($request, $cd);
 
         DB::transaction(function () use ($request, $cd, $hanDangKy, $imagePayload) {
+            $campaignAreaId = $this->areaResolutionService->resolveCampaignAreaId(
+                null,
+                $request->dia_diem
+            ) ?? $cd->khu_vuc_id;
+
             $cd->update([
                 'loai_chien_dich_id' => $request->loai_chien_dich_id,
                 'tieu_de'            => $request->tieu_de,
                 'mo_ta'              => $request->mo_ta,
                 'anh_bia'            => $imagePayload['anh_bia'],
                 'dia_diem'           => $request->dia_diem,
+                'khu_vuc_id'         => $campaignAreaId,
                 'vi_do'              => $request->vi_do,
                 'kinh_do'            => $request->kinh_do,
                 'ngay_bat_dau'       => $request->ngay_bat_dau,

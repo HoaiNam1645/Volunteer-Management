@@ -11,9 +11,12 @@ use Illuminate\Database\Eloquent\Builder;
 
 class RecommendationService
 {
+    private const REMOTE_AREA_MATCH_CODE = 'remote_area_match';
+
     public function __construct(
         private readonly MatchingScoreService $matchingScoreService,
         private readonly DistanceService $distanceService,
+        private readonly AreaResolutionService $areaResolutionService,
     ) {
     }
 
@@ -117,6 +120,7 @@ class RecommendationService
 
         return [
             'recommendations' => array_slice($result['recommendations'], 0, max(1, $limit)),
+            'remote_area_matches' => array_slice($result['remote_area_matches'], 0, max(1, $limit)),
             'excluded' => $result['excluded'],
         ];
     }
@@ -156,6 +160,7 @@ class RecommendationService
 
         $recommendations = [];
         $excluded = [];
+        $remoteAreaMatches = [];
 
         foreach ($volunteers as $volunteer) {
             $existingRegistration = $existingRegistrations->get((int) $volunteer->id);
@@ -186,30 +191,30 @@ class RecommendationService
             }
 
             if (!$match['qualified']) {
+                if ($this->shouldIncludeInRemoteAreaMatches($campaign, $volunteer->khuVucs->pluck('id')->map(fn ($id) => (int) $id)->all(), $match)) {
+                    $remoteAreaMatches[] = $this->mapRecommendedVolunteer(
+                        $volunteer,
+                        $match,
+                        $existingRegistration?->trang_thai,
+                        $reliabilityStats,
+                        [
+                            'area_match_reason' => $this->buildRemoteAreaMatchReason($campaign, $match['distance_km']),
+                            'group_code' => self::REMOTE_AREA_MATCH_CODE,
+                        ]
+                    );
+                    continue;
+                }
+
                 $excluded[] = $this->mapExcludedVolunteer($volunteer, $match['reason'], $match, $existingRegistration?->trang_thai, $reliabilityStats);
                 continue;
             }
 
-            $recommendations[] = [
-                'id' => $volunteer->id,
-                'ho_ten' => $volunteer->ho_ten,
-                'email' => $volunteer->email,
-                'anh_dai_dien' => $volunteer->anh_dai_dien,
-                'ky_nangs' => $volunteer->kyNangs->map(fn ($item) => ['id' => $item->id, 'ten' => $item->ten])->values(),
-                'khu_vucs' => $volunteer->khuVucs->map(fn ($item) => ['id' => $item->id, 'ten' => $item->ten])->values(),
-                'lich_ranh' => $match['volunteer_days'],
-                'distance_km' => $match['distance_km'],
-                'final_score' => $match['final_score'],
-                'match_level' => $this->matchingScoreService->getMatchLevel($match['final_score']),
-                'score_breakdown' => $match['score_breakdown'],
-                'reasons' => $match['volunteer_reasons'],
-                'campaign_reasons' => $match['campaign_reasons'],
-                'warnings' => $match['warnings'],
-                'reliability' => $reliabilityStats,
-                'registration_status' => $existingRegistration?->trang_thai,
-                'experience_count' => $match['experience_count'],
-                'certificate_count' => $match['certificate_count'],
-            ];
+            $recommendations[] = $this->mapRecommendedVolunteer(
+                $volunteer,
+                $match,
+                $existingRegistration?->trang_thai,
+                $reliabilityStats
+            );
         }
 
         usort($recommendations, function ($a, $b) {
@@ -236,9 +241,21 @@ class RecommendationService
             return $distanceA <=> $distanceB;
         });
 
+        usort($remoteAreaMatches, function ($a, $b) {
+            $distanceA = $a['distance_km'] ?? null;
+            $distanceB = $b['distance_km'] ?? null;
+
+            if ($distanceA !== null && $distanceB !== null && $distanceA !== $distanceB) {
+                return $distanceA <=> $distanceB;
+            }
+
+            return ($b['final_score'] ?? 0) <=> ($a['final_score'] ?? 0);
+        });
+
         return [
             'recommendations' => $recommendations,
             'excluded' => $excluded,
+            'remote_area_matches' => $remoteAreaMatches,
         ];
     }
 
@@ -284,6 +301,7 @@ class RecommendationService
             'recommended_backup' => [],
             'recommended' => $recommended,
             'excluded' => $result['excluded'],
+            'remote_area_matches' => $result['remote_area_matches'],
             'resource_summary' => [
                 'so_luong_toi_thieu' => $minTarget,
                 'so_luong_toi_da' => (int) ($campaign->so_luong_toi_da ?? 0),
@@ -291,6 +309,7 @@ class RecommendationService
                 'so_xac_nhan_hien_tai' => $confirmed,
                 'so_tnv_de_xuat' => count($recommendations),
                 'so_tnv_du_chuan' => count($primary),
+                'so_tnv_o_xa_dung_khu_vuc' => count($result['remote_area_matches']),
             ],
             'risk_flags' => $riskFlags,
         ];
@@ -408,6 +427,10 @@ class RecommendationService
         $experienceCount = $volunteer->kinhNghiems->count();
         $certificateCount = $volunteer->chungChis->count();
         $campaignWeekDays = $this->matchingScoreService->extractCampaignWeekdays($campaign);
+        $campaignAreaId = $this->areaResolutionService->resolveCampaignAreaId(
+            $campaign->khu_vuc_id,
+            $campaign->dia_diem
+        );
         $matchedSkillCount = count(array_intersect($volunteerSkillIds, $campaignSkillIds));
         $distanceKm = $this->distanceService->haversine(
             $this->floatOrNull($volunteer->vi_do),
@@ -421,7 +444,7 @@ class RecommendationService
             'availability' => $this->matchingScoreService->calculateAvailabilityScore($volunteerDays, $campaignWeekDays),
             'distance' => $this->distanceService->scoreFromDistance($distanceKm),
             'preference' => $this->matchingScoreService->calculatePreferenceScore([
-                'campaign_area_id' => $campaign->khu_vuc_id,
+                'campaign_area_id' => $campaignAreaId,
                 'volunteer_area_ids' => $volunteerAreaIds,
                 'campaign_type_id' => $campaign->loai_chien_dich_id,
                 'history_type_ids' => $historyTypeIds,
@@ -728,6 +751,62 @@ class RecommendationService
             'certificate_count' => $match['certificate_count'] ?? 0,
             'reason' => $reason,
         ];
+    }
+
+    private function mapRecommendedVolunteer(
+        NguoiDung $volunteer,
+        array $match,
+        ?string $registrationStatus = null,
+        array $reliabilityStats = [],
+        array $extra = []
+    ): array {
+        return array_merge([
+            'id' => $volunteer->id,
+            'ho_ten' => $volunteer->ho_ten,
+            'email' => $volunteer->email,
+            'anh_dai_dien' => $volunteer->anh_dai_dien,
+            'ky_nangs' => $volunteer->kyNangs->map(fn ($item) => ['id' => $item->id, 'ten' => $item->ten])->values(),
+            'khu_vucs' => $volunteer->khuVucs->map(fn ($item) => ['id' => $item->id, 'ten' => $item->ten])->values(),
+            'lich_ranh' => $match['volunteer_days'],
+            'distance_km' => $match['distance_km'],
+            'final_score' => $match['final_score'],
+            'match_level' => $this->matchingScoreService->getMatchLevel($match['final_score']),
+            'score_breakdown' => $match['score_breakdown'],
+            'reasons' => $match['volunteer_reasons'],
+            'campaign_reasons' => $match['campaign_reasons'],
+            'warnings' => $match['warnings'],
+            'reliability' => $reliabilityStats,
+            'registration_status' => $registrationStatus,
+            'experience_count' => $match['experience_count'],
+            'certificate_count' => $match['certificate_count'],
+        ], $extra);
+    }
+
+    private function shouldIncludeInRemoteAreaMatches(ChienDich $campaign, array $volunteerAreaIds, array $match): bool
+    {
+        $campaignAreaId = (int) $this->areaResolutionService->resolveCampaignAreaId(
+            $campaign->khu_vuc_id,
+            $campaign->dia_diem
+        );
+        $qualificationCode = $match['qualification_code'] ?? null;
+        $distanceKm = $match['distance_km'] ?? null;
+
+        return $campaignAreaId > 0
+            && in_array($campaignAreaId, $volunteerAreaIds, true)
+            && $distanceKm !== null
+            && $qualificationCode === 'distance_too_far';
+    }
+
+    private function buildRemoteAreaMatchReason(ChienDich $campaign, ?float $distanceKm): string
+    {
+        $distanceText = $distanceKm !== null ? "{$distanceKm} km" : 'khá xa';
+        $areaText = trim((string) ($campaign->dia_diem ?? ''));
+
+        if ($areaText !== '') {
+            return "Vị trí hiện tại cách địa điểm chiến dịch {$distanceText}, nhưng tình nguyện viên đã khai báo sẵn sàng hoạt động tại khu vực của chiến dịch ({$areaText}).";
+        }
+
+        return "Vị trí hiện tại cách địa điểm chiến dịch {$distanceText}, nhưng tình nguyện viên đã khai báo sẵn sàng hoạt động tại đúng khu vực của chiến dịch.";
     }
 
     private function floatOrNull($value): ?float

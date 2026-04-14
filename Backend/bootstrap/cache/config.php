@@ -1,26 +1,4 @@
 <?php return array (
-  'hashing' => 
-  array (
-    'driver' => 'bcrypt',
-    'bcrypt' => 
-    array (
-      'rounds' => '12',
-      'verify' => true,
-      'limit' => NULL,
-    ),
-    'argon' => 
-    array (
-      'memory' => 65536,
-      'threads' => 1,
-      'time' => 4,
-      'verify' => true,
-    ),
-    'rehash_on_login' => true,
-  ),
-  'concurrency' => 
-  array (
-    'default' => 'process',
-  ),
   'broadcasting' => 
   array (
     'default' => 'log',
@@ -77,13 +55,35 @@
       ),
     ),
   ),
+  'concurrency' => 
+  array (
+    'default' => 'process',
+  ),
+  'hashing' => 
+  array (
+    'driver' => 'bcrypt',
+    'bcrypt' => 
+    array (
+      'rounds' => '12',
+      'verify' => true,
+      'limit' => NULL,
+    ),
+    'argon' => 
+    array (
+      'memory' => 65536,
+      'threads' => 1,
+      'time' => 4,
+      'verify' => true,
+    ),
+    'rehash_on_login' => true,
+  ),
   'view' => 
   array (
     'paths' => 
     array (
-      0 => '/Users/admin/Volunteer-Management/Backend/resources/views',
+      0 => 'C:\\Volunteer-Management\\Backend\\resources\\views',
     ),
-    'compiled' => '/Users/admin/Volunteer-Management/Backend/storage/framework/views',
+    'compiled' => 'C:\\Volunteer-Management\\Backend\\storage\\framework\\views',
   ),
   'app' => 
   array (
@@ -91,7 +91,7 @@
     'env' => 'local',
     'debug' => true,
     'url' => 'http://localhost',
-    'frontend_url' => 'https://volunteer-management-weld.vercel.app',
+    'frontend_url' => 'http://localhost:5173',
     'asset_url' => NULL,
     'timezone' => 'UTC',
     'locale' => 'en',
@@ -255,8 +255,8 @@
       'file' => 
       array (
         'driver' => 'file',
-        'path' => '/Users/admin/Volunteer-Management/Backend/storage/framework/cache/data',
-        'lock_path' => '/Users/admin/Volunteer-Management/Backend/storage/framework/cache/data',
+        'path' => 'C:\\Volunteer-Management\\Backend\\storage\\framework/cache/data',
+        'lock_path' => 'C:\\Volunteer-Management\\Backend\\storage\\framework/cache/data',
       ),
       'memcached' => 
       array (
@@ -325,7 +325,7 @@
     'allowed_origins' => 
     array (
       0 => 'http://localhost:5173',
-      1 => 'https://volunteer-management-weld.vercel.app',
+      1 => 'http://127.0.0.1:5173',
     ),
     'allowed_origins_patterns' => 
     array (
@@ -476,7 +476,7 @@
       'local' => 
       array (
         'driver' => 'local',
-        'root' => '/Users/admin/Volunteer-Management/Backend/storage/app/private',
+        'root' => 'C:\\Volunteer-Management\\Backend\\storage\\app/private',
         'serve' => true,
         'throw' => false,
         'report' => false,
@@ -484,7 +484,7 @@
       'public' => 
       array (
         'driver' => 'local',
-        'root' => '/Users/admin/Volunteer-Management/Backend/storage/app/public',
+        'root' => 'C:\\Volunteer-Management\\Backend\\storage\\app/public',
         'url' => 'http://localhost/storage',
         'visibility' => 'public',
         'throw' => false,
@@ -506,7 +506,7 @@
     ),
     'links' => 
     array (
-      '/Users/admin/Volunteer-Management/Backend/public/storage' => '/Users/admin/Volunteer-Management/Backend/storage/app/public',
+      'C:\\Volunteer-Management\\Backend\\public\\storage' => 'C:\\Volunteer-Management\\Backend\\storage\\app/public',
     ),
   ),
   'logging' => 
@@ -531,14 +531,14 @@
       'single' => 
       array (
         'driver' => 'single',
-        'path' => '/Users/admin/Volunteer-Management/Backend/storage/logs/laravel.log',
+        'path' => 'C:\\Volunteer-Management\\Backend\\storage\\logs/laravel.log',
         'level' => 'debug',
         'replace_placeholders' => true,
       ),
       'daily' => 
       array (
         'driver' => 'daily',
-        'path' => '/Users/admin/Volunteer-Management/Backend/storage/logs/laravel.log',
+        'path' => 'C:\\Volunteer-Management\\Backend\\storage\\logs/laravel.log',
         'level' => 'debug',
         'days' => 14,
         'replace_placeholders' => true,
@@ -603,7 +603,7 @@
       ),
       'emergency' => 
       array (
-        'path' => '/Users/admin/Volunteer-Management/Backend/storage/logs/laravel.log',
+        'path' => 'C:\\Volunteer-Management\\Backend\\storage\\logs/laravel.log',
       ),
     ),
   ),
@@ -681,7 +681,10 @@
       'theme' => 'default',
       'paths' => 
       array (
-        0 => '/Users/admin/Volunteer-Management/Backend/resources/views/vendor/mail',
+        0 => 'C:\\Volunteer-Management\\Backend\\resources\\views/vendor/mail',
+      ),
+      'extensions' => 
+      array (
       ),
     ),
   ),
@@ -786,6 +789,15 @@
         'channel' => NULL,
       ),
     ),
+    'ml_trust' => 
+    array (
+      'enabled' => true,
+      'url' => 'http://127.0.0.1:8001',
+      'timeout' => '10',
+      'cache_ttl' => '3600',
+      'volunteer_cache_ttl' => '21600',
+      'fallback_enabled' => true,
+    ),
   ),
   'session' => 
   array (
@@ -793,7 +805,7 @@
     'lifetime' => 120,
     'expire_on_close' => false,
     'encrypt' => false,
-    'files' => '/Users/admin/Volunteer-Management/Backend/storage/framework/sessions',
+    'files' => 'C:\\Volunteer-Management\\Backend\\storage\\framework/sessions',
     'connection' => NULL,
     'table' => 'sessions',
     'store' => NULL,

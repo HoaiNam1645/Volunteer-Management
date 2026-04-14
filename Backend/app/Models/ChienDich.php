@@ -134,6 +134,11 @@ class ChienDich extends Model
         return $this->belongsTo(LoaiChienDich::class, 'loai_chien_dich_id');
     }
 
+    public function khuVuc()
+    {
+        return $this->belongsTo(KhuVuc::class, 'khu_vuc_id');
+    }
+
     public function kyNangs()
     {
         return $this->belongsToMany(KyNang::class, 'chien_dich_ky_nangs', 'chien_dich_id', 'ky_nang_id');

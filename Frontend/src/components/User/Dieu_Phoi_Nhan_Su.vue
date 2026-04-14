@@ -365,6 +365,75 @@
 				<div class="card border-0 shadow-sm mt-4">
 					<div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
 						<div>
+							<h6 class="fw-bold mb-1"><i class="fa-solid fa-map-location-dot me-2 text-warning"></i>{{ $t('coordinationScreen.remoteAreaTitle') }}</h6>
+							<div class="text-muted small">{{ $t('coordinationScreen.remoteAreaDesc') }}</div>
+						</div>
+						<div class="d-flex align-items-center gap-3">
+							<div v-if="remoteAreaVolunteers.length" class="form-check mb-0 small">
+								<input
+									:id="'select-remote-area-all'"
+									class="form-check-input"
+									type="checkbox"
+									:checked="isGroupFullySelected(remoteAreaVolunteers)"
+									@change="toggleGroupSelection(remoteAreaVolunteers, $event.target.checked)">
+								<label class="form-check-label" :for="'select-remote-area-all'">{{ $t('coordinationScreen.selectAll') }}</label>
+							</div>
+							<span class="badge bg-warning text-dark rounded-pill">{{ remoteAreaVolunteers.length }}</span>
+						</div>
+					</div>
+					<div class="card-body p-4">
+						<div v-if="remoteAreaVolunteers.length === 0" class="text-center py-4 text-muted">
+							<i class="fa-solid fa-route d-block fs-3 mb-2 opacity-25"></i>
+							{{ $t('coordinationScreen.noRemoteArea') }}
+						</div>
+						<div v-else class="d-flex flex-column gap-3">
+							<div v-for="volunteer in paginatedRemoteAreaVolunteers" :key="'remote-area-' + volunteer.id" class="list-row-card list-row-card-remote-area">
+								<div class="form-check flex-shrink-0 mb-0">
+									<input
+										:id="'remote-area-select-' + volunteer.id"
+										class="form-check-input"
+										type="checkbox"
+										:checked="isVolunteerSelected(volunteer.id)"
+										@change="toggleVolunteerSelection(volunteer.id, $event.target.checked)">
+								</div>
+								<div class="list-row-main min-w-0">
+									<div class="list-row-inline">
+										<div class="fw-semibold text-dark text-truncate">{{ volunteer.name }}</div>
+										<span class="badge rounded-pill border border-warning text-warning-emphasis bg-warning-subtle">{{ $t('coordinationScreen.remoteAreaBadge') }}</span>
+										<span v-if="volunteer.registrationStatusLabel" class="badge rounded-pill border text-dark bg-light">{{ volunteer.registrationStatusLabel }}</span>
+										<div class="small text-muted compact-meta">{{ getVolunteerListMeta(volunteer) }}</div>
+									</div>
+								</div>
+								<div class="d-flex gap-2 flex-shrink-0">
+									<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.remoteAreaTitle'))">{{ $t('coordinationScreen.viewDetail') }}</button>
+									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
+										{{ getInviteButtonLabel(volunteer) }}
+									</button>
+								</div>
+							</div>
+							<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+								<div class="small text-muted">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedRemoteAreaVolunteers.length, total: remoteAreaVolunteers.length }) }}</div>
+								<nav v-if="totalRemoteAreaPages > 1">
+									<ul class="pagination pagination-sm mb-0">
+										<li class="page-item" :class="{ disabled: remoteAreaPage === 1 }">
+											<button class="page-link" @click="changePage('remoteAreaPage', remoteAreaPage - 1, totalRemoteAreaPages)">{{ $t('pagination.prev') }}</button>
+										</li>
+										<li v-for="page in getVisiblePages(remoteAreaPage, totalRemoteAreaPages)" :key="'remote-area-page-' + page" class="page-item" :class="{ active: remoteAreaPage === page, disabled: page === '...' }">
+											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('remoteAreaPage', page, totalRemoteAreaPages)">{{ page }}</button>
+										</li>
+										<li class="page-item" :class="{ disabled: remoteAreaPage === totalRemoteAreaPages }">
+											<button class="page-link" @click="changePage('remoteAreaPage', remoteAreaPage + 1, totalRemoteAreaPages)">{{ $t('pagination.next') }}</button>
+										</li>
+									</ul>
+								</nav>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card border-0 shadow-sm mt-4">
+					<div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
+						<div>
 							<h6 class="fw-bold mb-1"><i class="fa-solid fa-ranking-star me-2 text-warning"></i>{{ $t('coordinationScreen.profileHighlightTitle') }}</h6>
 							<div class="text-muted small">{{ $t('coordinationScreen.profileHighlightDesc') }}</div>
 						</div>
@@ -651,12 +720,14 @@ export default {
 				excludedVolunteerSearchQuery: '',
 				recommendationPage: 1,
 				primaryPage: 1,
+				remoteAreaPage: 1,
 				backupPage: 1,
 				excludedPage: 1,
 				profileHighlightPage: 1,
 				profileSortMode: 'strongest',
 				selectedInviteIds: [],
 			recommendedVolunteers: [],
+			remoteAreaVolunteers: [],
 			excludedVolunteers: [],
 			allocationPrimary: [],
 			allocationBackup: [],
@@ -827,6 +898,12 @@ export default {
 		totalPrimaryPages() {
 			return this.getTotalPages(this.allocationPrimary);
 		},
+		paginatedRemoteAreaVolunteers() {
+			return this.paginateItems(this.remoteAreaVolunteers, this.remoteAreaPage);
+		},
+		totalRemoteAreaPages() {
+			return this.getTotalPages(this.remoteAreaVolunteers);
+		},
 		paginatedAllocationBackup() {
 			return this.paginateItems(this.allocationBackup, this.backupPage);
 		},
@@ -848,6 +925,7 @@ export default {
 				const merged = [
 					...this.allocationPrimary,
 					...this.displayedRecommendedVolunteers,
+					...this.remoteAreaVolunteers,
 					...this.excludedVolunteers.map((item) => this.mapExcludedVolunteerForUi(item)),
 				];
 				const byId = new Map();
@@ -893,6 +971,9 @@ export default {
 		},
 		totalPrimaryPages(total) {
 			this.primaryPage = this.clampPage(this.primaryPage, total);
+		},
+		totalRemoteAreaPages(total) {
+			this.remoteAreaPage = this.clampPage(this.remoteAreaPage, total);
 		},
 		totalExcludedPages(total) {
 			this.excludedPage = this.clampPage(this.excludedPage, total);
@@ -941,6 +1022,7 @@ export default {
 			this.resetPagination();
 			this.selectedInviteIds = [];
 			this.recommendedVolunteers = [];
+			this.remoteAreaVolunteers = [];
 			this.excludedVolunteers = [];
 			this.allocationPrimary = [];
 			this.allocationBackup = [];
@@ -1057,6 +1139,7 @@ export default {
 		resetPagination() {
 			this.recommendationPage = 1;
 			this.primaryPage = 1;
+			this.remoteAreaPage = 1;
 			this.backupPage = 1;
 			this.excludedPage = 1;
 			this.profileHighlightPage = 1;
@@ -1210,6 +1293,19 @@ export default {
 				}
 			}
 
+			if (bucket === 'remote_area') {
+				decisionTitle = this.$t('coordinationScreen.decisionRemoteAreaTitle');
+				decisionSummary = item.area_match_reason || this.$t('coordinationScreen.decisionRemoteAreaSummary');
+			}
+
+			const matchLabel = bucket === 'remote_area'
+				? this.$t('coordinationScreen.remoteAreaBadge')
+				: ({
+					rat_phu_hop: this.$t('coordinationScreen.matchPrimary'),
+					phu_hop: this.$t('coordinationScreen.matchBackup'),
+					can_nhac: this.$t('coordinationScreen.matchConsider'),
+				}[item.match_level] || this.$t('coordinationScreen.matchDefault'));
+
 				return {
 					id: item.id,
 					name,
@@ -1227,14 +1323,11 @@ export default {
 					registrationStatusLabel: this.getRegistrationStatusLabel(item.registration_status),
 					finalScore,
 					matchLevel: item.match_level,
-				matchLabel: {
-					rat_phu_hop: this.$t('coordinationScreen.matchPrimary'),
-					phu_hop: this.$t('coordinationScreen.matchBackup'),
-					can_nhac: this.$t('coordinationScreen.matchConsider'),
-				}[item.match_level] || this.$t('coordinationScreen.matchDefault'),
+				matchLabel,
 				breakdown,
 				reasons,
 				warnings,
+				areaMatchReason: item.area_match_reason || '',
 				decisionTitle,
 				decisionSummary,
 			};
@@ -1270,6 +1363,7 @@ export default {
 
 				this.allocationPrimary = updateMappedList(this.allocationPrimary);
 				this.recommendedVolunteers = updateMappedList(this.recommendedVolunteers);
+				this.remoteAreaVolunteers = updateMappedList(this.remoteAreaVolunteers);
 				this.excludedVolunteers = updateRawList(this.excludedVolunteers);
 
 				if (this.selectedVolunteerDetail && idSet.has(Number(this.selectedVolunteerDetail.id))) {
@@ -1342,6 +1436,7 @@ export default {
 					this.resetPagination();
 
 					this.recommendedVolunteers = (recommendationData.recommended || recommendationData.all || []).map((item) => this.mapVolunteerForUi(item, 'recommendation'));
+					this.remoteAreaVolunteers = (recommendationData.remote_area_matches || []).map((item) => this.mapVolunteerForUi(item, 'remote_area'));
 
 					this.excludedVolunteers = recommendationData.excluded || [];
 					this.allocationPrimary = (recommendationData.recommended_primary || []).map((item) => this.mapVolunteerForUi(item, 'primary'));
@@ -1455,6 +1550,11 @@ export default {
 
 .list-row-card-recommendation {
 	border-color: rgba(13, 110, 253, 0.16);
+}
+
+.list-row-card-remote-area {
+	border-color: rgba(255, 193, 7, 0.28);
+	background: linear-gradient(180deg, rgba(255, 193, 7, 0.08), rgba(255, 255, 255, 0.98));
 }
 
 .list-row-main {

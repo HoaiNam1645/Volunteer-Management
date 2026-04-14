@@ -968,10 +968,11 @@ export default {
 				.filter(Boolean)
 				.filter((value, index, arr) => arr.findIndex((candidate) => this.normalizeLocationSearch(candidate) === this.normalizeLocationSearch(value)) === index);
 			const label = parts.slice(0, 2).join(', ') || item.display_name.split(',').slice(0, 2).join(', ').trim();
+			const selectedValue = item.display_name.split(',').slice(0, 4).join(', ').trim() || label;
 			return {
 				key: `remote-${item.place_id}`,
 				label,
-				value: label,
+				value: selectedValue,
 				meta: item.display_name.split(',').slice(0, 4).join(', ').trim(),
 				searchText: item.display_name,
 				source: 'map',
