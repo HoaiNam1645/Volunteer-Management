@@ -345,6 +345,14 @@
 								</div>
 							</div>
 						</div>
+
+						<!-- TrustEval AI Evaluation Panel -->
+						<div class="mt-4">
+							<TrustEvalPanel
+								:campaign-id="detailTarget.id"
+								:key="'trust-eval-' + detailTarget.id"
+							/>
+						</div>
 					</div>
 					<div class="modal-footer border-0 bg-light py-3">
 						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeDetailModal">{{ $t('admin.campaignManagement.detailModal.close') }}</button>
@@ -491,6 +499,7 @@
 
 <script>
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import TrustEvalPanel from '../Admin/TrustEval/TrustEvalPanel.vue';
 import api from '../../services/api';
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
@@ -507,7 +516,7 @@ const STATUS_MAP = {
 
 export default {
 	name: 'AdminQuanLyChienDich',
-	components: { ConfirmModal },
+	components: { ConfirmModal, TrustEvalPanel },
 	inject: ['toast'],
 	data() {
 		return {

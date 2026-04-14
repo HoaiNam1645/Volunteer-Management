@@ -10,6 +10,8 @@ use App\Http\Controllers\TheoDoiPhanHoiController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\TrangChuController;
 use App\Http\Controllers\ThongKeTongQuanController;
+use App\Http\Controllers\TrustEvalController;
+use App\Http\Controllers\KdvFeedbackController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================== DANH MỤC (Public) ========================================
@@ -153,4 +155,32 @@ Route::middleware(['auth:api', 'quanTriVien'])->group(function () {
         Route::put('/admin/danh-muc/{type}/{id}', [DanhMucController::class, 'capNhatQuanLy']);
         Route::delete('/admin/danh-muc/{type}/{id}', [DanhMucController::class, 'xoaQuanLy']);
     });
+});
+
+// =========================================== TRUST EVAL (ML) ===================================
+Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
+    Route::middleware('permission:trust_eval.view')->group(function () {
+        Route::get('/trust-eval/campaign/{id}', [TrustEvalController::class, 'getCampaignEvaluation']);
+        Route::get('/trust-eval/volunteer/{id}', [TrustEvalController::class, 'getVolunteerEvaluation']);
+        Route::get('/trust-eval/campaigns/pending', [TrustEvalController::class, 'getPendingEvaluations']);
+    });
+
+    Route::middleware('permission:trust_eval.refresh')->group(function () {
+        Route::post('/trust-eval/campaign/{id}/refresh', [TrustEvalController::class, 'refreshCampaignEvaluation']);
+    });
+
+    Route::get('/trust-eval/ml-health', [TrustEvalController::class, 'getMlServiceHealth']);
+});
+
+Route::middleware(['auth:api', 'quanTriVien'])->group(function () {
+    Route::middleware('permission:trust_eval.statistics')->group(function () {
+        Route::get('/trust-eval/statistics', [TrustEvalController::class, 'getStatistics']);
+    });
+
+    Route::get('/trust-eval/agreement-stats', [KdvFeedbackController::class, 'getAgreementStats']);
+});
+
+Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
+    Route::post('/trust-eval/feedback', [KdvFeedbackController::class, 'store']);
+    Route::get('/trust-eval/feedback', [KdvFeedbackController::class, 'index']);
 });

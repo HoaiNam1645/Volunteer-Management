@@ -23,7 +23,7 @@ class PermissionRegistry
         ],
         'ai_management' => [
             'scope' => 'admin',
-            'permissions' => ['ai_management.view'],
+            'permissions' => ['ai_management.view', 'trust_eval.view', 'trust_eval.refresh', 'trust_eval.statistics'],
         ],
         'statistics' => [
             'scope' => 'admin',
@@ -91,6 +91,8 @@ class PermissionRegistry
             'campaign_review.view',
             'campaign_review.manage',
             'statistics.view',
+            'trust_eval.view',
+            'trust_eval.refresh',
         ],
         'quan_tri_vien' => [
             'account_center.view',
@@ -106,6 +108,9 @@ class PermissionRegistry
             'statistics.view',
             'permission_management.view',
             'permission_management.manage',
+            'trust_eval.view',
+            'trust_eval.refresh',
+            'trust_eval.statistics',
         ],
     ];
 

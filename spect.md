@@ -1,226 +1,146 @@
-## 1. Mục tiêu
-Xây dựng hệ thống gợi ý để hỗ trợ 2 bài toán:
-- Gợi ý chiến dịch phù hợp cho tình nguyện viên
-- Gợi ý tình nguyện viên phù hợp cho người tạo chiến dịch
+PHƯƠNG ÁN HỢP LÝ NHẤT CHO MÔ-ĐUN AI XÁC MINH CHIẾN DỊCH TÌNH NGUYỆN
 
-**Kết quả mong muốn**
+Tài liệu tóm tắt kỹ thuật, luồng xử lý và phạm vi triển khai đề xuất
 
-Hệ thống không chỉ trả về danh sách, mà phải hỗ trợ ra quyết định:
-- biết ai hoặc chiến dịch nào phù hợp nhất
-- biết vì sao phù hợp
-- biết ai nên mời trước, ai có thể cân nhắc thêm, ai chưa phù hợp
+Kết luận đề xuất: sử dụng mô hình lai [hybrid] gồm [Rule-based Validation] + [Trust Scoring] + [Anomaly Detection] + [NLP-based Content Risk Analysis], trong đó hệ thống chỉ hỗ trợ đánh giá rủi ro và gợi ý kiểm duyệt; quyết định cuối cùng vẫn do quản trị viên thực hiện.
 
-## 2. Nguyên tắc cốt lõi
-- Chỉ có 1 logic đánh giá duy nhất cho cặp `tình_nguyện_viên <-> chiến_dịch`
-- Cùng 1 cặp dữ liệu thì kết quả phải giống nhau ở mọi màn hình
-- Gợi ý phải minh bạch: có điểm tổng, điểm từng tiêu chí, lý do, cảnh báo
-- Điều phối là bước sắp xếp lại kết quả gợi ý, không phải một logic riêng
 
-## 3. Dữ liệu đầu vào cần sử dụng
-- Hồ sơ tình nguyện viên: kỹ năng, khu vực, lịch rảnh, vị trí, lịch sử tham gia, đánh giá
-- Chỉ xét các tài khoản có vai trò `tình_nguyện_viên`, đã xác thực email; khi điều phối mặc định chỉ lấy tài khoản đang hoạt động
-- Thông tin chiến dịch: kỹ năng yêu cầu, loại chiến dịch, thời gian, địa điểm, mức độ ưu tiên, số lượng cần
-- Trạng thái tham gia hiện tại: chờ xác nhận, đã xác nhận, đang tham gia, đã hoàn thành, đã hủy
+1. Mục tiêu của mô-đun
 
-## 4. Logic đánh giá phù hợp
-Mỗi cặp `TNV - Chiến dịch` được chấm theo 6 nhóm:
-- Khoảng cách
-- Kỹ năng
-- Lịch rảnh
-- Mức độ ưu tiên hoặc độ phù hợp bối cảnh
-- Độ tin cậy từ lịch sử tham gia
-- Kinh nghiệm và chứng chỉ
+Mô-đun này không kết luận tuyệt đối chiến dịch là thật hay giả, mà tập trung vào bốn nhiệm vụ chính: kiểm tra điều kiện bắt buộc, đánh giá độ tin cậy, phát hiện rủi ro/bất thường và hỗ trợ quản trị viên quyết định duyệt, yêu cầu bổ sung hoặc từ chối chiến dịch.
 
-**Trọng số ưu tiên**
+Về bản chất, đây là mô-đun [AI-assisted Campaign Verification and Safety Assessment], hỗ trợ xác minh độ tin cậy và mức độ an toàn của chiến dịch trước khi công bố cho tình nguyện viên đăng ký.
 
-- Khoảng cách là yếu tố quan trọng nhất
-- Sau đó đến kỹ năng
-- Sau đó đến lịch rảnh
-- Các yếu tố còn lại đóng vai trò bổ trợ
+2. Các kỹ thuật sử dụng
 
-**Quy tắc chấm điểm**
+2.1. Kiểm tra luật nghiệp vụ [Rule-based Validation]
 
-- `Khoảng cách` được tính theo km giữa vị trí TNV và địa điểm chiến dịch
-- Nếu khoảng cách `<= 3 km`: chấm `100%`
-- Nếu khoảng cách `> 3 km` đến `10 km`: giảm tuyến tính từ `100%` xuống `70%`
-- Nếu khoảng cách `> 10 km` đến `20 km`: giảm tuyến tính từ `70%` xuống `40%`
-- Nếu khoảng cách `> 20 km`: chấm `10%`
-- Nếu thiếu dữ liệu tọa độ của một trong hai bên: chấm `0%`
+Lớp bắt buộc, dễ triển khai và hiệu quả cao. Dùng để xác minh chiến dịch có đáp ứng các điều kiện tối thiểu trước khi cho phép công bố hoặc chuyển sang bước duyệt.
 
-- `Kỹ năng` được tính theo số kỹ năng chiến dịch yêu cầu và số kỹ năng TNV đang có
-- Nếu chiến dịch không yêu cầu kỹ năng cụ thể: chấm `50%`
-- Nếu TNV không có kỹ năng nào: chấm `0%`
-- Nếu chiến dịch có `N` kỹ năng và TNV khớp `M` kỹ năng thì điểm kỹ năng không chỉ là `M / N`, mà được tính theo công thức:
-  `Điểm kỹ năng = ((độ phủ kỹ năng * 0.7) + (Cosine Similarity * 0.3)) * 100`
-- Trong đó:
-  - `độ phủ kỹ năng = M / N`
-  - `Cosine Similarity = M / sqrt(tổng kỹ năng TNV * tổng kỹ năng chiến dịch)`
-- Ví dụ chiến dịch cần `5` kỹ năng, TNV có `6` kỹ năng và khớp `3` kỹ năng:
-  - độ phủ = `3 / 5 = 60%`
-  - cosine = `3 / sqrt(6 * 5) = 54.77%`
-  - điểm kỹ năng = `(0.6 * 0.7 + 0.5477 * 0.3) * 100 = 58.43%`
-- Nếu không khớp kỹ năng nào thì chấm `0%`
-- Nếu chiến dịch có kỹ năng nhưng TNV khớp dưới mức tối thiểu thì không được đưa vào nhóm đủ điều kiện
+• Kiểm tra tên chiến dịch, đơn vị tổ chức, người phụ trách, số điện thoại/email liên hệ.
 
-- `Lịch rảnh` được tính theo số ngày chiến dịch diễn ra và số ngày TNV có thể tham gia
-- Nếu chiến dịch kéo dài từ ngày A đến ngày B thì phải xác định rõ từng ngày trong khoảng đó rơi vào thứ mấy
-- Điểm lịch rảnh = `số ngày khớp / tổng số ngày của chiến dịch`
-- Ví dụ chiến dịch diễn ra `5` ngày, TNV rảnh `3` ngày trong số đó thì điểm lịch rảnh = `60%`
-- Nếu không khớp ngày nào thì chấm `0%`
+• Kiểm tra địa điểm, thời gian bắt đầu/kết thúc, logic mốc thời gian.
 
-- `Mức độ ưu tiên hoặc độ phù hợp bối cảnh` là điểm cộng bổ trợ
-- Chiến dịch khẩn cấp hoặc đúng lĩnh vực TNV từng tham gia nhiều lần thì được cộng nhẹ
-- Phần này không được lấn át khoảng cách, kỹ năng và lịch rảnh
+• Kiểm tra mô tả nhiệm vụ, điều kiện tham gia, tài liệu minh chứng, phương án an toàn.
 
-- `Độ tin cậy` được tính từ lịch sử tham gia
-- TNV từng xác nhận, tham gia đầy đủ, được đánh giá tốt thì điểm cao hơn
-- TNV từng hủy nhiều hoặc ít tham gia thực tế thì điểm thấp hơn
+• Kỹ thuật áp dụng: [if-else rules], [constraint validation], [format validation], [temporal consistency checking].
 
-- `Kinh nghiệm và chứng chỉ` phản ánh độ dày của hồ sơ năng lực
-- Số `kinh nghiệm` được chuẩn hóa tối đa theo mốc `5` bản ghi
-- Số `chứng chỉ` được chuẩn hóa tối đa theo mốc `3` bản ghi
-- Công thức:
-  `Điểm kinh nghiệm & chứng chỉ = ((kinh_nghiệm_chuẩn_hóa * 0.7) + (chứng_chỉ_chuẩn_hóa * 0.3)) * 100`
-- Trong đó:
-  - `kinh_nghiệm_chuẩn_hóa = min(số kinh nghiệm, 5) / 5`
-  - `chứng_chỉ_chuẩn_hóa = min(số chứng chỉ, 3) / 3`
-- Ví dụ TNV có `3` kinh nghiệm và `2` chứng chỉ:
-  - kinh nghiệm chuẩn hóa = `3 / 5 = 60%`
-  - chứng chỉ chuẩn hóa = `2 / 3 = 66.67%`
-  - điểm kinh nghiệm & chứng chỉ = `(0.6 * 0.7 + 0.6667 * 0.3) * 100 = 62%`
+2.2. Chấm điểm độ tin cậy [Trust Scoring]
 
-**Điểm phù hợp cuối cùng**
+Kỹ thuật cốt lõi để lượng hóa mức độ đáng tin của chiến dịch trên thang 0–100.
 
-- `Khoảng cách`: `30%`
-- `Kỹ năng`: `30%`
-- `Lịch rảnh`: `20%`
-- `Mức độ ưu tiên hoặc độ phù hợp bối cảnh`: `5%`
-- `Độ tin cậy`: `5%`
-- `Kinh nghiệm và chứng chỉ`: `10%`
+• Mô hình sử dụng: [weighted scoring model] kết hợp chuẩn hóa điểm [score normalization].
 
-Công thức tính điểm cuối:
+• Nhóm tiêu chí 1 – Uy tín người tạo: trạng thái xác minh, lịch sử chiến dịch, số lần bị phản ánh, kết quả các chiến dịch trước.
 
-`Điểm phù hợp cuối = (Khoảng cách × 0.30) + (Kỹ năng × 0.30) + (Lịch rảnh × 0.20) + (Bối cảnh × 0.05) + (Độ tin cậy × 0.05) + (Kinh nghiệm & chứng chỉ × 0.10)`
+• Nhóm tiêu chí 2 – Độ đầy đủ thông tin: mô tả, địa điểm, lịch trình, đầu mối liên hệ, quy mô nhân sự, tài liệu minh chứng.
 
-Ví dụ:
-- Khoảng cách: `80`
-- Kỹ năng: `60`
-- Lịch rảnh: `100`
-- Bối cảnh: `40`
-- Độ tin cậy: `70`
-- Kinh nghiệm & chứng chỉ: `62`
+• Nhóm tiêu chí 3 – Tính nhất quán: sự khớp nhau giữa form nhập liệu và tài liệu đính kèm; sự hợp lý giữa thời gian, địa điểm, loại hoạt động và quy mô.
 
-Khi đó:
+• Nhóm tiêu chí 4 – Yếu tố an toàn: người phụ trách trực tiếp, liên hệ khẩn cấp, yêu cầu bảo hộ, mô tả rủi ro hoạt động.
 
-`Điểm phù hợp cuối = 80 × 0.30 + 60 × 0.30 + 100 × 0.20 + 40 × 0.05 + 70 × 0.05 + 62 × 0.10 = 73.7%`
+• Ví dụ công thức: TrustScore = 0.3 × OrganizerReputation + 0.3 × InformationCompleteness + 0.2 × Consistency + 0.2 × SafetyReadiness.
 
-Phần trăm hiển thị trên giao diện là điểm cuối này, thường được làm tròn để hiển thị ngắn gọn.
+• Mức phân loại đầu ra: 80–100 = Tin cậy cao; 60–79 = Cần xem xét; dưới 60 = Rủi ro cao.
 
-**Quy tắc nghiệp vụ bắt buộc**
+2.3. Phát hiện bất thường [Anomaly Detection]
 
-- Chiến dịch đã xóa, chưa duyệt, hết hạn đăng ký, đã kết thúc, đủ người thì không được gợi ý
-- Tình nguyện viên là người tạo chiến dịch thì không được gợi ý chiến dịch đó
-- Tình nguyện viên chưa xác thực email thì không được đưa vào gợi ý hoặc điều phối
-- Nếu trùng lịch nghiêm trọng với chiến dịch khác thì không được đưa vào nhóm có thể mời ngay
-- Nếu chiến dịch có kỹ năng, TNV phải có mức độ khớp tối thiểu mới được đưa vào gợi ý
-- Nếu lịch rảnh không giao với thời gian chiến dịch thì không được đưa vào gợi ý
+Lớp kỹ thuật dùng để nhận diện các mẫu hành vi không bình thường mà luật cứng khó phát hiện hết.
 
-**Khi nhìn từ phía người tạo chiến dịch**
+• Kỹ thuật áp dụng: [statistical profiling], [outlier detection], [behavior anomaly detection].
 
-Kết quả gợi ý tình nguyện viên phải chia thành 3 nhóm:
-- `Tình nguyện viên đề xuất`: các TNV đạt điều kiện gợi ý và có điểm phù hợp từ `50%` đến dưới `80%`
-- `Nhóm nên mời trước`: các TNV đạt điều kiện gợi ý và có điểm phù hợp từ `80%` trở lên
-- `Nhóm chưa phù hợp hoặc cần bổ sung trước khi mời`: các TNV dưới `50%` hoặc bị loại do không đạt điều kiện tối thiểu
+• Có thể triển khai bằng [Z-score], [Isolation Forest], hoặc rule kết hợp thống kê mô tả.
 
-**Điều kiện để được tính là đạt điều kiện gợi ý**
+• Các bất thường cần phát hiện: tài khoản mới nhưng tạo quá nhiều chiến dịch; nội dung bị chỉnh sửa liên tục sát ngày diễn ra; nội dung trùng lặp nhiều với chiến dịch khác; tỷ lệ phản ánh quá cao ở các chiến dịch trước; yêu cầu thông tin nhạy cảm bất thường.
 
-- có ít nhất `1 kỹ năng khớp` nếu chiến dịch có yêu cầu kỹ năng
-- tỷ lệ khớp kỹ năng đạt mức tối thiểu theo chiến dịch
-- có ngày rảnh giao với thời gian chiến dịch
-- không bị trùng lịch nghiêm trọng với chiến dịch khác
-- chưa ở trạng thái `đã xác nhận`, `đang tham gia` hoặc `đã hoàn thành` với chính chiến dịch đó
+• Đầu ra: loại bất thường, mức độ nghiêm trọng và lý do hệ thống gắn cờ.
 
-**Quy tắc hiển thị theo nhóm**
+2.4. Phân tích nội dung văn bản [NLP-based Content Risk Analysis]
 
-- `Tình nguyện viên đề xuất` là nhóm có thể cân nhắc mời nếu cần thêm người, nhưng chưa phải nhóm ưu tiên cao nhất
-- `Nhóm nên mời trước` là nhóm ưu tiên hành động đầu tiên, được dùng để gửi thư mời ngay
-- `Nhóm chưa phù hợp` vẫn phải hiển thị để người tạo chiến dịch biết vì sao chưa mời được và cần bổ sung điều gì
-- TNV đã ở nhóm nào thì chỉ xuất hiện đúng `1 lần` trong toàn bộ màn hình
-- TNV đã ở `Nhóm nên mời trước` thì không lặp lại ở danh sách đề xuất tổng
-- TNV `chờ xác nhận` vẫn cần hiển thị để theo dõi
-- TNV `đã xác nhận`, `đang tham gia`, `đã hoàn thành` thì không đưa vào các nhóm gợi ý nữa
+Đây là thành phần AI rõ nhất, nhưng không cần huấn luyện mô hình lớn từ đầu.
 
-## 5. Gợi ý chiến dịch cho tình nguyện viên
-Mục tiêu là hiển thị các chiến dịch phù hợp nhất với người dùng đang đăng nhập.
+• Mục tiêu: phát hiện mô tả mơ hồ, thiếu thông tin quan trọng, chứa từ khóa rủi ro hoặc có tín hiệu mất an toàn.
 
-**Kết quả cần**
+• Kỹ thuật có thể dùng: [text preprocessing], [tokenization], [keyword extraction], [text classification], [topic detection].
 
-- xếp theo mức độ phù hợp tổng thể giảm dần
-- nếu bằng điểm thì chiến dịch gần hơn đứng trước
-- lấy top 6 chiến dịch phù hợp nhất
-- chiến dịch được hiển thị nếu:
-  - đạt điều kiện gợi ý, hoặc
-  - có điểm phù hợp từ `50%` trở lên
-- không hiển thị nếu rơi vào các trường hợp loại cứng như:
-  - không khớp kỹ năng nào
-  - không khớp lịch rảnh
-  - bị loại bởi bộ lọc `gần tôi`
+• Mức triển khai an toàn nhất: từ điển từ khóa rủi ro [keyword dictionary] + luật phát hiện cụm từ nguy hiểm + chấm điểm nội dung.
 
-**Thông tin cần hiển thị trên card**
+• Mức nâng cao vừa phải: [TF-IDF] + [Logistic Regression], [Naive Bayes] hoặc [SVM].
 
-- phù hợp bao nhiêu phần trăm
-- kỹ năng khớp ra sao
-- lịch rảnh khớp ra sao
-- cách chiến dịch bao xa
+• Ví dụ tín hiệu rủi ro: “chuyển khoản trước”, “địa điểm sẽ báo sau”, “thu phí tham gia”, “hoạt động bí mật”, “không cần liên hệ tổ chức”.
 
-## 6. Điều phối nhân sự
-Từ kết quả gợi ý tình nguyện viên, hệ thống phải đề xuất phương án điều phối:
-- mời ai trước để đạt số lượng tối thiểu
-- theo dõi những người đã mời nhưng đang ở trạng thái `chờ xác nhận`
-- cảnh báo chiến dịch đang thiếu nguồn lực
+3. Luồng làm việc tổng thể
 
-**Cảnh báo cần có**
+Quy trình khuyến nghị cho hệ thống được tổ chức theo chuỗi bước sau:
 
-- thiếu ứng viên phù hợp so với mức tối thiểu
-- nhiều ứng viên ở xa
-- nhiều ứng viên chỉ khớp lịch một phần
+• Bước 1 – Người tổ chức tạo chiến dịch: nhập tên chiến dịch, mô tả, thời gian, địa điểm, số lượng tình nguyện viên cần, người phụ trách, thông tin liên hệ và tài liệu minh chứng.
 
-## 7. So sánh giữa TNV và chiến dịch
-Tại màn danh sách chiến dịch và màn điều phối, người dùng phải có thể bấm `So sánh`.
+• Bước 2 – Hệ thống kiểm tra dữ liệu đầu vào: áp dụng [Rule-based Validation] để phát hiện trường thiếu, lỗi định dạng, mốc thời gian không hợp lệ hoặc địa điểm không đủ chi tiết.
 
-**Modal so sánh cần hiển thị rõ dạng bảng**
+• Bước 3 – Trích xuất đặc trưng [Feature Extraction]: tạo các đặc trưng như số trường bị thiếu, độ dài mô tả, có/không có minh chứng, trạng thái xác minh tài khoản, số chiến dịch đã tạo, số dấu hiệu rủi ro trong mô tả.
 
-- Kỹ năng chiến dịch
-- Kỹ năng tình nguyện viên
-- Kỹ năng khớp
-- Kỹ năng chưa có
-- Thời gian chiến dịch, kèm thứ trong tuần
-- Ngày khớp
-- Ngày chưa khớp
-- Địa điểm chiến dịch
-- Vị trí hoặc khu vực của TNV
-- Khoảng cách cụ thể giữa 2 bên
-- Phần trăm khớp từng tiêu chí và phần trăm tổng thể
+• Bước 4 – Chấm điểm tin cậy: tính [Trust Score] và [Risk Score] từ các đặc trưng đã trích xuất.
 
-## 8. Yêu cầu UX
-- Danh sách hiển thị gọn, dễ quét nhanh
-- Chi tiết mới đưa vào modal
-- Câu chữ trong UI phải viết theo ngôn ngữ người dùng, không theo ngôn ngữ dev
-- Không hiển thị các từ mơ hồ như `hard constraint`, `qualification failed`
-- Người dùng phải hiểu được tại sao một người nên mời trước, đang ở mức đề xuất, hay chưa phù hợp
+• Bước 5 – Phân tích nội dung mô tả: dùng [NLP] để tìm từ khóa rủi ro, nội dung mơ hồ, mức độ đầy đủ của thông tin an toàn.
 
-## 9. Mục tiêu hoàn thiện
-Sau khi hoàn thiện, hệ thống phải đảm bảo:
-- kết quả gợi ý 2 chiều là nhất quán
-- điều phối dùng được trong vận hành thật
-- người dùng nhìn vào biết nên làm gì tiếp theo
-- logic đủ chặt để không chỉ dùng cho demo
+• Bước 6 – Phát hiện bất thường: so sánh với lịch sử tài khoản và các mẫu hành vi bình thường của hệ thống.
 
-## 10. Thuật toán hoặc công nghệ sử dụng trong chức năng
-- Hệ gợi ý sử dụng hướng tiếp cận `Content-Based Filtering`, tức là so khớp trực tiếp giữa hồ sơ tình nguyện viên và thông tin chiến dịch.
-- Độ phù hợp về kỹ năng được tính bằng cách biểu diễn tập kỹ năng của hai bên thành đặc trưng và so sánh bằng `Cosine Similarity`.
-- Độ phù hợp về vị trí được tính bằng `công thức Haversine` để xác định khoảng cách thực tế giữa vị trí tình nguyện viên và địa điểm chiến dịch.
-- Độ phù hợp về thời gian được tính dựa trên phần giao nhau giữa lịch rảnh của tình nguyện viên và khoảng thời gian diễn ra chiến dịch.
-- Điểm phù hợp cuối cùng được tạo từ mô hình `chấm điểm có trọng số`, trong đó khoảng cách, kỹ năng và lịch rảnh là các yếu tố chính.
-- Chức năng điều phối sử dụng kết quả gợi ý này để chia ứng viên thành các nhóm `nên mời trước`, `đề xuất` và `chưa phù hợp`, theo hướng hỗ trợ ra quyết định minh bạch.
-- Hệ thống thuộc nhóm `White-box Decision Support`, nghĩa là kết quả gợi ý phải giải thích được bằng phần trăm phù hợp, lý do khớp, lý do chưa khớp và các cảnh báo liên quan.
+• Bước 7 – Sinh kết quả sơ bộ: hệ thống trả về điểm tin cậy, mức rủi ro, danh sách cảnh báo và đề xuất trạng thái xử lý.
+
+• Bước 8 – Admin kiểm duyệt: quản trị viên xem dashboard, đọc các cảnh báo, kiểm tra tài liệu minh chứng và đưa ra quyết định duyệt, yêu cầu bổ sung hoặc từ chối.
+
+• Bước 9 – Học từ kết quả hậu kiểm: lưu phản hồi, số sự cố, kết quả chiến dịch và cập nhật uy tín của tổ chức cho các lần sau.
+
+Luồng trạng thái nghiệp vụ đề xuất:
+
+Trạng thái Ý nghĩa / điều kiện chuyển tiếp
+
+Nháp Người tổ chức mới tạo chiến dịch.
+
+Chờ kiểm tra Hệ thống bắt đầu kiểm tra điều kiện bắt buộc và trích xuất đặc trưng.
+
+Cần bổ sung Thiếu dữ liệu quan trọng hoặc có lỗi cần sửa.
+
+Chờ admin duyệt Chiến dịch đạt điều kiện cơ bản nhưng có rủi ro trung bình/cao hoặc cần xác minh thêm.
+
+Đã duyệt Admin chấp nhận và cho phép công bố.
+
+Bị từ chối Chiến dịch không đáp ứng yêu cầu hoặc có rủi ro cao.
+
+Đã hoàn thành Chiến dịch kết thúc, dữ liệu phản hồi được đưa vào hậu kiểm.
+
+Bị báo cáo sau triển khai Xuất hiện phản ánh nghiêm trọng sau khi diễn ra, dùng để cập nhật uy tín hệ thống.
+
+4. Dữ liệu đầu vào và đầu ra
+
+4.1. Dữ liệu đầu vào
+
+• Dữ liệu chiến dịch: tên, loại chiến dịch, mô tả, thời gian, địa điểm, số lượng người cần, yêu cầu nhiệm vụ, điều kiện tham gia, phương án an toàn.
+
+• Dữ liệu người tạo: họ tên, email, số điện thoại, tổ chức, trạng thái xác minh, lịch sử chiến dịch đã tạo, số lần bị phản ánh.
+
+• Dữ liệu minh chứng: giấy giới thiệu, tệp xác nhận, ảnh địa điểm, website/fanpage chính thức.
+
+• Dữ liệu hệ thống: phản hồi người tham gia, lịch sử kiểm duyệt, lịch sử sự cố, kết quả các chiến dịch trước.
+
+4.2. Đầu ra của mô-đun
+
+• Trust Score: điểm tin cậy từ 0–100.
+
+• Risk Level: Thấp / Trung bình / Cao.
+
+• Verification Status: Đủ điều kiện / Cần bổ sung / Cần admin duyệt / Từ chối.
+
+• Risk Flags: các cảnh báo như thiếu minh chứng, thiếu người phụ trách, nội dung mơ hồ, địa điểm chưa rõ, tài khoản đáng ngờ.
+
+• Explanation: lý do tăng/giảm điểm và danh sách thông tin cần bổ sung.
+
+5. Công nghệ đề xuất
+
+• Phần hệ thống: [Laravel] cho backend, [Vue.js] cho frontend, [MySQL] cho cơ sở dữ liệu, [REST API] cho giao tiếp hệ thống.
+
+• Phần AI/phân tích: [Python], [pandas], [scikit-learn], [spaCy] hoặc [underthesea]/[pyvi] nếu xử lý tiếng Việt.
+
+• Lưu mô hình/artefact nhẹ bằng [joblib] nếu có huấn luyện mô hình nhỏ.
+
+• Kiến trúc triển khai hợp lý nhất: [Laravel] quản lý nghiệp vụ chính, một service [Python] riêng xử lý scoring, anomaly detection và NLP; [Laravel] gọi qua API nội bộ.

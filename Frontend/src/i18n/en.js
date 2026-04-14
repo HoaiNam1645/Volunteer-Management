@@ -65,7 +65,7 @@ export default {
         settings: 'Settings',
         understood: 'Understood',
         completed: 'Completed',
-        views: 'views',
+        refresh: 'Refresh',
         featured: 'Featured',
         closed: 'Closed'
         ,
@@ -794,6 +794,7 @@ export default {
             aiSuggest: 'AI Volunteers Suggestion',
             reports: 'REPORTS',
             statistics: 'Reviewer Dashboard',
+            aiEvaluation: 'AI Evaluation',
             admin: 'Admin',
             adminRole: 'Administrator',
             reviewerRole: 'Reviewer',
@@ -2410,5 +2411,153 @@ export default {
         teamwork: 'Teamwork',
         enthusiastic: 'Enthusiastic',
         punctual: 'Punctual',
+    },
+
+    // === TrustEval (AI Trust Evaluation) ===
+    trustEval: {
+        labels: {
+            reliableHigh: 'High Reliability',
+            reliable: 'Reliable',
+            neutral: 'Neutral',
+            suspicious: 'Suspicious',
+            suspiciousHigh: 'High Suspicion',
+        },
+
+        shap: {
+            title: 'SHAP Explanation',
+            subtitle: 'Factors influencing the trust score',
+            baseValue: 'Base Value',
+            prediction: 'Prediction',
+            positiveFactors: 'Positive Factors',
+            negativeFactors: 'Negative Factors',
+            noFactors: 'No SHAP data available',
+        },
+
+        risk: {
+            criticalErrors: 'Critical Errors',
+            warnings: 'Warnings',
+            noFlags: 'No risk flags',
+            anomaly: 'Anomaly',
+            anomalyDetected: 'Anomaly Detected',
+            unusualPattern: 'Unusual behavior pattern',
+            autoResolvable: 'Auto-resolvable',
+        },
+
+        decision: {
+            title: 'Decision Support',
+            subtitle: 'AI-suggested action',
+            confidence: 'Confidence',
+            reasonLabel: 'Reason',
+            questionsToVerify: 'Questions to verify',
+            sourceML: 'ML Evaluation',
+            sourceFallback: 'Fallback Evaluation',
+            actions: {
+                approve: 'Approve',
+                approveWithNote: 'Approve with Note',
+                requestInfo: 'Request Info',
+                reject: 'Reject',
+            },
+        },
+
+        validation: {
+            passed: 'Validation Passed',
+            failed: 'Validation Failed',
+            criticalErrors: 'Critical Errors',
+            warnings: 'Warnings',
+        },
+
+        content: {
+            riskKeywords: 'Risk Keywords',
+            vagueness: 'Vagueness',
+            safetyDesc: 'Safety Description',
+            textRiskScore: 'Text Risk Score',
+            foundKeywords: 'Keywords Found',
+        },
+
+        panel: {
+            title: 'Campaign Trust Evaluation',
+            subtitle: 'AI analysis of trust and risk level',
+            refresh: 'Re-evaluate',
+            loading: 'Loading evaluation...',
+            errorTitle: 'Evaluation Error',
+            loadError: 'Could not load evaluation. Please try again.',
+            refreshSuccess: 'Evaluation refreshed successfully.',
+            refreshError: 'Could not refresh evaluation. Please try again.',
+            trustScore: 'Trust Score',
+            riskScore: 'Risk Score',
+            confidence: 'Confidence',
+            volunteerTrust: 'Volunteer Trust',
+            riskAssessment: 'Risk Assessment',
+            validationResult: 'Validation Result',
+            contentAnalysis: 'Content Analysis',
+            notYetEvaluated: 'Not Yet Evaluated',
+            notYetEvaluatedDesc: 'This campaign has not been evaluated by the AI system.',
+            runFirstEval: 'Run First Evaluation',
+            sourceML: 'ML Service',
+            sourceFallback: 'Fallback',
+        },
+
+        volunteer: {
+            title: 'Volunteer Trust Evaluation',
+            subtitle: 'AI analysis of volunteer reliability',
+            trustScoreLabel: 'Trust Score',
+            reliabilityTitle: 'Reliability Summary',
+            totalRegistrations: 'Total Registrations',
+            cancelledRegistrations: 'Cancelled',
+            cancellationRate: 'Cancellation Rate',
+            completionRate: 'Completion Rate',
+            ratings: 'ratings',
+            behaviorFlags: 'Behavior Flags',
+            noEvaluation: 'No Evaluation',
+            noEvaluationDesc: 'This volunteer has not been evaluated yet.',
+        },
+
+        dashboard: {
+            title: 'Trust Evaluation Dashboard',
+            subtitle: 'System-wide AI evaluation statistics',
+            mlServiceOnline: 'ML Service Online',
+            mlServiceOffline: 'ML Service Offline',
+            modelsLoaded: 'models loaded',
+            loadError: 'Could not load statistics.',
+
+            riskDistribution: 'Risk Level Distribution',
+            trustDistribution: 'Trust Label Distribution',
+            recommendedActions: 'Recommended Actions',
+            evaluationSource: 'Evaluation Source',
+            recentHighRisk: 'Recent High-Risk Campaigns',
+            noHighRisk: 'No high-risk campaigns found.',
+            mlService: 'ML Service',
+            fallback: 'Fallback',
+            totalEvaluations: 'Total Evaluations',
+            yes: 'Yes',
+
+            riskLevels: {
+                low: 'Low',
+                medium: 'Medium',
+                high: 'High',
+                critical: 'Critical',
+            },
+
+            kpis: {
+                totalEvaluations: 'Total Evaluations',
+                avgTrustScore: 'Avg Trust Score',
+                avgRiskScore: 'Avg Risk Score',
+                highRiskCount: 'High Risk',
+                ofTotal: 'of total',
+                highTrust: 'High trust',
+                mediumTrust: 'Medium trust',
+                lowTrust: 'Low trust',
+            },
+
+            table: {
+                campaign: 'Campaign',
+                riskLevel: 'Risk Level',
+                trustScore: 'Trust Score',
+                anomaly: 'Anomaly',
+                evaluatedAt: 'Evaluated At',
+            },
+
+            campaignId: 'Campaign #{{id}}',
+        },
     },
 }

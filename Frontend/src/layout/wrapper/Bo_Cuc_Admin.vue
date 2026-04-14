@@ -18,7 +18,7 @@
 			</div>
 
 			<nav class="sidebar-nav">
-				<div class="nav-section">
+					<div class="nav-section">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.overview') }}</span>
 					<ul class="nav flex-column">
 						<li class="nav-item" v-if="can('dashboard.view') && !isReviewer">
@@ -31,6 +31,12 @@
 							<router-link to="/kiem-duyet-vien/thong-ke" class="nav-link" :class="{ active: $route.path.startsWith('/kiem-duyet-vien/thong-ke') || (isReviewer && $route.path === '/admin') }">
 								<i class="fa-solid fa-chart-pie"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.statistics') }}</span>
+							</router-link>
+						</li>
+						<li class="nav-item" v-if="can('statistics.view')">
+							<router-link to="/admin/trust-eval/dashboard" class="nav-link" :class="{ active: $route.path.startsWith('/admin/trust-eval') }">
+								<i class="fa-solid fa-brain"></i>
+								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.aiEvaluation') }}</span>
 							</router-link>
 						</li>
 					</ul>

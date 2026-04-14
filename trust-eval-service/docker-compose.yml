@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  ml-service:
+    build: .
+    container_name: trust-eval-service
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    volumes:
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+    depends_on:
+      - mlflow
+    restart: unless-stopped
+    networks:
+      - trust-eval-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./artifacts
+    # MLflow backend-store dùng SQLite (local file, không phải shared MySQL với Laravel)
+    volumes:
+      - mlflow-data:/mlflow
+    restart: unless-stopped
+    networks:
+      - trust-eval-network
+
+volumes:
+  mlflow-data:
+
+networks:
+  trust-eval-network:
+    driver: bridge

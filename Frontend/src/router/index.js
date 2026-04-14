@@ -137,6 +137,15 @@ const routes = [
         meta: { layout: 'admin', permissions: ['statistics.view'] }
     },
     {
+        path: '/admin/trust-eval',
+        redirect: '/admin/trust-eval/dashboard',
+    },
+    {
+        path: '/admin/trust-eval/dashboard',
+        component: () => import('../components/Admin/TrustEval/TrustEvalDashboard.vue'),
+        meta: { layout: 'admin', permissions: ['statistics.view'] }
+    },
+    {
         path: '/admin/phan-quyen',
         component: () => import('../components/Admin/Phan_Quyen.vue'),
         meta: { layout: 'admin', permissions: ['permission_management.view'] }

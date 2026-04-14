@@ -64,6 +64,7 @@ export default {
         download: 'Tải',
         settings: 'Cài đặt',
         understood: 'Đã hiểu',
+        refresh: 'Làm mới',
         completed: 'Hoàn thành',
         views: 'lượt xem',
         featured: 'Nổi bật',
@@ -793,6 +794,7 @@ export default {
             aiSuggest: 'AI Gợi ý TNV',
             reports: 'BÁO CÁO',
             statistics: 'Dashboard KDV',
+            aiEvaluation: 'Đánh giá AI',
             admin: 'Admin',
             adminRole: 'Quản trị viên',
             reviewerRole: 'Kiểm duyệt viên',
@@ -2409,5 +2411,162 @@ export default {
         teamwork: 'Làm việc nhóm',
         enthusiastic: 'Nhiệt tình',
         punctual: 'Đúng giờ',
+    },
+
+    // === TrustEval (AI Trust Evaluation) ===
+    trustEval: {
+        // Labels shared across components
+        labels: {
+            reliableHigh: 'Tin cậy cao',
+            reliable: 'Tin cậy',
+            neutral: 'Trung lập',
+            suspicious: 'Nghi ngờ',
+            suspiciousHigh: 'Nghi ngờ cao',
+        },
+
+        // SHAP Explanation
+        shap: {
+            title: 'Giải thích bằng SHAP',
+            subtitle: 'Các yếu tố ảnh hưởng đến điểm tin cậy',
+            baseValue: 'Giá trị cơ sở',
+            prediction: 'Dự đoán',
+            positiveFactors: 'Yếu tố tăng điểm',
+            negativeFactors: 'Yếu tố giảm điểm',
+            noFactors: 'Không có dữ liệu SHAP',
+        },
+
+        // Risk Flags
+        risk: {
+            criticalErrors: 'Lỗi nghiêm trọng',
+            warnings: 'Cảnh báo',
+            noFlags: 'Không có cờ rủi ro nào',
+            anomaly: 'Bất thường',
+            anomalyDetected: 'Phát hiện bất thường',
+            unusualPattern: 'Mẫu hành vi bất thường',
+            autoResolvable: 'Tự động khắc phục',
+        },
+
+        // Decision Support
+        decision: {
+            title: 'Hỗ trợ quyết định',
+            subtitle: 'Đề xuất hành động từ hệ thống AI',
+            confidence: 'Độ tin cậy',
+            reasonLabel: 'Lý do',
+            questionsToVerify: 'Câu hỏi cần xác minh',
+            sourceML: 'Đánh giá bằng ML',
+            sourceFallback: 'Đánh giá dự phòng',
+            actions: {
+                approve: 'Duyệt',
+                approveWithNote: 'Duyệt kèm ghi chú',
+                requestInfo: 'Yêu cầu bổ sung thông tin',
+                reject: 'Từ chối',
+            },
+        },
+
+        // Validation
+        validation: {
+            passed: 'Đạt kiểm tra',
+            failed: 'Không đạt kiểm tra',
+            criticalErrors: 'Lỗi nghiêm trọng',
+            warnings: 'Cảnh báo',
+        },
+
+        // Content Analysis
+        content: {
+            riskKeywords: 'Từ khóa rủi ro',
+            vagueness: 'Độ mơ hồ',
+            safetyDesc: 'Mức độ mô tả an toàn',
+            textRiskScore: 'Điểm rủi ro văn bản',
+            foundKeywords: 'Từ khóa phát hiện',
+        },
+
+        // Campaign Evaluation Panel
+        panel: {
+            title: 'Đánh giá tin cậy chiến dịch',
+            subtitle: 'Phân tích AI về độ tin cậy và mức rủi ro',
+            refresh: 'Đánh giá lại',
+            refreshSuccess: 'Đánh giá đã được cập nhật thành công.',
+            refreshError: 'Không thể làm mới đánh giá. Vui lòng thử lại.',
+            loading: 'Đang tải đánh giá...',
+            errorTitle: 'Lỗi tải đánh giá',
+            loadError: 'Không thể tải đánh giá. Vui lòng thử lại.',
+            trustScore: 'Điểm tin cậy',
+            riskScore: 'Điểm rủi ro',
+            confidence: 'Độ tin cậy',
+            volunteerTrust: 'Tin cậy TNV',
+            riskAssessment: 'Đánh giá rủi ro',
+            validationResult: 'Kết quả kiểm tra',
+            contentAnalysis: 'Phân tích nội dung',
+            notYetEvaluated: 'Chưa có đánh giá',
+            notYetEvaluatedDesc: 'Chiến dịch này chưa được đánh giá bởi hệ thống AI.',
+            runFirstEval: 'Chạy đánh giá đầu tiên',
+            sourceML: 'ML Service',
+            sourceFallback: 'Fallback',
+        },
+
+        // Volunteer Evaluation Panel
+        volunteer: {
+            title: 'Đánh giá tin cậy TNV',
+            subtitle: 'Phân tích AI về độ tin cậy của tình nguyện viên',
+            trustScoreLabel: 'Điểm tin cậy',
+            reliabilityTitle: 'Tóm tắt độ tin cậy',
+            totalRegistrations: 'Tổng đăng ký',
+            cancelledRegistrations: 'Đã hủy',
+            cancellationRate: 'Tỷ lệ hủy',
+            completionRate: 'Tỷ lệ hoàn thành',
+            ratings: 'đánh giá',
+            behaviorFlags: 'Cờ hành vi',
+            noEvaluation: 'Chưa có đánh giá',
+            noEvaluationDesc: 'Tình nguyện viên này chưa được đánh giá.',
+        },
+
+        // Dashboard
+        dashboard: {
+            title: 'Dashboard Đánh giá Tin cậy',
+            subtitle: 'Thống kê đánh giá AI của toàn hệ thống',
+            mlServiceOnline: 'ML Service Online',
+            mlServiceOffline: 'ML Service Offline',
+            modelsLoaded: 'models loaded',
+            loadError: 'Không thể tải thống kê.',
+
+            riskDistribution: 'Phân bố mức rủi ro',
+            trustDistribution: 'Phân bố nhãn tin cậy',
+            recommendedActions: 'Hành động được đề xuất',
+            evaluationSource: 'Nguồn đánh giá',
+            recentHighRisk: 'Chiến dịch rủi ro cao gần đây',
+            noHighRisk: 'Không có chiến dịch rủi ro cao nào.',
+            mlService: 'ML Service',
+            fallback: 'Fallback',
+            totalEvaluations: 'Tổng số đánh giá',
+            yes: 'Có',
+
+            riskLevels: {
+                low: 'Thấp',
+                medium: 'Trung bình',
+                high: 'Cao',
+                critical: 'Nghiêm trọng',
+            },
+
+            kpis: {
+                totalEvaluations: 'Tổng đánh giá',
+                avgTrustScore: 'Điểm TB tin cậy',
+                avgRiskScore: 'Điểm TB rủi ro',
+                highRiskCount: 'Rủi ro cao',
+                ofTotal: 'của tổng',
+                highTrust: 'Tin cậy cao',
+                mediumTrust: 'Tin cậy TB',
+                lowTrust: 'Tin cậy thấp',
+            },
+
+            table: {
+                campaign: 'Chiến dịch',
+                riskLevel: 'Mức rủi ro',
+                trustScore: 'Điểm tin cậy',
+                anomaly: 'Bất thường',
+                evaluatedAt: 'Thời gian đánh giá',
+            },
+
+            campaignId: 'Chiến dịch #{{id}}',
+        },
     },
 }
