@@ -54,7 +54,7 @@
 											{{ campaign.title }}
 										</router-link>
 									</h5>
-									<p class="text-muted small mb-3 text-truncate-2">{{ campaign.description }}</p>
+									<p class="text-muted small mb-3 text-truncate-2" :title="campaign.description">{{ campaign.descriptionPreview || campaign.description }}</p>
 									<div class="d-flex flex-wrap gap-2 mb-3">
 										<span v-for="badge in campaign.recommendationBadges" :key="badge" class="badge rounded-pill bg-light text-dark border">{{ badge }}</span>
 									</div>
@@ -78,11 +78,8 @@
 											<i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>{{ warning }}
 										</div>
 									</div>
-									<div class="d-flex gap-2 mt-3 position-relative z-2" v-if="canLoadRecommendations">
-										<button class="btn btn-outline-dark btn-sm rounded-pill px-3" @click="openCampaignCompare(campaign)">
-											<i class="fa-solid fa-table-columns me-1"></i>{{ $t('campaignList.compare.open') }}
-										</button>
-										<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm rounded-pill px-3">
+									<div class="campaign-card-action mt-3 position-relative z-2">
+										<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm rounded-pill px-4">
 											{{ $t('campaignList.compare.viewDetail') }}
 										</router-link>
 									</div>
@@ -245,7 +242,7 @@
 
 									<!-- Title & Desc -->
 									<h5 class="fw-bold mb-2 text-truncate-2" style="min-height: 48px;"><router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="text-dark text-decoration-none">{{ campaign.title }}</router-link></h5>
-									<p class="text-muted small mb-3 text-truncate-2 flex-grow-1">{{ campaign.description }}</p>
+									<p class="text-muted small mb-3 text-truncate-2 flex-grow-1" :title="campaign.description">{{ campaign.descriptionPreview || campaign.description }}</p>
 
 									<!-- Meta -->
 									<div class="d-flex flex-column gap-2 small text-muted mb-4">
@@ -268,11 +265,8 @@
 										<div class="progress" style="height: 6px;">
 											<div class="progress-bar" :class="`bg-${getProgressColorClass(campaign)}`" :style="{ width: getProgress(campaign) + '%' }"></div>
 										</div>
-										<div class="d-flex gap-2 mt-3 position-relative z-2" v-if="canLoadRecommendations">
-											<button class="btn btn-outline-dark btn-sm rounded-pill px-3" @click="openCampaignCompare(campaign)">
-												<i class="fa-solid fa-table-columns me-1"></i>So sánh
-											</button>
-											<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm rounded-pill px-3">
+										<div class="campaign-card-action mt-3 position-relative z-2">
+											<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm rounded-pill px-4">
 												Xem chi tiết
 											</router-link>
 										</div>
@@ -352,123 +346,13 @@
 			</div>
 		</div>
 
-		<div v-if="showCompareModal" class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
-			<div class="modal-dialog modal-dialog-centered modal-xl">
-				<div class="modal-content border-0 shadow">
-					<div class="modal-header border-0 pb-0">
-						<div>
-							<div class="small text-muted">{{ $t('campaignList.compare.modalSubtitle') }}</div>
-							<h5 class="modal-title fw-bold mt-1">{{ compareCampaign?.title || $t('campaignList.defaultCategory') }}</h5>
-						</div>
-						<button type="button" class="btn-close" @click="closeCampaignCompare"></button>
-					</div>
-					<div class="modal-body pt-3">
-						<div v-if="compareLoading" class="text-center py-5">
-							<div class="spinner-border text-primary mb-3" role="status"></div>
-							<div class="text-muted">{{ $t('campaignList.compare.preparing') }}</div>
-						</div>
-						<template v-else-if="compareCampaign">
-							<div class="compare-overview mb-4">
-								<div class="compare-overview-title">{{ $t('campaignList.compare.overview') }}</div>
-								<div class="compare-overview-text">
-									{{ compareCampaign.compareSummary }}
-								</div>
-							</div>
-
-							<div class="compare-table-wrap">
-								<table class="compare-table">
-									<thead>
-										<tr>
-											<th>{{ $t('campaignList.compare.criteria') }}</th>
-											<th>{{ $t('campaignList.compare.campaign') }}</th>
-											<th>{{ $t('campaignList.compare.matchLevel') }}</th>
-											<th>{{ $t('campaignList.compare.profile') }}</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr v-for="row in compareRows" :key="row.label">
-											<td class="compare-cell-label">{{ row.label }}</td>
-											<td class="compare-cell-main">
-												<div class="compare-main">{{ row.campaign }}</div>
-												<div v-if="row.campaignHelper" class="compare-helper">{{ row.campaignHelper }}</div>
-											</td>
-											<td class="compare-cell-status">
-												<span class="compare-badge" :class="getCompareBadgeClass(row.percent)">{{ row.statusLabel }}</span>
-											</td>
-											<td class="compare-cell-main">
-												<div class="compare-main">{{ row.profile }}</div>
-												<div v-if="row.profileHelper" class="compare-helper">{{ row.profileHelper }}</div>
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-
-							<div class="compare-detail-grid mt-3">
-								<div class="compare-detail-card">
-									<div class="compare-detail-title">{{ $t('campaignList.compare.matchedSkills') }}</div>
-									<div v-if="compareSkillSummary.noRequirement" class="small text-muted">
-										{{ $t('campaignList.compare.noSkillRequirement') }}
-									</div>
-									<div v-else-if="compareSkillSummary.matched.length" class="compare-chip-wrap">
-										<span v-for="skill in compareSkillSummary.matched" :key="'cmp-skill-' + skill" class="compare-chip compare-chip-good">{{ skill }}</span>
-									</div>
-									<div v-else class="small text-muted">{{ $t('campaignList.compare.noMatchedSkills') }}</div>
-								</div>
-
-								<div class="compare-detail-card">
-									<div class="compare-detail-title">{{ $t('campaignList.compare.missingSkills') }}</div>
-									<div v-if="compareSkillSummary.noRequirement" class="small text-muted">
-										{{ $t('campaignList.compare.noMissingSkillsBecauseNoRequirement') }}
-									</div>
-									<div v-else-if="compareSkillSummary.missing.length" class="compare-chip-wrap">
-										<span v-for="skill in compareSkillSummary.missing" :key="'cmp-missing-skill-' + skill" class="compare-chip compare-chip-warn">{{ skill }}</span>
-									</div>
-									<div v-else class="small text-muted">{{ $t('campaignList.compare.hasAllSkills') }}</div>
-								</div>
-
-								<div class="compare-detail-card">
-									<div class="compare-detail-title">{{ $t('campaignList.compare.matchedDays') }}</div>
-									<div v-if="compareDaySummary.matched.length" class="compare-chip-wrap">
-										<span v-for="day in compareDaySummary.matched" :key="'cmp-day-' + day" class="compare-chip compare-chip-good">{{ day }}</span>
-									</div>
-									<div v-else class="small text-muted">{{ $t('campaignList.compare.noMatchedDays') }}</div>
-								</div>
-
-								<div class="compare-detail-card">
-									<div class="compare-detail-title">{{ $t('campaignList.compare.missingDays') }}</div>
-									<div v-if="compareDaySummary.missing.length" class="compare-chip-wrap">
-										<span v-for="day in compareDaySummary.missing" :key="'cmp-missing-day-' + day" class="compare-chip compare-chip-warn">{{ day }}</span>
-									</div>
-									<div v-else class="small text-muted">{{ $t('campaignList.compare.allDaysMatched') }}</div>
-								</div>
-							</div>
-
-							<div v-if="compareHighlights.length" class="compare-highlights mt-3">
-								<div class="fw-semibold mb-2">{{ $t('campaignList.compare.highlights') }}</div>
-								<div v-for="highlight in compareHighlights" :key="highlight" class="small text-muted mb-1">
-									<i class="fa-solid fa-circle-info text-primary me-2"></i>{{ highlight }}
-								</div>
-							</div>
-						</template>
-					</div>
-					<div class="modal-footer border-0 pt-0">
-						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeCampaignCompare">{{ $t('common.close') }}</button>
-						<router-link v-if="compareCampaign" :to="`/chi-tiet-chien-dich/${compareCampaign.id}`" class="btn btn-primary rounded-pill px-4">
-							{{ $t('campaignList.compare.viewCampaignDetail') }}
-						</router-link>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div v-if="showCompareModal" class="modal-backdrop fade show" @click="closeCampaignCompare"></div>
-
 	</div>
 </template>
 
 <script>
 import api from '@/services/api.js';
 import { hasPermission } from '@/utils/permissions';
+import { buildCampaignDescriptionPreview } from '@/utils/campaignDescription';
 
 export default {
 	name: 'DanhSachChienDich',
@@ -809,6 +693,7 @@ export default {
 					id: item.id,
 					title: item.tieu_de || '—',
 					description: item.mo_ta || '',
+					descriptionPreview: buildCampaignDescriptionPreview(item.mo_ta),
 					categoryLabel: item.loai_chien_dich?.ten || 'Chiến dịch',
 					location: item.dia_diem || '—',
 					startDate: this.formatDate(item.ngay_bat_dau),
@@ -1047,6 +932,7 @@ export default {
 				coordinatorName,
 				title: item.tieu_de || this.$t('common.notAvailable'),
 				description: item.mo_ta || '',
+				descriptionPreview: buildCampaignDescriptionPreview(item.mo_ta),
 				category: String(item.loai_chien_dich_id || item.loai_chien_dich?.id || ''),
 				categoryLabel: item.loai_chien_dich?.ten || this.$t('campaignList.defaultCategory'),
 				priority,
@@ -1246,6 +1132,17 @@ export default {
 
 .recommend-breakdown {
 	border: 1px solid rgba(13, 110, 253, 0.08);
+}
+.campaign-card-action {
+	display: flex;
+}
+.campaign-card-action .btn {
+	width: 100%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	font-weight: 600;
 }
 
 .campaign-banner-img {

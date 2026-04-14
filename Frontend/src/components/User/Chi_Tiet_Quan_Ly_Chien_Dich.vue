@@ -42,7 +42,12 @@
 					</div>
 					<div class="card-body p-4">
 						<h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-align-left me-2 text-primary"></i>{{ $t('campaignDetail.campaignDescription') }}</h6>
-						<p class="text-muted mb-0 lh-lg">{{ campaign.description }}</p>
+						<ul v-if="campaignDescriptionItems.length > 1" class="text-muted mb-0 ps-3 campaign-description-list">
+							<li v-for="(item, index) in campaignDescriptionItems" :key="`campaign-description-${index}`" class="mb-2">
+								{{ item }}
+							</li>
+						</ul>
+						<p v-else class="text-muted mb-0 lh-lg">{{ campaignDescriptionItems[0] || campaign.description }}</p>
 					</div>
 				</div>
 
@@ -52,13 +57,13 @@
 							<h6 class="fw-bold text-dark mb-0"><i class="fa-regular fa-images me-2 text-primary"></i>Thư viện ảnh</h6>
 							<span class="badge bg-light text-dark border">{{ campaign.images.length }} ảnh</span>
 						</div>
-						<div class="rounded-4 overflow-hidden border mb-3">
-							<img :src="activeCampaignImage" alt="Ảnh chiến dịch" class="w-100 object-fit-cover" style="height: 360px;">
+						<div class="campaign-gallery-main rounded-4 overflow-hidden border mb-3">
+							<img :src="activeCampaignImage" alt="Ảnh chiến dịch" class="campaign-gallery-main-image">
 						</div>
 						<div class="row g-2" v-if="campaign.images.length > 1">
 							<div v-for="(image, index) in campaign.images" :key="`${campaign.id}-gallery-${index}`" class="col-4 col-md-3">
 								<button type="button" class="btn p-0 w-100 border rounded-3 overflow-hidden gallery-thumb" :class="{ active: activeImageIndex === index }" @click="activeImageIndex = index">
-									<img :src="image" alt="Ảnh thu nhỏ chiến dịch" class="w-100 object-fit-cover" style="height: 96px;">
+									<img :src="image" alt="Ảnh thu nhỏ chiến dịch" class="campaign-gallery-thumb-image">
 								</button>
 							</div>
 						</div>
@@ -255,7 +260,7 @@
 					<div class="card-body p-4">
 						<h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bolt me-2 text-warning"></i>{{ $t('campaignDetail.quickActions') }}</h6>
 						<div class="d-grid gap-2">
-							<button v-if="canManageCampaigns && campaign.status === 'approved'" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('dang_dien_ra')">
+							<button v-if="canStartCampaign" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('dang_dien_ra')">
 								<i class="fa-solid fa-play" style="width:16px"></i><span>{{ $t('coordinator.startCampaignBtn') }}</span>
 							</button>
 							<button v-if="canManageCampaigns && campaign.status === 'active'" class="btn btn-outline-success btn-sm d-flex align-items-center gap-2" @click="confirmStatusChange('hoan_thanh')">
@@ -264,7 +269,7 @@
 							<button v-if="canViewCoordination" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" @click="$router.push({ path: '/dieu-phoi-nhan-su', query: { campaign_id: String(campaign.id) } })">
 								<i class="fa-solid fa-people-arrows" style="width:16px"></i><span>Đi đến màn điều phối</span>
 							</button>
-							<button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2" v-if="campaign.status !== 'cancelled' && campaign.status !== 'completed'" @click="confirmCancel(campaign)">
+							<button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2" v-if="canRequestCancel" @click="confirmCancel(campaign)">
 								<i class="fa-solid fa-ban" style="width:16px"></i><span>{{ $t('campaignDetail.cancelCampaign') }}</span>
 							</button>
 						</div>
@@ -564,6 +569,12 @@ export default {
 		activeCampaignImage() {
 			return this.campaign.images[this.activeImageIndex] || this.campaign.images[0] || '';
 		},
+		campaignDescriptionItems() {
+			return String(this.campaign.description || '')
+				.split('\n')
+				.map((item) => item.replace(/^\s*[-•]\s*/, '').trim())
+				.filter(Boolean);
+		},
 		availableSkills() {
 			if (this.skillsList.length > 0) {
 				return this.skillsList.map(s => ({
@@ -649,6 +660,12 @@ export default {
 			} catch (_error) {
 				return false;
 			}
+		},
+		canStartCampaign() {
+			return this.canManageCampaigns && this.campaign.status === 'approved';
+		},
+		canRequestCancel() {
+			return !['pending_cancel', 'cancelled', 'completed'].includes(this.campaign.status);
 		},
 		statusAlertClass() {
 				const m = { approved: 'alert-info', active: 'alert-success', pending: 'alert-warning', pending_cancel: 'alert-danger', completed: 'alert-secondary', cancelled: 'alert-danger', rejected: 'alert-dark', draft: 'alert-light' };
@@ -1141,9 +1158,34 @@ export default {
 .campaign-detail-fullwidth-sections {
 	margin-top: 1.5rem;
 }
+
+.campaign-description-list li:last-child {
+	margin-bottom: 0 !important;
+}
+
+.campaign-gallery-main {
+	height: clamp(220px, 36vw, 300px);
+	background: #f8f9fa;
+}
+
+.campaign-gallery-main-image {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	background: #f8f9fa;
+}
+
+.campaign-gallery-thumb-image {
+	width: 100%;
+	height: 82px;
+	object-fit: contain;
+	background: #f8f9fa;
+}
+
 .gallery-thumb {
 	opacity: 0.75;
 	transition: all 0.2s ease;
+	background: #f8f9fa;
 }
 .gallery-thumb.active,
 .gallery-thumb:hover {

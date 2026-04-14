@@ -60,13 +60,13 @@
 								<h4 class="fw-bold mb-0"><i class="fa-regular fa-images text-primary me-2"></i>Hình ảnh chiến dịch</h4>
 								<span class="badge bg-light text-dark border">{{ campaign.images.length }} ảnh</span>
 							</div>
-							<div class="rounded-4 overflow-hidden border mb-3">
-								<img :src="activeCampaignImage" alt="Hình ảnh chiến dịch" class="w-100 object-fit-cover" style="height: 360px;">
+							<div class="campaign-gallery-main rounded-4 overflow-hidden border mb-3">
+								<img :src="activeCampaignImage" alt="Hình ảnh chiến dịch" class="campaign-gallery-main-image">
 							</div>
 							<div class="row g-2" v-if="campaign.images.length > 1">
 								<div v-for="(image, index) in campaign.images" :key="`${campaign.id}-image-${index}`" class="col-4 col-md-3">
 									<button type="button" class="btn p-0 w-100 border rounded-3 overflow-hidden gallery-thumb" :class="{ active: activeImageIndex === index }" @click="activeImageIndex = index">
-										<img :src="image" alt="Ảnh thu nhỏ chiến dịch" class="w-100 object-fit-cover" style="height: 96px;">
+										<img :src="image" alt="Ảnh thu nhỏ chiến dịch" class="campaign-gallery-thumb-image">
 									</button>
 								</div>
 							</div>
@@ -76,7 +76,12 @@
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
 							<h4 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-info me-2"></i>{{ $t('campaignDetail.aboutTitle') }}</h4>
-							<p class="text-muted lh-lg mb-0">{{ campaign.description || $t('common.notAvailable') }}</p>
+							<ul v-if="campaignDescriptionItems.length > 1" class="text-muted lh-lg mb-0 ps-3 campaign-description-list">
+								<li v-for="(item, index) in campaignDescriptionItems" :key="`campaign-public-description-${index}`" class="mb-2">
+									{{ item }}
+								</li>
+							</ul>
+							<p v-else class="text-muted lh-lg mb-0">{{ campaignDescriptionItems[0] || campaign.description || $t('common.notAvailable') }}</p>
 						</div>
 					</div>
 
@@ -207,6 +212,9 @@
 									<button v-if="isLoggedIn && (!canManageParticipation || (!campaign.canRegister && !campaign.canConfirm && !campaign.canCancelRegistration))" class="btn btn-light btn-lg fw-bold rounded-pill" disabled>
 										{{ actionStateLabel }}
 									</button>
+									<button v-if="canLoadComparison" class="btn btn-outline-dark btn-lg fw-bold rounded-pill" @click="openCampaignCompare">
+										<i class="fa-solid fa-table-columns me-2"></i>{{ $t('campaignList.compare.open') }}
+									</button>
 								</div>
 							</div>
 						</div>
@@ -249,6 +257,112 @@
 				</div>
 			</div>
 		</div>
+
+		<div v-if="showCompareModal" class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+			<div class="modal-dialog modal-dialog-centered modal-xl">
+				<div class="modal-content border-0 shadow">
+					<div class="modal-header border-0 pb-0">
+						<div>
+							<div class="small text-muted">{{ $t('campaignList.compare.modalSubtitle') }}</div>
+							<h5 class="modal-title fw-bold mt-1">{{ compareCampaign?.title || campaign.title }}</h5>
+						</div>
+						<button type="button" class="btn-close" @click="closeCampaignCompare"></button>
+					</div>
+					<div class="modal-body pt-3">
+						<div v-if="compareLoading" class="text-center py-5">
+							<div class="spinner-border text-primary mb-3" role="status"></div>
+							<div class="text-muted">{{ $t('campaignList.compare.preparing') }}</div>
+						</div>
+						<template v-else-if="compareCampaign">
+							<div class="compare-overview mb-4">
+								<div class="compare-overview-title">{{ $t('campaignList.compare.overview') }}</div>
+								<div class="compare-overview-text">{{ compareCampaign.compareSummary }}</div>
+							</div>
+
+							<div class="compare-table-wrap">
+								<table class="compare-table">
+									<thead>
+										<tr>
+											<th>{{ $t('campaignList.compare.criteria') }}</th>
+											<th>{{ $t('campaignList.compare.campaign') }}</th>
+											<th>{{ $t('campaignList.compare.matchLevel') }}</th>
+											<th>{{ $t('campaignList.compare.profile') }}</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr v-for="row in compareRows" :key="row.label">
+											<td class="compare-cell-label">{{ row.label }}</td>
+											<td class="compare-cell-main">
+												<div class="compare-main">{{ row.campaign }}</div>
+												<div v-if="row.campaignHelper" class="compare-helper">{{ row.campaignHelper }}</div>
+											</td>
+											<td class="compare-cell-status">
+												<span class="compare-badge" :class="getCompareBadgeClass(row.percent)">{{ row.statusLabel }}</span>
+											</td>
+											<td class="compare-cell-main">
+												<div class="compare-main">{{ row.profile }}</div>
+												<div v-if="row.profileHelper" class="compare-helper">{{ row.profileHelper }}</div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+
+							<div class="compare-detail-grid mt-3">
+								<div class="compare-detail-card">
+									<div class="compare-detail-title">{{ $t('campaignList.compare.matchedSkills') }}</div>
+									<div v-if="compareSkillSummary.noRequirement" class="small text-muted">
+										{{ $t('campaignList.compare.noSkillRequirement') }}
+									</div>
+									<div v-else-if="compareSkillSummary.matched.length" class="compare-chip-wrap">
+										<span v-for="skill in compareSkillSummary.matched" :key="'detail-cmp-skill-' + skill" class="compare-chip compare-chip-good">{{ skill }}</span>
+									</div>
+									<div v-else class="small text-muted">{{ $t('campaignList.compare.noMatchedSkills') }}</div>
+								</div>
+
+								<div class="compare-detail-card">
+									<div class="compare-detail-title">{{ $t('campaignList.compare.missingSkills') }}</div>
+									<div v-if="compareSkillSummary.noRequirement" class="small text-muted">
+										{{ $t('campaignList.compare.noMissingSkillsBecauseNoRequirement') }}
+									</div>
+									<div v-else-if="compareSkillSummary.missing.length" class="compare-chip-wrap">
+										<span v-for="skill in compareSkillSummary.missing" :key="'detail-cmp-missing-' + skill" class="compare-chip compare-chip-warn">{{ skill }}</span>
+									</div>
+									<div v-else class="small text-muted">{{ $t('campaignList.compare.hasAllSkills') }}</div>
+								</div>
+
+								<div class="compare-detail-card">
+									<div class="compare-detail-title">{{ $t('campaignList.compare.matchedDays') }}</div>
+									<div v-if="compareDaySummary.matched.length" class="compare-chip-wrap">
+										<span v-for="day in compareDaySummary.matched" :key="'detail-cmp-day-' + day" class="compare-chip compare-chip-good">{{ day }}</span>
+									</div>
+									<div v-else class="small text-muted">{{ $t('campaignList.compare.noMatchedDays') }}</div>
+								</div>
+
+								<div class="compare-detail-card">
+									<div class="compare-detail-title">{{ $t('campaignList.compare.missingDays') }}</div>
+									<div v-if="compareDaySummary.missing.length" class="compare-chip-wrap">
+										<span v-for="day in compareDaySummary.missing" :key="'detail-cmp-missing-day-' + day" class="compare-chip compare-chip-warn">{{ day }}</span>
+									</div>
+									<div v-else class="small text-muted">{{ $t('campaignList.compare.allDaysMatched') }}</div>
+								</div>
+							</div>
+
+							<div v-if="compareHighlights.length" class="compare-highlights mt-3">
+								<div class="fw-semibold mb-2">{{ $t('campaignList.compare.highlights') }}</div>
+								<div v-for="highlight in compareHighlights" :key="highlight" class="small text-muted mb-1">
+									<i class="fa-solid fa-circle-info text-primary me-2"></i>{{ highlight }}
+								</div>
+							</div>
+						</template>
+					</div>
+					<div class="modal-footer border-0 pt-0">
+						<button type="button" class="btn btn-light rounded-pill px-4" @click="closeCampaignCompare">{{ $t('common.close') }}</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div v-if="showCompareModal" class="modal-backdrop fade show" @click="closeCampaignCompare"></div>
 	</div>
 </template>
 
@@ -268,17 +382,25 @@ export default {
 			mapLatitude: null,
 			mapLongitude: null,
 			showActionModal: false,
+			showCompareModal: false,
 			pendingAction: '',
 			submittingAction: false,
 			cancelReason: '',
 			showAllReviews: false,
 			activeImageIndex: 0,
+			compareLoading: false,
+			compareCampaign: null,
+			volunteerProfile: null,
+			skillCatalog: [],
+			areaCatalog: [],
 			campaign: {
 				id: null,
 				title: '',
 				description: '',
 				location: '',
 				dateRange: '',
+				startDateRaw: '',
+				endDateRaw: '',
 				deadline: '',
 				status: '',
 				statusLabel: '',
@@ -287,6 +409,8 @@ export default {
 				categoryLabel: '',
 				creatorName: '',
 				creatorEmail: '',
+				areaText: '',
+				minVolunteers: 1,
 				capacity: 0,
 				registered: 0,
 				confirmed: 0,
@@ -311,6 +435,12 @@ export default {
 		activeCampaignImage() {
 			return this.campaign.images[this.activeImageIndex] || this.campaign.images[0] || '';
 		},
+		campaignDescriptionItems() {
+			return String(this.campaign.description || '')
+				.split('\n')
+				.map((item) => item.replace(/^\s*[-•]\s*/, '').trim())
+				.filter(Boolean);
+		},
 		currentUser() {
 			try {
 				return JSON.parse(localStorage.getItem('user') || 'null');
@@ -320,6 +450,11 @@ export default {
 		},
 		isLoggedIn() {
 			return !!localStorage.getItem('token') && !!this.currentUser;
+		},
+		canLoadComparison() {
+			return !!localStorage.getItem('token')
+				&& this.currentUser?.vai_tro === 'tinh_nguyen_vien'
+				&& hasPermission(this.currentUser, 'ai_recommendation.view');
 		},
 		canManageParticipation() {
 			return hasPermission(this.currentUser, 'campaign_participation.manage');
@@ -380,6 +515,99 @@ export default {
 			if (this.campaign.status === 'hoan_thanh') return this.$t('campaignRegistration.campaignCompleted');
 			return this.$t('campaignDetail.registrationClosed');
 		},
+		compareSkillSummary() {
+			if (!this.compareCampaign || !this.volunteerProfile) return { matched: [], missing: [], noRequirement: false };
+			const campaignSkills = this.compareCampaign.skills || [];
+			const profileSkills = this.volunteerProfile.skillNames || [];
+			return {
+				noRequirement: campaignSkills.length === 0,
+				matched: profileSkills.filter((skill) => campaignSkills.includes(skill)),
+				missing: campaignSkills.filter((skill) => !profileSkills.includes(skill)),
+			};
+		},
+		compareDaySummary() {
+			if (!this.compareCampaign || !this.volunteerProfile) return { matched: [], missing: [] };
+			const campaignDays = this.getCampaignWeekdayLabels(this.compareCampaign.startDateRaw, this.compareCampaign.endDateRaw);
+			const volunteerDays = this.normalizeVolunteerDayLabels(this.volunteerProfile.availability || []);
+			return {
+				matched: campaignDays.filter((day) => volunteerDays.includes(day)),
+				missing: campaignDays.filter((day) => !volunteerDays.includes(day)),
+			};
+		},
+		compareRows() {
+			if (!this.compareCampaign || !this.volunteerProfile) return [];
+
+			const skillPercent = this.compareCampaign.skills.length
+				? Math.round((this.compareSkillSummary.matched.length / this.compareCampaign.skills.length) * 100)
+				: 100;
+			const availabilityPercent = this.compareCampaign.dayLabels.length
+				? Math.round((this.compareDaySummary.matched.length / this.compareCampaign.dayLabels.length) * 100)
+				: 100;
+			const distancePercent = this.compareCampaign.distanceScore;
+			const overallPercent = this.compareCampaign.matchScore ?? this.buildCompareOverallScore(skillPercent, availabilityPercent, distancePercent);
+
+			return [
+				{
+					label: this.$t('campaignList.compare.skillLabel'),
+					campaign: this.compareCampaign.skills.length ? this.compareCampaign.skills.join(', ') : this.$t('campaignList.compare.noSpecificSkillRequirement'),
+					campaignHelper: this.compareCampaign.skills.length ? this.$t('campaignList.compare.campaignNeedsSkills', { count: this.compareCampaign.skills.length }) : '',
+					profile: this.volunteerProfile.skillNames.length ? this.volunteerProfile.skillNames.join(', ') : this.$t('campaignList.compare.profileNoSkills'),
+					profileHelper: this.compareSkillSummary.noRequirement
+						? this.$t('campaignList.compare.skillNotRestricted')
+						: this.$t('campaignList.compare.skillMatchFraction', { matched: this.compareSkillSummary.matched.length, total: this.compareCampaign.skills.length }),
+					percent: skillPercent,
+					statusLabel: this.$t('campaignList.compare.percentMatch', { percent: skillPercent }),
+				},
+				{
+					label: this.$t('campaignList.compare.locationLabel'),
+					campaign: this.compareCampaign.location || this.$t('campaignList.compare.noLocation'),
+					campaignHelper: this.compareCampaign.areaText || '',
+					profile: this.volunteerProfile.areaText || this.$t('campaignList.compare.profileNoArea'),
+					profileHelper: this.compareCampaign.distanceText
+						? this.$t('campaignList.compare.distanceToCampaign', { distance: this.compareCampaign.distanceText })
+						: this.$t('campaignList.compare.distanceUnavailable'),
+					percent: distancePercent,
+					statusLabel: this.$t('campaignList.compare.percentNear', { percent: this.compareCampaign.distanceText ? distancePercent : 0 }),
+				},
+				{
+					label: this.$t('campaignList.compare.timeLabel'),
+					campaign: this.compareCampaign.dateText,
+					campaignHelper: this.compareCampaign.weekdayRangeText,
+					profile: this.volunteerProfile.availabilityText || this.$t('campaignList.compare.profileNoAvailability'),
+					profileHelper: this.$t('campaignList.compare.dayMatchSummary', { matched: this.compareDaySummary.matched.length, missing: this.compareDaySummary.missing.length }),
+					percent: availabilityPercent,
+					statusLabel: this.$t('campaignList.compare.percentMatch', { percent: availabilityPercent }),
+				},
+				{
+					label: this.$t('campaignList.compare.overallLabel'),
+					campaign: this.compareCampaign.priorityLabel || this.$t('campaignList.compare.notSpecified'),
+					campaignHelper: this.$t('campaignList.compare.capacityText', { min: this.compareCampaign.minVolunteers, max: this.compareCampaign.maxVolunteers }),
+					profile: this.$t('campaignList.compare.currentProfile'),
+					profileHelper: this.$t('campaignList.compare.profileOverallFit', { percent: overallPercent }),
+					percent: overallPercent,
+					statusLabel: this.$t('campaignList.compare.percentOverall', { percent: overallPercent }),
+				},
+			];
+		},
+		compareHighlights() {
+			if (!this.compareCampaign || !this.volunteerProfile) return [];
+			const highlights = [];
+			if (this.compareSkillSummary.noRequirement) {
+				highlights.push(this.$t('campaignList.compare.highlightNoSkillRequirement'));
+			} else if (this.compareSkillSummary.matched.length) {
+				highlights.push(this.$t('campaignList.compare.highlightMatchedSkills', { skills: this.compareSkillSummary.matched.join(', ') }));
+			}
+			if (!this.compareSkillSummary.noRequirement && this.compareSkillSummary.missing.length) {
+				highlights.push(this.$t('campaignList.compare.highlightMissingSkills', { skills: this.compareSkillSummary.missing.join(', ') }));
+			}
+			if (this.compareCampaign.distanceText) {
+				highlights.push(this.$t('campaignList.compare.highlightDistance', { distance: this.compareCampaign.distanceText }));
+			}
+			if (this.compareDaySummary.missing.length) {
+				highlights.push(this.$t('campaignList.compare.highlightMissingDays', { days: this.compareDaySummary.missing.join(', ') }));
+			}
+			return highlights.slice(0, 4);
+		},
 	},
 	async mounted() {
 		await this.loadCampaignDetail();
@@ -424,6 +652,8 @@ export default {
 				description: item.mo_ta || '',
 				location: item.dia_diem || this.$t('common.notAvailable'),
 				dateRange: `${this.formatDate(item.ngay_bat_dau)} — ${this.formatDate(item.ngay_ket_thuc)}`,
+				startDateRaw: item.ngay_bat_dau || '',
+				endDateRaw: item.ngay_ket_thuc || '',
 				deadline: this.formatDate(item.han_dang_ky),
 				status: item.trang_thai,
 				statusLabel: this.getCampaignStatusLabel(item.trang_thai),
@@ -432,6 +662,8 @@ export default {
 				categoryLabel: item.loai_chien_dich?.ten || this.$t('campaignDetail.defaultCategory'),
 				creatorName: item.nguoi_tao?.ho_ten || item.duyet_boi?.ho_ten || this.$t('campaignDetail.unknownCreator'),
 				creatorEmail: item.nguoi_tao?.email || item.duyet_boi?.email || '',
+				areaText: item.khu_vuc?.ten || '',
+				minVolunteers: item.so_luong_toi_thieu || 1,
 				capacity: item.so_luong_toi_da || 0,
 				registered: item.so_dang_ky || 0,
 				confirmed: item.so_xac_nhan || 0,
@@ -513,6 +745,187 @@ export default {
 		},
 		goToLogin() {
 			this.$router.push({ path: '/dang-nhap', query: { redirect: this.$route.fullPath } });
+		},
+		async loadVolunteerComparisonProfile() {
+			try {
+				const [profileRes, infoRes, skillRes, areaRes] = await Promise.all([
+					api.get('/nguoi-dung/ho-so-nang-luc'),
+					api.get('/nguoi-dung/thong-tin'),
+					api.get('/danh-muc/ky-nang'),
+					api.get('/danh-muc/khu-vuc'),
+				]);
+
+				this.skillCatalog = Array.isArray(skillRes.data?.data) ? skillRes.data.data : [];
+				this.areaCatalog = Array.isArray(areaRes.data?.data) ? areaRes.data.data : [];
+
+				const profile = profileRes.data?.data || {};
+				const info = infoRes.data?.data || {};
+				const skillNames = (profile.ky_nang_ids || [])
+					.map((id) => this.skillCatalog.find((item) => Number(item.id) === Number(id))?.ten)
+					.filter(Boolean);
+				const areaNames = (profile.khu_vuc_ids || [])
+					.map((id) => this.areaCatalog.find((item) => Number(item.id) === Number(id))?.ten)
+					.filter(Boolean);
+
+				this.volunteerProfile = {
+					skillIds: profile.ky_nang_ids || [],
+					skillNames,
+					areaIds: profile.khu_vuc_ids || [],
+					areaText: areaNames.join(', '),
+					availability: profile.lich_ranh || [],
+					availabilityText: this.normalizeVolunteerDayLabels(profile.lich_ranh || []).join(', '),
+					viDo: info.vi_do !== null && info.vi_do !== undefined ? Number(info.vi_do) : null,
+					kinhDo: info.kinh_do !== null && info.kinh_do !== undefined ? Number(info.kinh_do) : null,
+				};
+			} catch (_error) {
+				this.volunteerProfile = null;
+			}
+		},
+		async openCampaignCompare() {
+			this.showCompareModal = true;
+			this.compareLoading = true;
+			this.compareCampaign = null;
+			try {
+				if (!this.volunteerProfile) {
+					await this.loadVolunteerComparisonProfile();
+				}
+				if (!this.volunteerProfile) {
+					throw new Error('comparison_profile_unavailable');
+				}
+
+				const skillNames = (this.campaign.skills || []).map((skill) => skill.ten).filter(Boolean);
+				const distanceValue = this.calculateDistanceKm(
+					this.volunteerProfile?.viDo,
+					this.volunteerProfile?.kinhDo,
+					this.campaign.latitude !== null && this.campaign.latitude !== undefined ? Number(this.campaign.latitude) : null,
+					this.campaign.longitude !== null && this.campaign.longitude !== undefined ? Number(this.campaign.longitude) : null,
+				);
+
+				this.compareCampaign = {
+					id: this.campaign.id,
+					title: this.campaign.title,
+					location: this.campaign.location,
+					areaText: this.campaign.areaText || '',
+					skills: skillNames,
+					startDateRaw: this.campaign.startDateRaw || '',
+					endDateRaw: this.campaign.endDateRaw || '',
+					dateText: this.buildCampaignDateText(this.campaign.startDateRaw, this.campaign.endDateRaw),
+					weekdayRangeText: this.buildCampaignWeekdayRangeText(this.campaign.startDateRaw, this.campaign.endDateRaw),
+					dayLabels: this.getCampaignWeekdayLabels(this.campaign.startDateRaw, this.campaign.endDateRaw),
+					priorityLabel: this.campaign.priorityLabel || this.$t('campaignList.compare.notSpecified'),
+					minVolunteers: this.campaign.minVolunteers || 1,
+					maxVolunteers: this.campaign.capacity || 0,
+					matchScore: null,
+					distanceValue,
+					distanceText: distanceValue !== null ? `${distanceValue.toFixed(2)} km` : '',
+					distanceScore: this.distanceToPercent(distanceValue),
+					compareSummary: this.$t('campaignList.compare.summaryWithoutScore'),
+				};
+			} catch (error) {
+				this.showToast('error', this.$t('common.error'), error.response?.data?.message || this.$t('campaignList.compare.loadError'));
+				this.showCompareModal = false;
+			} finally {
+				this.compareLoading = false;
+			}
+		},
+		closeCampaignCompare() {
+			this.showCompareModal = false;
+			this.compareLoading = false;
+			this.compareCampaign = null;
+		},
+		getCompareBadgeClass(percent) {
+			if (percent >= 80) return 'compare-badge-good';
+			if (percent >= 50) return 'compare-badge-warn';
+			if (percent > 0) return 'compare-badge-bad';
+			return 'compare-badge-muted';
+		},
+		getWeekdayLabel(dateString) {
+			if (!dateString) return '';
+			const date = new Date(dateString);
+			if (Number.isNaN(date.getTime())) return '';
+			return [
+				this.$t('common.weekdays.sunday'),
+				this.$t('common.weekdays.monday'),
+				this.$t('common.weekdays.tuesday'),
+				this.$t('common.weekdays.wednesday'),
+				this.$t('common.weekdays.thursday'),
+				this.$t('common.weekdays.friday'),
+				this.$t('common.weekdays.saturday'),
+			][date.getDay()] || '';
+		},
+		buildCampaignDateText(startDate, endDate) {
+			const start = this.formatShortDate(startDate);
+			const end = this.formatShortDate(endDate);
+			if (start && end) return `${start} - ${end}`;
+			return start || end || this.$t('campaignList.compare.noSpecificDate');
+		},
+		buildCampaignWeekdayRangeText(startDate, endDate) {
+			const start = this.formatShortDate(startDate);
+			const end = this.formatShortDate(endDate);
+			const startWeekday = this.getWeekdayLabel(startDate);
+			const endWeekday = this.getWeekdayLabel(endDate);
+			if (start && end && startWeekday && endWeekday) {
+				return `${start} (${startWeekday}) đến ${end} (${endWeekday})`;
+			}
+			return '';
+		},
+		formatShortDate(dateString) {
+			if (!dateString) return '';
+			const date = new Date(dateString);
+			if (Number.isNaN(date.getTime())) return '';
+			return `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+		},
+		getCampaignWeekdayLabels(startDate, endDate) {
+			if (!startDate || !endDate) return [];
+			const current = new Date(startDate);
+			const end = new Date(endDate);
+			if (Number.isNaN(current.getTime()) || Number.isNaN(end.getTime()) || current > end) return [];
+			const labels = [];
+			const seen = new Set();
+			while (current <= end) {
+				const label = this.getWeekdayLabel(current.toISOString().slice(0, 10));
+				if (label && !seen.has(label)) {
+					seen.add(label);
+					labels.push(label);
+				}
+				current.setDate(current.getDate() + 1);
+			}
+			return labels;
+		},
+		normalizeVolunteerDayLabels(days = []) {
+			const dayMap = {
+				thu_hai: this.$t('common.weekdays.monday'),
+				thu_ba: this.$t('common.weekdays.tuesday'),
+				thu_tu: this.$t('common.weekdays.wednesday'),
+				thu_nam: this.$t('common.weekdays.thursday'),
+				thu_sau: this.$t('common.weekdays.friday'),
+				thu_bay: this.$t('common.weekdays.saturday'),
+				chu_nhat: this.$t('common.weekdays.sunday'),
+			};
+			return [...new Set((days || []).map((day) => dayMap[String(day || '').trim().toLowerCase()] || '').filter(Boolean))];
+		},
+		distanceToPercent(distanceKm) {
+			if (distanceKm === null || distanceKm === undefined || Number.isNaN(distanceKm)) return 0;
+			if (distanceKm <= 3) return 100;
+			if (distanceKm <= 10) return Math.round(100 - ((distanceKm - 3) / 7) * 30);
+			if (distanceKm <= 20) return Math.round(70 - ((distanceKm - 10) / 10) * 30);
+			return 10;
+		},
+		buildCompareOverallScore(skillPercent, availabilityPercent, distancePercent) {
+			return Math.round((distancePercent * 0.4) + (skillPercent * 0.3) + (availabilityPercent * 0.2) + 5);
+		},
+		calculateDistanceKm(lat1, lon1, lat2, lon2) {
+			if ([lat1, lon1, lat2, lon2].some((value) => value === null || value === undefined || Number.isNaN(Number(value)))) {
+				return null;
+			}
+			const toRad = (value) => (value * Math.PI) / 180;
+			const earthRadiusKm = 6371;
+			const dLat = toRad(lat2 - lat1);
+			const dLon = toRad(lon2 - lon1);
+			const a = Math.sin(dLat / 2) ** 2
+				+ Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+			const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+			return earthRadiusKm * c;
 		},
 		openActionModal(action) {
 			this.pendingAction = action;
@@ -650,9 +1063,172 @@ export default {
 	height: 56px;
 	min-width: 56px;
 }
+.campaign-description-list li:last-child {
+	margin-bottom: 0 !important;
+}
+.campaign-gallery-main {
+	height: clamp(220px, 36vw, 300px);
+	background: #f8f9fa;
+}
+.campaign-gallery-main-image {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	background: #f8f9fa;
+}
+.campaign-gallery-thumb-image {
+	width: 100%;
+	height: 82px;
+	object-fit: contain;
+	background: #f8f9fa;
+}
+.compare-overview {
+	padding: 14px 16px;
+	border-radius: 16px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+}
+.compare-overview-title {
+	font-size: 13px;
+	font-weight: 700;
+	color: #334155;
+	margin-bottom: 6px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.compare-overview-text {
+	color: #0f172a;
+	font-size: 15px;
+	line-height: 1.6;
+}
+.compare-table-wrap {
+	overflow-x: auto;
+	border: 1px solid #e2e8f0;
+	border-radius: 16px;
+	background: #fff;
+}
+.compare-table {
+	width: 100%;
+	border-collapse: collapse;
+	min-width: 760px;
+}
+.compare-table th,
+.compare-table td {
+	padding: 1rem;
+	border-bottom: 1px solid #e2e8f0;
+	vertical-align: top;
+}
+.compare-table thead th {
+	background: #f8fafc;
+	font-size: 0.78rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #64748b;
+}
+.compare-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+.compare-cell-label {
+	width: 140px;
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.compare-cell-main {
+	min-width: 0;
+}
+.compare-cell-status {
+	width: 150px;
+	text-align: center;
+}
+.compare-main {
+	font-size: 0.96rem;
+	font-weight: 600;
+	color: #0f172a;
+	line-height: 1.5;
+	word-break: break-word;
+}
+.compare-helper {
+	margin-top: 0.2rem;
+	font-size: 0.83rem;
+	color: #64748b;
+	line-height: 1.45;
+}
+.compare-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.45rem 0.8rem;
+	border-radius: 999px;
+	font-size: 0.8rem;
+	font-weight: 700;
+	white-space: nowrap;
+}
+.compare-badge-good {
+	background: #dcfce7;
+	color: #166534;
+}
+.compare-badge-warn {
+	background: #fef3c7;
+	color: #92400e;
+}
+.compare-badge-bad {
+	background: #fee2e2;
+	color: #991b1b;
+}
+.compare-badge-muted {
+	background: #e5e7eb;
+	color: #4b5563;
+}
+.compare-detail-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+.compare-detail-card {
+	padding: 1rem;
+	border-radius: 16px;
+	border: 1px solid #e2e8f0;
+	background: #f8fafc;
+}
+.compare-detail-title {
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 0.75rem;
+}
+.compare-chip-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+.compare-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.4rem 0.75rem;
+	border-radius: 999px;
+	font-size: 0.82rem;
+	font-weight: 600;
+}
+.compare-chip-good {
+	background: #dcfce7;
+	color: #166534;
+}
+.compare-chip-warn {
+	background: #fef3c7;
+	color: #92400e;
+}
+.compare-highlights {
+	padding: 1rem;
+	border-radius: 16px;
+	border: 1px dashed #cbd5e1;
+	background: #f8fafc;
+}
 .gallery-thumb {
 	opacity: 0.75;
 	transition: all 0.2s ease;
+	background: #f8f9fa;
 }
 .gallery-thumb.active,
 .gallery-thumb:hover {
@@ -680,6 +1256,11 @@ export default {
 @media (max-width: 991px) {
 	.campaign-content {
 		margin-top: -40px;
+	}
+}
+@media (max-width: 767.98px) {
+	.compare-detail-grid {
+		grid-template-columns: 1fr;
 	}
 }
 </style>

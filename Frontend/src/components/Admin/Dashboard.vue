@@ -393,7 +393,12 @@
 
 							<div class="mb-4">
 								<h6 class="fw-bold small mb-2"><i class="fa-solid fa-file-lines text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.description') }}</h6>
-								<p class="text-muted small mb-0 lh-lg">{{ detailCampaign.description || '—' }}</p>
+								<ul v-if="detailCampaignDescriptionItems.length > 1" class="text-muted small mb-0 ps-3 lh-lg campaign-description-list">
+									<li v-for="(item, index) in detailCampaignDescriptionItems" :key="`admin-dashboard-campaign-description-${index}`" class="mb-2">
+										{{ item }}
+									</li>
+								</ul>
+								<p v-else class="text-muted small mb-0 lh-lg">{{ detailCampaignDescriptionItems[0] || detailCampaign.description || '—' }}</p>
 							</div>
 
 							<div class="mb-4">
@@ -503,6 +508,7 @@
 <script>
 import api from '../../services/api';
 import { hasPermission } from '../../utils/permissions';
+import { parseCampaignDescription } from '../../utils/campaignDescription';
 
 export default {
 	name: 'AdminDashboard',
@@ -591,6 +597,9 @@ export default {
 			const end = Math.min(total, start + 2);
 			const adjustedStart = Math.max(1, end - 2);
 			return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
+		},
+		detailCampaignDescriptionItems() {
+			return parseCampaignDescription(this.detailCampaign?.description || '');
 		},
 	},
 	watch: {
@@ -1063,6 +1072,10 @@ export default {
 
 .history-item:last-child {
 	border-bottom: none !important;
+}
+
+.campaign-description-list li:last-child {
+	margin-bottom: 0 !important;
 }
 
 .history-dot {

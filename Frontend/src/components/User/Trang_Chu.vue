@@ -87,11 +87,8 @@
 								</div>
 							</div>
 							<div class="card-footer bg-transparent border-top">
-								<div class="d-flex gap-2">
-									<router-link to="/dang-sach-chien-dich" class="btn btn-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
-										{{ $t('common.apply') }}
-									</router-link>
-									<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
+								<div class="d-flex">
+									<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center">
 										{{ $t('common.viewDetails') }}
 									</router-link>
 								</div>
@@ -242,6 +239,7 @@
 
 <script>
 import api from '@/services/api';
+import { buildCampaignDescriptionPreview } from '@/utils/campaignDescription';
 
 export default {
 	name: "TrangChu",
@@ -312,7 +310,7 @@ export default {
 				id: campaign.id,
 				icon: this.resolveCampaignIcon(campaign),
 				title: campaign.tieu_de,
-				description: campaign.mo_ta,
+				description: buildCampaignDescriptionPreview(campaign.mo_ta) || this.$t('common.notAvailable'),
 				location: campaign.dia_diem || this.$t('common.notAvailable'),
 				date: this.formatDate(campaign.ngay_bat_dau),
 				tag: completed ? this.$t('common.completed') : (campaign?.loai_chien_dich?.ten || 'Chiến dịch'),

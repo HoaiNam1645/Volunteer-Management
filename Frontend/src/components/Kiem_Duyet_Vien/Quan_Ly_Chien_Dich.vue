@@ -234,7 +234,12 @@
 
 						<div class="mb-4">
 							<h6 class="fw-bold small mb-2"><i class="fa-solid fa-file-lines text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.description') }}</h6>
-							<p class="text-muted small mb-0 lh-lg">{{ detailTarget.description || '—' }}</p>
+							<ul v-if="detailTargetDescriptionItems.length > 1" class="text-muted small mb-0 ps-3 lh-lg campaign-description-list">
+								<li v-for="(item, index) in detailTargetDescriptionItems" :key="`review-campaign-description-${index}`" class="mb-2">
+									{{ item }}
+								</li>
+							</ul>
+							<p v-else class="text-muted small mb-0 lh-lg">{{ detailTargetDescriptionItems[0] || detailTarget.description || '—' }}</p>
 						</div>
 
 						<div v-if="detailTarget.cancelReason" class="alert alert-danger border-0 shadow-sm mb-4 cancel-reason-alert">
@@ -501,6 +506,7 @@
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import TrustEvalPanel from '../Admin/TrustEval/TrustEvalPanel.vue';
 import api from '../../services/api';
+import { parseCampaignDescription } from '../../utils/campaignDescription';
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
 const STATUS_MAP = {
@@ -580,6 +586,9 @@ export default {
 		},
 		filteredCampaigns() {
 			return this.campaigns;
+		},
+		detailTargetDescriptionItems() {
+			return parseCampaignDescription(this.detailTarget?.description || '');
 		},
 	},
 	async mounted() {
@@ -1150,6 +1159,7 @@ export default {
 <style scoped>
 .stat-card { transition: transform 0.2s; }
 .stat-card:hover { transform: translateY(-2px); }
+.campaign-description-list li:last-child { margin-bottom: 0 !important; }
 .stat-icon {
 	width: 48px; height: 48px; border-radius: 12px;
 	display: flex; align-items: center; justify-content: center;
