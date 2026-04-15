@@ -36,7 +36,7 @@ return new class extends Migration
 
             $table->foreign('nguoi_dung_id', 'fk_kf_nguoi_dung')
                 ->references('id')
-                ->on('nguoi_dung')
+                ->on('nguoi_dungs')
                 ->cascadeOnDelete();
         });
     }
