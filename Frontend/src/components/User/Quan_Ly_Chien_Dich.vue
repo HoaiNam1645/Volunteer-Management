@@ -261,17 +261,12 @@
 									<label class="form-label fw-semibold small mb-2">{{ $t('coordinator.descriptionLabel') }} <span class="text-danger">*</span></label>
 									<div class="row g-3">
 										<div v-for="field in descriptionFieldConfigs" :key="field.key" class="col-12 col-xl-6">
-											<label class="form-label fw-semibold small">{{ field.label }} <span class="text-danger">*</span></label>
+											<label class="form-label fw-semibold small">{{ field.label }}</label>
 											<textarea
 												class="form-control"
 												rows="3"
-												:class="{ 'is-invalid': formErrors[`description_${field.key}`] }"
 												v-model.trim="formData.descriptionForm[field.key]"
-												:placeholder="field.placeholder"
-												required></textarea>
-											<div v-if="formErrors[`description_${field.key}`]" class="invalid-feedback d-block">
-												{{ formErrors[`description_${field.key}`] }}
-											</div>
+												:placeholder="field.placeholder"></textarea>
 										</div>
 									</div>
 								</div>
@@ -287,48 +282,105 @@
 									<div class="form-text">Nội dung này sẽ được gửi lên hệ thống làm mô tả chiến dịch.</div>
 								</div>
 								<div class="col-12">
-									<div class="d-flex align-items-center justify-content-between gap-3 mb-2">
-										<label class="form-label fw-semibold small mb-0">Hình ảnh chiến dịch</label>
-										<button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addCampaignImageInput" :disabled="(formData.previewImages || []).length >= 10">
-											<i class="fa-solid fa-plus me-1"></i>Thêm ảnh
-										</button>
-									</div>
-									<div class="d-flex flex-column gap-2">
-										<div v-for="uploadInput in formData.newImageInputs" :key="uploadInput.id" class="d-flex align-items-start gap-2">
-											<div class="flex-grow-1">
-												<input
-													type="file"
-													class="form-control"
-													:class="{ 'is-invalid': formErrors.images }"
-													accept="image/*"
-													@change="onCampaignImagesChange($event, uploadInput.id)">
-												<div v-if="uploadInput.file" class="form-text">{{ uploadInput.file.name }}</div>
-											</div>
-											<button
-												type="button"
-												class="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0 mt-1 upload-remove-btn"
-												@click="removeCampaignImageInput(uploadInput.id)"
-												:title="'Xóa thanh upload'"
-												:disabled="formData.newImageInputs.length === 1 && !uploadInput.file">
-												<i class="fa-solid fa-xmark"></i>
-											</button>
-										</div>
-									</div>
-									<div class="form-text">Có thể chọn nhiều ảnh. Ảnh đầu tiên sẽ dùng làm ảnh bìa.</div>
-									<div v-if="formErrors.images" class="invalid-feedback d-block">{{ formErrors.images }}</div>
-									<div v-if="formData.previewImages.length" class="row g-3 mt-1">
-										<div v-for="(image, index) in formData.previewImages" :key="image.key" class="col-sm-6 col-lg-4">
-											<div class="border rounded-3 overflow-hidden bg-light position-relative h-100">
-												<div class="position-absolute top-0 start-0 m-2 badge" :class="index === 0 ? 'bg-primary' : 'bg-dark bg-opacity-75'">
-													{{ index === 0 ? 'Ảnh bìa' : `Ảnh ${index + 1}` }}
+									<div class="row g-3">
+										<div class="col-12">
+											<label class="form-label fw-semibold small">Ảnh bìa <span class="text-danger">*</span></label>
+											<div class="upload-media-card" :class="{ 'is-invalid': formErrors.coverImage }">
+												<div class="upload-media-preview">
+													<img
+														v-if="formData.coverPreviewImage"
+														:src="formData.coverPreviewImage.url"
+														alt="Ảnh bìa chiến dịch"
+														class="upload-media-image">
+													<div v-else class="upload-media-placeholder">
+														<i class="fa-regular fa-image"></i>
+														<span>Chưa chọn ảnh bìa</span>
+													</div>
+													<button
+														v-if="formData.coverPreviewImage"
+														type="button"
+														class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
+														@click="removeCoverImage">
+														<i class="fa-solid fa-xmark"></i>
+													</button>
 												</div>
-												<button
-													type="button"
-													class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
-													@click="removeCampaignImage(image)">
-													<i class="fa-solid fa-xmark"></i>
+												<div class="upload-media-body">
+													<input
+														type="file"
+														class="form-control"
+														accept="image/*"
+														@change="onCoverImageChange">
+													<div class="form-text mt-2">
+														{{ formData.coverImageFile?.name || 'Ảnh này sẽ được dùng làm ảnh bìa chiến dịch.' }}
+													</div>
+												</div>
+											</div>
+											<div v-if="formErrors.coverImage" class="invalid-feedback d-block">{{ formErrors.coverImage }}</div>
+										</div>
+										<div class="col-12">
+											<div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+												<label class="form-label fw-semibold small mb-0">Ảnh mô tả chiến dịch <span class="text-danger">*</span></label>
+												<button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addDetailImageInput">
+													<i class="fa-solid fa-plus me-1"></i>Thêm ảnh
 												</button>
-												<img :src="image.url" alt="Hình ảnh chiến dịch" class="w-100 object-fit-cover" style="height: 180px;">
+											</div>
+											<div class="row g-3">
+												<div v-for="(uploadInput, index) in formData.detailImageInputs" :key="uploadInput.id" class="col-12 col-md-4">
+													<div class="upload-media-card h-100" :class="{ 'is-invalid': formErrors.detailImages }">
+														<div class="upload-media-preview">
+															<img
+																v-if="uploadInput.previewUrl"
+																:src="uploadInput.previewUrl"
+																:alt="`Ảnh mô tả ${index + 1}`"
+																class="upload-media-image">
+															<div v-else class="upload-media-placeholder">
+																<i class="fa-regular fa-images"></i>
+																<span>{{ `Ảnh mô tả ${index + 1}` }}</span>
+															</div>
+															<button
+																type="button"
+																class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
+																@click="removeDetailImageInput(uploadInput.id)"
+																:title="'Xóa ô upload'"
+																:disabled="formData.detailImageInputs.length <= 3 && !uploadInput.file">
+																<i class="fa-solid fa-xmark"></i>
+															</button>
+														</div>
+														<div class="upload-media-body">
+															<input
+																type="file"
+																class="form-control"
+																accept="image/*"
+																@change="onDetailImagesChange($event, uploadInput.id)">
+															<div class="form-text mt-2">
+																{{ uploadInput.file?.name || 'Ô upload ảnh mô tả chiến dịch.' }}
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="form-text">Vui lòng tải tối thiểu 3 ảnh mô tả chiến dịch.</div>
+											<div v-if="formErrors.detailImages" class="invalid-feedback d-block">{{ formErrors.detailImages }}</div>
+											<div v-if="false && formData.existingDetailImages.length" class="row g-3 mt-1">
+												<div v-for="(imageUrl, index) in formData.existingDetailImages" :key="`existing-detail-card-${imageUrl}-${index}`" class="col-sm-6 col-lg-4">
+													<div class="upload-media-card h-100">
+														<div class="upload-media-preview">
+															<div class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75">
+																{{ `Ảnh hiện tại ${index + 1}` }}
+															</div>
+															<button
+																type="button"
+																class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm"
+																@click="removeDetailImage({ type: 'existing-detail', url: imageUrl })">
+																<i class="fa-solid fa-xmark"></i>
+															</button>
+															<img :src="imageUrl" alt="Hình ảnh chiến dịch" class="upload-media-image">
+														</div>
+														<div class="upload-media-body py-2">
+															<div class="small text-muted">Ảnh mô tả hiện tại của chiến dịch.</div>
+														</div>
+													</div>
+												</div>
 											</div>
 										</div>
 									</div>
@@ -550,7 +602,7 @@ import StatCards from '../../components/StatCards.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
 import api from '../../services/api'
 import { hasPermission } from '../../utils/permissions'
-import { buildCampaignDescriptionPreview } from '../../utils/campaignDescription'
+import { buildCampaignDescriptionPreview, extractCampaignDescriptionSections } from '../../utils/campaignDescription'
 
 // Priority mapping: DB enum ↔ frontend key
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
@@ -660,10 +712,14 @@ export default {
 				maxVolunteers: null, minVolunteers: null, requiredSkills: [],
 				coverUrl: null,
 				images: [],
-				existingImages: [],
-				newImages: [],
-				newImageInputs: [],
-				previewImages: [],
+				existingCoverImage: null,
+				coverImageFile: null,
+				coverPreviewUrl: '',
+				coverPreviewImage: null,
+				existingDetailImages: [],
+				detailImages: [],
+				detailImageInputs: [],
+				detailPreviewImages: [],
 			},
 			campaigns: [],
 			campaignTypes: [],
@@ -819,6 +875,13 @@ export default {
 		this.loadCampaignTypes();
 		this.loadSkills();
 		this.loadLocationOptions();
+	},
+	beforeUnmount() {
+		if (this._searchTimer) clearTimeout(this._searchTimer);
+		if (this.campaignGeocodeTimer) clearTimeout(this.campaignGeocodeTimer);
+		if (this.locationSuggestionTimer) clearTimeout(this.locationSuggestionTimer);
+		this.releaseCampaignImageObjectUrls();
+		this.destroyCampaignMap();
 	},
 	methods: {
 		// ===== Data Loading =====
@@ -1107,16 +1170,18 @@ export default {
 		// ===== Mapping helpers =====
 		mapCampaignFromApi(cd) {
 			const loai = cd.loai_chien_dich;
-			const images = Array.isArray(cd.danh_sach_anh) && cd.danh_sach_anh.length
-				? cd.danh_sach_anh
-				: (cd.anh_bia ? [cd.anh_bia] : []);
+			const rawImages = Array.isArray(cd.danh_sach_anh) ? cd.danh_sach_anh : [];
+			const { coverImage, detailImages, allImages } = this.splitCampaignImages({
+				coverUrl: cd.anh_bia,
+				images: rawImages,
+			});
 			return {
 				id: cd.id,
 				title: cd.tieu_de,
 				description: cd.mo_ta || '',
 				descriptionPreview: buildCampaignDescriptionPreview(cd.mo_ta),
-				coverUrl: images[0] || cd.anh_bia || null,
-				images,
+				coverUrl: coverImage,
+				images: allImages.length ? allImages : [coverImage, ...detailImages].filter(Boolean),
 				category: cd.loai_chien_dich_id || '',
 				priority: PRIORITY_MAP[cd.muc_do_uu_tien] || 'medium',
 				location: cd.dia_diem,
@@ -1183,6 +1248,7 @@ export default {
 
 		// ===== Form =====
 		resetForm() {
+			this.releaseCampaignImageObjectUrls();
 			this.formErrors = {};
 			this.formData = {
 				title: '', description: '', category: '', priority: '',
@@ -1191,10 +1257,14 @@ export default {
 				startDate: '', endDate: '', maxVolunteers: null, minVolunteers: null, requiredSkills: [],
 				coverUrl: null,
 				images: [],
-				existingImages: [],
-				newImages: [],
-				newImageInputs: [this.createCampaignImageInput()],
-				previewImages: [],
+				existingCoverImage: null,
+				coverImageFile: null,
+				coverPreviewUrl: '',
+				coverPreviewImage: null,
+				existingDetailImages: [],
+				detailImages: [],
+				detailImageInputs: this.createCampaignImageInputs(3),
+				detailPreviewImages: [],
 			};
 			this.locationSuggestions = [];
 			this.locationSuggestionsVisible = false;
@@ -1207,20 +1277,33 @@ export default {
 		openCreateModal() { this.isEditing = false; this.resetForm(); new bootstrap.Modal(this.$refs.campaignModal).show(); },
 		editCampaign(c) {
 			if (!this.canEditCampaign(c)) return;
+			this.releaseCampaignImageObjectUrls();
 			this.isEditing = true;
 			this._justOpenedEdit = true;
+			const { coverImage: existingCoverImage, detailImages: existingDetailImages, allImages: images } = this.splitCampaignImages({
+				coverUrl: c.coverUrl,
+				images: c.images || [],
+			});
 			this.formData = {
 				...c,
 				descriptionForm: this.parseDescriptionForm(c.description),
 				requiredSkills: [...c.requiredSkills],
-				coverUrl: c.coverUrl || c.images?.[0] || null,
-				images: [...(c.images || [])],
-				existingImages: [...(c.images || [])],
-				newImages: [],
-				newImageInputs: [this.createCampaignImageInput()],
-				previewImages: (c.images || []).map((url, index) => ({
-					key: `existing-${index}-${url}`,
-					type: 'existing',
+				coverUrl: existingCoverImage,
+				images,
+				existingCoverImage,
+				coverImageFile: null,
+				coverPreviewUrl: '',
+				coverPreviewImage: existingCoverImage ? {
+					key: `existing-cover-${existingCoverImage}`,
+					type: 'existing-cover',
+					url: existingCoverImage,
+				} : null,
+				existingDetailImages,
+				detailImages: [],
+				detailImageInputs: this.createCampaignImageInputsFromUrls(existingDetailImages, 3),
+				detailPreviewImages: existingDetailImages.map((url, index) => ({
+					key: `existing-detail-${index}-${url}`,
+					type: 'existing-detail',
 					url,
 				})),
 			};
@@ -1311,73 +1394,198 @@ export default {
 		syncDescriptionValue() {
 			this.formData.description = this.buildDescriptionPayload();
 		},
-		createCampaignImageInput(file = null) {
+		parseDescriptionForm(description) {
+			const fallback = this.createDescriptionForm();
+			const extractedSections = extractCampaignDescriptionSections(description);
+			if (extractedSections.length) {
+				extractedSections.forEach((section) => {
+					if (Object.prototype.hasOwnProperty.call(fallback, section.key)) {
+						fallback[section.key] = section.value || '';
+					}
+				});
+				return fallback;
+			}
+
+			const items = String(description || '')
+				.replace(/\r/g, '')
+				.split('\n')
+				.map((item) => item.replace(/^\s*[-•]\s*/, '').trim())
+				.filter(Boolean);
+
+			DESCRIPTION_FIELD_CONFIG.forEach((field, index) => {
+				fallback[field.key] = items[index] || '';
+			});
+
+			return fallback;
+		},
+		createCampaignImageInput(file = null, existingUrl = '') {
 			return {
 				id: `campaign-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 				file,
+				existingUrl,
+				previewUrl: file ? URL.createObjectURL(file) : (existingUrl || ''),
 			};
 		},
-		ensureCampaignImageInputs() {
-			if (!Array.isArray(this.formData.newImageInputs) || this.formData.newImageInputs.length === 0) {
-				this.formData.newImageInputs = [this.createCampaignImageInput()];
+		splitCampaignImages({ coverUrl = null, images = [] } = {}) {
+			const normalizedImages = (Array.isArray(images) ? images : [])
+				.map((url) => (typeof url === 'string' ? url.trim() : ''))
+				.filter(Boolean);
+			const normalizedCoverUrl = typeof coverUrl === 'string' ? coverUrl.trim() : '';
+			const coverImage = normalizedCoverUrl || normalizedImages[0] || null;
+			const remainingImages = [...normalizedImages];
+			if (coverImage) {
+				const coverIndex = remainingImages.findIndex((url) => url === coverImage);
+				if (coverIndex >= 0) {
+					remainingImages.splice(coverIndex, 1);
+				}
+			}
+			const detailImages = remainingImages.filter(Boolean);
+			const allImages = [coverImage, ...detailImages].filter(Boolean);
+			return { coverImage, detailImages, allImages };
+		},
+		createCampaignImageInputs(count = 3) {
+			return Array.from({ length: count }, () => this.createCampaignImageInput());
+		},
+		createCampaignImageInputsFromUrls(urls = [], minCount = 3) {
+			const inputs = (Array.isArray(urls) ? urls : [])
+				.filter(Boolean)
+				.map((url) => this.createCampaignImageInput(null, url));
+			while (inputs.length < minCount) {
+				inputs.push(this.createCampaignImageInput());
+			}
+			return inputs;
+		},
+		revokeCampaignImageUrl(url) {
+			if (typeof url === 'string' && url.startsWith('blob:')) {
+				URL.revokeObjectURL(url);
 			}
 		},
-		addCampaignImageInput() {
-			this.ensureCampaignImageInputs();
-			if ((this.formData.previewImages || []).length >= 10) {
-				this.formErrors.images = 'Tối đa 10 hình ảnh cho mỗi chiến dịch.';
-				return;
-			}
-			this.formData.newImageInputs.push(this.createCampaignImageInput());
+		releaseCampaignImageObjectUrls() {
+			this.revokeCampaignImageUrl(this.formData?.coverPreviewUrl);
+			(this.formData?.detailImageInputs || []).forEach((input) => this.revokeCampaignImageUrl(input.previewUrl));
 		},
-		onCampaignImagesChange(e, inputId) {
+		ensureDetailImageInputs(minCount = 3) {
+			if (!Array.isArray(this.formData.detailImageInputs)) {
+				this.formData.detailImageInputs = [];
+			}
+			while (this.formData.detailImageInputs.length < minCount) {
+				this.formData.detailImageInputs.push(this.createCampaignImageInput());
+			}
+		},
+		getTotalDetailImageCount() {
+			return (this.formData.detailImageInputs || []).filter((item) => item.file || item.existingUrl).length;
+		},
+		onCoverImageChange(e) {
 			const file = Array.from(e.target.files || [])[0] || null;
-			const targetInput = (this.formData.newImageInputs || []).find((item) => item.id === inputId);
-			if (!targetInput) return;
 			if (file && !file.type.startsWith('image/')) {
-				this.formErrors.images = 'Vui lòng chọn tệp hình ảnh hợp lệ.';
+				this.formErrors.coverImage = 'Vui lòng chọn tệp hình ảnh hợp lệ.';
 				e.target.value = '';
 				return;
 			}
 
-			targetInput.file = file;
-			this.syncCampaignPreviewImages();
-			this.formErrors.images = '';
+			this.revokeCampaignImageUrl(this.formData.coverPreviewUrl);
+			this.formData.coverImageFile = file;
+			this.formData.coverPreviewUrl = file ? URL.createObjectURL(file) : '';
+			this.syncCampaignImageState();
+			this.formErrors.coverImage = '';
 			e.target.value = '';
 		},
-		removeCampaignImageInput(inputId) {
-			this.formData.newImageInputs = (this.formData.newImageInputs || []).filter((item) => item.id !== inputId);
-			this.ensureCampaignImageInputs();
-			this.syncCampaignPreviewImages();
+		removeCoverImage() {
+			this.revokeCampaignImageUrl(this.formData.coverPreviewUrl);
+			const hadNewCover = Boolean(this.formData.coverImageFile);
+			this.formData.coverImageFile = null;
+			this.formData.coverPreviewUrl = '';
+			if (!hadNewCover) {
+				this.formData.existingCoverImage = null;
+			}
+			this.syncCampaignImageState();
 		},
-		syncCampaignPreviewImages() {
-			this.ensureCampaignImageInputs();
-			this.formData.newImages = (this.formData.newImageInputs || [])
+		addDetailImageInput() {
+			this.ensureDetailImageInputs();
+			this.formData.detailImageInputs.push(this.createCampaignImageInput());
+		},
+		onDetailImagesChange(e, inputId) {
+			const file = Array.from(e.target.files || [])[0] || null;
+			const targetInput = (this.formData.detailImageInputs || []).find((item) => item.id === inputId);
+			if (!targetInput) return;
+			if (file && !file.type.startsWith('image/')) {
+				this.formErrors.detailImages = 'Vui lòng chọn tệp hình ảnh hợp lệ.';
+				e.target.value = '';
+				return;
+			}
+
+			this.revokeCampaignImageUrl(targetInput.previewUrl);
+			targetInput.file = file;
+			targetInput.existingUrl = '';
+			targetInput.previewUrl = file ? URL.createObjectURL(file) : '';
+			this.syncCampaignImageState();
+			this.formErrors.detailImages = '';
+			e.target.value = '';
+		},
+		removeDetailImageInput(inputId) {
+			const removedInput = (this.formData.detailImageInputs || []).find((item) => item.id === inputId);
+			if (removedInput) {
+				this.revokeCampaignImageUrl(removedInput.previewUrl);
+			}
+			this.formData.detailImageInputs = (this.formData.detailImageInputs || []).filter((item) => item.id !== inputId);
+			this.ensureDetailImageInputs();
+			this.syncCampaignImageState();
+		},
+		syncCampaignImageState() {
+			this.ensureDetailImageInputs();
+			this.formData.detailImages = (this.formData.detailImageInputs || [])
 				.map((item) => item.file)
 				.filter(Boolean);
-			const existing = (this.formData.existingImages || []).map((url, index) => ({
-				key: `existing-${index}-${url}`,
-				type: 'existing',
+			this.formData.existingDetailImages = (this.formData.detailImageInputs || [])
+				.map((item) => item.existingUrl)
+				.filter(Boolean);
+			this.formData.coverPreviewImage = this.formData.coverImageFile
+				? {
+					key: `new-cover-${this.formData.coverImageFile.name}-${this.formData.coverImageFile.size}`,
+					type: 'new-cover',
+					url: this.formData.coverPreviewUrl,
+					file: this.formData.coverImageFile,
+				}
+				: (this.formData.existingCoverImage
+					? {
+						key: `existing-cover-${this.formData.existingCoverImage}`,
+						type: 'existing-cover',
+						url: this.formData.existingCoverImage,
+					}
+					: null);
+
+			const existingDetailImages = (this.formData.existingDetailImages || []).map((url, index) => ({
+				key: `existing-detail-${index}-${url}`,
+				type: 'existing-detail',
 				url,
 			}));
-			const news = (this.formData.newImages || []).map((file, index) => ({
-				key: `new-${index}-${file.name}-${file.size}`,
-				type: 'new',
-				url: URL.createObjectURL(file),
-				file,
-			}));
-			this.formData.previewImages = [...existing, ...news];
-			this.formData.images = this.formData.previewImages.map((item) => item.url);
-			this.formData.coverUrl = this.formData.previewImages[0]?.url || null;
+			const newDetailImages = (this.formData.detailImageInputs || [])
+				.filter((item) => item.file && item.previewUrl)
+				.map((item, index) => ({
+					key: `new-detail-${index}-${item.file.name}-${item.file.size}`,
+					type: 'new-detail',
+					url: item.previewUrl,
+					file: item.file,
+				}));
+			this.formData.detailPreviewImages = [...existingDetailImages, ...newDetailImages];
+			this.formData.coverUrl = this.formData.coverPreviewImage?.url || null;
+			this.formData.images = [
+				this.formData.coverPreviewImage?.url,
+				...this.formData.detailPreviewImages.map((item) => item.url),
+			].filter(Boolean);
 		},
-		removeCampaignImage(image) {
-			if (image.type === 'existing') {
-				this.formData.existingImages = this.formData.existingImages.filter((url) => url !== image.url);
+		removeDetailImage(image) {
+			if (image.type === 'existing-detail') {
+				this.formData.existingDetailImages = this.formData.existingDetailImages.filter((url) => url !== image.url);
 			} else {
-				this.formData.newImageInputs = (this.formData.newImageInputs || []).filter((item) => item.file !== image.file);
-				this.ensureCampaignImageInputs();
+				const removedInput = (this.formData.detailImageInputs || []).find((item) => item.file === image.file || item.previewUrl === image.url);
+				if (removedInput) {
+					this.revokeCampaignImageUrl(removedInput.previewUrl);
+				}
+				this.formData.detailImageInputs = (this.formData.detailImageInputs || []).filter((item) => item.file !== image.file && item.previewUrl !== image.url);
+				this.ensureDetailImageInputs();
 			}
-			this.syncCampaignPreviewImages();
+			this.syncCampaignImageState();
 		},
 		validateCampaignForm() {
 			const errors = {};
@@ -1389,12 +1597,6 @@ export default {
 
 			if (!this.formData.title?.trim()) errors.title = 'Vui lòng nhập tên chiến dịch.';
 			else if (this.formData.title.trim().length < 5) errors.title = 'Tên chiến dịch phải có ít nhất 5 ký tự.';
-
-			DESCRIPTION_FIELD_CONFIG.forEach((field) => {
-				if (!this.normalizeDescriptionFieldValue(this.formData.descriptionForm?.[field.key])) {
-					errors[`description_${field.key}`] = 'Vui lòng nhập nội dung này.';
-				}
-			});
 
 			if (!descriptionPayload.trim()) {
 				errors.description = 'Vui lòng hoàn thiện phần mô tả chiến dịch.';
@@ -1418,13 +1620,13 @@ export default {
 			if (!this.formData.minVolunteers || this.formData.minVolunteers < 1) errors.minVolunteers = 'Số lượng tối thiểu phải lớn hơn 0.';
 			else if (this.formData.maxVolunteers && this.formData.minVolunteers > this.formData.maxVolunteers) errors.minVolunteers = 'Số lượng tối thiểu không được lớn hơn số lượng tối đa.';
 
-			if ((this.formData.previewImages || []).length > 10) errors.images = 'Tối đa 10 hình ảnh cho mỗi chiến dịch.';
+			if (!this.formData.coverPreviewImage) errors.coverImage = 'Vui lòng chọn ảnh bìa cho chiến dịch.';
+			if (this.getTotalDetailImageCount() < 3) errors.detailImages = 'Vui lòng chọn tối thiểu 3 ảnh mô tả chiến dịch.';
 
 			this.formErrors = errors;
 			this.formData.description = descriptionPayload;
 			return Object.keys(errors).length === 0;
 		},
-
 		async saveCampaign() {
 			if (!this.validateCampaignForm()) {
 				if (this.toast) this.toast.showToast('error', 'Lỗi', this.$t('coordinator.fillAllFields'));
@@ -1447,13 +1649,15 @@ export default {
 			payload.append('so_luong_toi_thieu', this.formData.minVolunteers || 1);
 			payload.append('muc_do_uu_tien', PRIORITY_MAP_REVERSE[this.formData.priority] || 'trung_binh');
 			(this.formData.requiredSkills || []).forEach((id, index) => payload.append(`ky_nang_ids[${index}]`, id));
-			(this.formData.existingImages || []).forEach((url, index) => payload.append(`danh_sach_anh_hien_tai[${index}]`, url));
-			if ((this.formData.existingImages || []).length === 0 && this.formData.newImages.length > 0) {
-				payload.append('anh_bia', this.formData.newImages[0]);
-				this.formData.newImages.slice(1).forEach((file, index) => payload.append(`anh_phu[${index}]`, file));
-			} else {
-				this.formData.newImages.forEach((file, index) => payload.append(`anh_phu[${index}]`, file));
+			const existingImages = [
+				...(this.formData.coverImageFile ? [] : (this.formData.existingCoverImage ? [this.formData.existingCoverImage] : [])),
+				...(this.formData.existingDetailImages || []),
+			];
+			existingImages.forEach((url, index) => payload.append(`danh_sach_anh_hien_tai[${index}]`, url));
+			if (this.formData.coverImageFile) {
+				payload.append('anh_bia', this.formData.coverImageFile);
 			}
+			(this.formData.detailImages || []).forEach((file, index) => payload.append(`anh_phu[${index}]`, file));
 
 			try {
 				if (this.isEditing) {
@@ -1728,18 +1932,63 @@ export default {
 	background-color: #fd7e14 !important;
 }
 
-.upload-remove-btn {
-	width: 38px;
-	height: 38px;
-	padding: 0;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
+.upload-media-card {
+	border: 1px solid rgba(15, 23, 42, 0.12);
+	border-radius: 0.5rem;
+	background: #fff;
+	overflow: hidden;
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
-.upload-remove-btn i {
-	line-height: 1;
-	margin: 0;
+.upload-media-card.is-invalid {
+	border-color: #dc3545;
+}
+
+.upload-media-preview {
+	position: relative;
+	height: 190px;
+	background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+}
+
+.upload-media-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.upload-media-placeholder {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	color: #64748b;
+	font-size: 0.92rem;
+	font-weight: 500;
+	text-align: center;
+	padding: 1rem;
+}
+
+.upload-media-placeholder i {
+	font-size: 2rem;
+	color: #94a3b8;
+}
+
+.upload-media-body {
+	padding: 0.9rem;
+}
+
+.upload-media-body .form-control,
+.upload-media-body .btn {
+	border-radius: 0.375rem;
+}
+
+@media (max-width: 767.98px) {
+	.upload-media-preview {
+		height: 170px;
+	}
 }
 
 .nav-tabs-custom .nav-link { border: none; border-bottom: 3px solid transparent; border-radius: 0; font-size: 13px; }

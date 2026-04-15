@@ -144,9 +144,6 @@
 									<router-link :to="`/chi-tiet-chien-dich/${campaign.id}`" class="btn btn-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
 										{{ $t('common.viewDetails') }}
 									</router-link>
-									<router-link to="/danh-sach-chien-dich" class="btn btn-outline-secondary btn-sm flex-fill d-flex align-items-center justify-content-center">
-										{{ $t('home.viewCampaigns') }}
-									</router-link>
 								</div>
 							</div>
 						</div>

@@ -1266,22 +1266,27 @@ class ChienDichController extends Controller
                 : collect($chienDich->danh_sach_anh);
         }
 
-        $uploadedImages = collect();
+        $coverImage = $request->hasFile('anh_bia')
+            ? $this->luuAnhBia($request->file('anh_bia'))
+            : null;
 
-        if ($request->hasFile('anh_bia')) {
-            $uploadedImages->push($this->luuAnhBia($request->file('anh_bia')));
-        }
+        $uploadedDetailImages = collect();
 
         if ($request->hasFile('anh_phu')) {
             foreach ((array) $request->file('anh_phu') as $file) {
                 if ($file) {
-                    $uploadedImages->push($this->luuAnhBia($file));
+                    $uploadedDetailImages->push($this->luuAnhBia($file));
                 }
             }
         }
 
-        $allImages = $existingImages
-            ->merge($uploadedImages)
+        $existingImages = $existingImages
+            ->reject(fn ($item) => $coverImage && $item === $coverImage);
+
+        $allImages = collect([$coverImage])
+            ->filter()
+            ->merge($existingImages)
+            ->merge($uploadedDetailImages)
             ->map(fn ($item) => is_string($item) ? trim($item) : null)
             ->filter()
             ->unique()
