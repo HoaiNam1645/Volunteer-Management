@@ -142,16 +142,16 @@
 										<button class="btn btn-sm btn-outline-primary" :title="$t('admin.campaignManagement.actions.view')" @click="openDetailModal(c)">
 											<i class="fa-solid fa-eye"></i>
 										</button>
-										<button v-if="c.rawStatus === 'cho_duyet'" class="btn btn-sm btn-outline-success" :title="$t('admin.campaignManagement.actions.approve')" @click="confirmApprove(c)">
+										<button v-if="canManageCampaignReview && c.rawStatus === 'cho_duyet'" class="btn btn-sm btn-outline-success" :title="$t('admin.campaignManagement.actions.approve')" @click="confirmApprove(c)">
 											<i class="fa-solid fa-check"></i>
 										</button>
-										<button v-if="c.rawStatus === 'cho_duyet'" class="btn btn-sm btn-outline-danger" :title="$t('admin.campaignManagement.actions.reject')" @click="openRejectModal(c, 'campaign')">
+										<button v-if="canManageCampaignReview && c.rawStatus === 'cho_duyet'" class="btn btn-sm btn-outline-danger" :title="$t('admin.campaignManagement.actions.reject')" @click="openRejectModal(c, 'campaign')">
 											<i class="fa-solid fa-xmark"></i>
 										</button>
-										<button v-if="c.rawStatus === 'yeu_cau_huy'" class="btn btn-sm btn-outline-danger" :title="$t('admin.campaignManagement.actions.approveCancel')" @click="confirmApproveCancel(c)">
+										<button v-if="canManageCampaignReview && c.rawStatus === 'yeu_cau_huy'" class="btn btn-sm btn-outline-danger" :title="$t('admin.campaignManagement.actions.approveCancel')" @click="confirmApproveCancel(c)">
 											<i class="fa-solid fa-ban"></i>
 										</button>
-										<button v-if="c.rawStatus === 'yeu_cau_huy'" class="btn btn-sm btn-outline-secondary" :title="$t('admin.campaignManagement.actions.rejectCancel')" @click="openRejectModal(c, 'cancel_request')">
+										<button v-if="canManageCampaignReview && c.rawStatus === 'yeu_cau_huy'" class="btn btn-sm btn-outline-secondary" :title="$t('admin.campaignManagement.actions.rejectCancel')" @click="openRejectModal(c, 'cancel_request')">
 											<i class="fa-solid fa-rotate-left"></i>
 										</button>
 									</div>
@@ -319,7 +319,7 @@
 										<div class="small mb-2" v-if="report.phan_hoi_xu_ly">
 											<strong>{{ $t('admin.campaignManagement.reports.responseLabel') }}:</strong> {{ report.phan_hoi_xu_ly }}
 										</div>
-										<button v-if="report.trang_thai !== 'da_xu_ly' && report.trang_thai !== 'tu_choi'" class="btn btn-sm btn-outline-primary rounded-pill" @click="openProcessReportModal(report)">
+										<button v-if="canManageCampaignReview && report.trang_thai !== 'da_xu_ly' && report.trang_thai !== 'tu_choi'" class="btn btn-sm btn-outline-primary rounded-pill" @click="openProcessReportModal(report)">
 											<i class="fa-solid fa-screwdriver-wrench me-1"></i>{{ $t('admin.campaignManagement.reports.processAction') }}
 										</button>
 									</div>
@@ -507,6 +507,7 @@ import ConfirmModal from '../../components/ConfirmModal.vue';
 import TrustEvalPanel from '../Admin/TrustEval/TrustEvalPanel.vue';
 import api from '../../services/api';
 import { parseCampaignDescription } from '../../utils/campaignDescription';
+import { hasPermission } from '../../utils/permissions';
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
 const STATUS_MAP = {
@@ -571,9 +572,13 @@ export default {
 			adminMarker: null,
 			adminMapLat: '',
 			adminMapLng: '',
+			currentUser: null,
 		};
 	},
 	computed: {
+		canManageCampaignReview() {
+			return hasPermission(this.currentUser, 'campaign_review.manage');
+		},
 		statsCards() {
 			return [
 				{ label: this.$t('admin.campaignManagement.stats.total'), value: this.stats.tong || 0, icon: 'fa-solid fa-flag', iconStyle: this.getStatIconStyle('#0d6efd') },
@@ -592,12 +597,15 @@ export default {
 		},
 	},
 	async mounted() {
+		this.loadCurrentUser();
+		window.addEventListener('user-updated', this.loadCurrentUser);
 		this.ensureLeaflet();
 		this.syncFiltersFromRoute();
 		await Promise.all([this.loadFilterMeta(), this.loadCampaigns()]);
 		await this.openDetailFromRouteQuery();
 	},
 	beforeUnmount() {
+		window.removeEventListener('user-updated', this.loadCurrentUser);
 		if (this.searchDebounceTimer) {
 			clearTimeout(this.searchDebounceTimer);
 		}
@@ -607,6 +615,9 @@ export default {
 		}
 	},
 	watch: {
+		'$route'() {
+			this.loadCurrentUser();
+		},
 		'$route.query': {
 			deep: true,
 			async handler() {
@@ -639,6 +650,13 @@ export default {
 		},
 	},
 	methods: {
+		loadCurrentUser() {
+			try {
+				this.currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+			} catch (_error) {
+				this.currentUser = null;
+			}
+		},
 		async loadFilterMeta() {
 			try {
 				const res = await api.get('/kiem-duyet/chien-dich/bo-loc');
@@ -864,12 +882,14 @@ export default {
 			this.volunteerListLoading = false;
 		},
 		openRejectModal(campaign, mode) {
+			if (!this.canManageCampaignReview) return;
 			this.rejectTarget = campaign;
 			this.rejectMode = mode;
 			this.rejectReason = '';
 			this.showRejectModal = true;
 		},
 		async confirmReject() {
+			if (!this.canManageCampaignReview) return;
 			if (!this.rejectTarget || !this.rejectReason.trim()) return;
 			this.actionLoading = true;
 			try {
@@ -889,12 +909,14 @@ export default {
 			}
 		},
 		openProcessReportModal(report) {
+			if (!this.canManageCampaignReview) return;
 			this.reportTarget = report;
 			this.reportStatus = report.trang_thai === 'moi' ? 'dang_xu_ly' : report.trang_thai;
 			this.reportResponse = report.phan_hoi_xu_ly || '';
 			this.showReportModal = true;
 		},
 		async submitReportProcessing() {
+			if (!this.canManageCampaignReview) return;
 			if (!this.reportTarget) return;
 			this.actionLoading = true;
 			try {
@@ -917,6 +939,7 @@ export default {
 			}
 		},
 		confirmApprove(c) {
+			if (!this.canManageCampaignReview) return;
 			this.actionTarget = c;
 			this.pendingAction = 'approve';
 			this.confirmConfig = {
@@ -933,6 +956,7 @@ export default {
 			this.$refs.confirmModal.show();
 		},
 		confirmApproveCancel(c) {
+			if (!this.canManageCampaignReview) return;
 			this.actionTarget = c;
 			this.pendingAction = 'approve_cancel';
 			const detailList = [this.$t('admin.campaignManagement.confirm.approveCancelDetail')];
@@ -953,6 +977,7 @@ export default {
 			this.$refs.confirmModal.show();
 		},
 		async onConfirmAction() {
+			if (!this.canManageCampaignReview) return;
 			if (!this.actionTarget) return;
 			this.actionLoading = true;
 			try {

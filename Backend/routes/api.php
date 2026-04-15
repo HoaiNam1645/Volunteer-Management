@@ -38,6 +38,10 @@ Route::get('/xac-thuc/thong-tin', [XacThucController::class, 'layThongTin']);
 // =========================================== NGƯỜI DÙNG (Auth Required) ==============================
 Route::middleware('auth:api')->group(function () {
     // API dành cho mọi tài khoản dùng chung
+    Route::middleware('permission:dashboard.view')->group(function () {
+        Route::get('/admin/dashboard', [ThongKeTongQuanController::class, 'dashboardAdmin']);
+    });
+
     Route::middleware('permission:account_center.view')->group(function () {
         Route::get('/nguoi-dung/thong-tin', [NguoiDungController::class, 'layThongTin']);
     });
@@ -123,10 +127,6 @@ Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
 
 // =========================================== QUẢN TRỊ VIÊN ==========================================
 Route::middleware(['auth:api', 'quanTriVien'])->group(function () {
-    Route::middleware('permission:dashboard.view')->group(function () {
-        Route::get('/admin/dashboard', [ThongKeTongQuanController::class, 'dashboardAdmin']);
-    });
-
     Route::middleware('permission:user_management.view')->group(function () {
         Route::get('/admin/nguoi-dung', [NguoiDungController::class, 'danhSachQuanLy']);
     });

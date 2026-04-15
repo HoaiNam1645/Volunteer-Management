@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { refreshCurrentUser } from "../services/api";
 import {
 	getFirstAccessibleAdminRoute,
 	getFirstAccessibleUserRoute,
@@ -178,7 +179,9 @@ function getAuthenticatedHome(role) {
     return getFirstAccessibleUserRoute(currentUser);
 }
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+    await refreshCurrentUser({ silent: true });
+
     let currentUser = null;
     try {
         currentUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -193,8 +196,8 @@ router.beforeEach((to, from, next) => {
     const isReviewerRoute = to.path.startsWith('/kiem-duyet-vien');
     const hasRoutePermission = hasAnyPermission(currentUser, to.meta.permissions || []);
 
-    if (role === 'kiem_duyet_vien' && to.path === '/admin') {
-        return next('/kiem-duyet-vien/thong-ke');
+    if (role === 'kiem_duyet_vien' && to.path === '/admin' && !hasAnyPermission(currentUser, to.meta.permissions || [])) {
+        return next(getAuthenticatedHome(role));
     }
 
     if (to.meta.guestOnly && isAuthenticated) {

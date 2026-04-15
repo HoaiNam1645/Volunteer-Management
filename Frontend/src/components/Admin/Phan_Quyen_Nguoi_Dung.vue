@@ -51,8 +51,6 @@
 						<select v-model="filterRole" class="form-select">
 							<option value="">{{ $t('admin.userPermissions.filter.allRoles') }}</option>
 							<option value="tinh_nguyen_vien">{{ $t('admin.userManagement.roles.volunteer') }}</option>
-							<option value="kiem_duyet_vien">{{ $t('admin.userManagement.roles.coordinator') }}</option>
-							<option value="quan_tri_vien">{{ $t('admin.userManagement.roles.admin') }}</option>
 						</select>
 					</div>
 					<div class="col-lg-2 col-md-4">
@@ -478,6 +476,7 @@ export default {
 			} else {
 				current.delete(permissionKey);
 			}
+
 			this.draftPermissions = {
 				...this.draftPermissions,
 				[userId]: Array.from(current),

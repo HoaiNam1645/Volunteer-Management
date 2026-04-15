@@ -50,7 +50,6 @@
 					<div class="col-lg-2 col-md-4">
 						<select v-model="filterRole" class="form-select">
 							<option value="">{{ $t('admin.permissions.filter.allRoles') }}</option>
-							<option value="quan_tri_vien">{{ $t('admin.userManagement.roles.admin') }}</option>
 							<option value="kiem_duyet_vien">{{ $t('admin.userManagement.roles.coordinator') }}</option>
 						</select>
 					</div>
@@ -325,10 +324,10 @@ export default {
 					iconClass: 'bg-primary-subtle text-primary',
 				},
 				{
-					key: 'admin',
-					label: this.$t('admin.permissions.summary.admins'),
-					value: this.stats.admin,
-					icon: 'fa-solid fa-shield-halved',
+					key: 'kiem_duyet',
+					label: this.$t('admin.permissions.summary.reviewers'),
+					value: this.stats.kiem_duyet,
+					icon: 'fa-solid fa-user-check',
 					iconClass: 'bg-warning-subtle text-warning',
 				},
 				{
@@ -470,6 +469,7 @@ export default {
 			} else {
 				current.delete(permissionKey);
 			}
+
 			this.draftPermissions = {
 				...this.draftPermissions,
 				[userId]: Array.from(current),

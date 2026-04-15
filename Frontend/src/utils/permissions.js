@@ -41,6 +41,20 @@ export const ADMIN_PERMISSION_GROUPS = [
 	},
 ];
 
+export const REVIEWER_PERMISSION_GROUPS = [
+	{
+		key: 'dashboard',
+		permissions: [{ key: 'dashboard.view', shortLabel: 'Truy cap' }],
+	},
+	{
+		key: 'campaign_review',
+		permissions: [
+			{ key: 'campaign_review.view', shortLabel: 'Xem' },
+			{ key: 'campaign_review.manage', shortLabel: 'Quan ly' },
+		],
+	},
+];
+
 export const USER_PERMISSION_GROUPS = [
 	{
 		key: 'account_center',
@@ -132,12 +146,9 @@ export const ROLE_DEFAULT_PERMISSIONS = {
 		'ai_recommendation.view',
 	],
 	kiem_duyet_vien: [
-		'account_center.view',
-		'account_center.manage',
 		'dashboard.view',
 		'campaign_review.view',
 		'campaign_review.manage',
-		'statistics.view',
 	],
 	quan_tri_vien: [
 		'account_center.view',
@@ -156,19 +167,45 @@ export const ROLE_DEFAULT_PERMISSIONS = {
 	],
 };
 
+export const ROLE_ALLOWED_PERMISSIONS = {
+	tinh_nguyen_vien: USER_PERMISSION_GROUPS.flatMap((group) => group.permissions.map((permission) => permission.key)),
+	kiem_duyet_vien: REVIEWER_PERMISSION_GROUPS.flatMap((group) => group.permissions.map((permission) => permission.key)),
+	quan_tri_vien: [
+		...ADMIN_PERMISSION_GROUPS.flatMap((group) => group.permissions.map((permission) => permission.key)),
+		...USER_PERMISSION_GROUPS.flatMap((group) => group.permissions.map((permission) => permission.key)),
+	],
+};
+
 export const PERMISSION_GROUPS = ADMIN_PERMISSION_GROUPS;
 
 export function getPermissionGroups(scope = 'admin') {
-	return scope === 'user' ? USER_PERMISSION_GROUPS : ADMIN_PERMISSION_GROUPS;
+	if (scope === 'user') {
+		return USER_PERMISSION_GROUPS;
+	}
+
+	if (scope === 'admin') {
+		return REVIEWER_PERMISSION_GROUPS;
+	}
+
+	return ADMIN_PERMISSION_GROUPS;
+}
+
+export function filterPermissionsByRole(role, permissions = []) {
+	const allowedPermissions = ROLE_ALLOWED_PERMISSIONS[role];
+	if (!Array.isArray(allowedPermissions) || !allowedPermissions.length) {
+		return Array.from(new Set(permissions));
+	}
+
+	return Array.from(new Set(permissions.filter((permission) => allowedPermissions.includes(permission))));
 }
 
 export function getUserPermissions(user) {
 	const permissions = user?.permissions || user?.quyen_han || [];
 	if (Array.isArray(permissions) && permissions.length) {
-		return Array.from(new Set(permissions));
+		return filterPermissionsByRole(user?.vai_tro, permissions);
 	}
 
-	return [...(ROLE_DEFAULT_PERMISSIONS[user?.vai_tro] || [])];
+	return filterPermissionsByRole(user?.vai_tro, [...(ROLE_DEFAULT_PERMISSIONS[user?.vai_tro] || [])]);
 }
 
 export function hasPermission(user, permission) {
@@ -182,8 +219,12 @@ export function hasAnyPermission(user, permissions = []) {
 }
 
 export function getFirstAccessibleAdminRoute(user) {
-	if (user?.vai_tro === 'kiem_duyet_vien' && hasPermission(user, 'statistics.view')) {
-		return '/kiem-duyet-vien/thong-ke';
+	if (user?.vai_tro === 'kiem_duyet_vien') {
+		if (hasPermission(user, 'dashboard.view')) {
+			return '/admin';
+		}
+
+		return hasPermission(user, 'campaign_review.view') ? '/kiem-duyet-vien/chien-dich' : '/';
 	}
 
 	const match = ADMIN_ROUTE_PERMISSIONS.find((route) => hasPermission(user, route.permission));

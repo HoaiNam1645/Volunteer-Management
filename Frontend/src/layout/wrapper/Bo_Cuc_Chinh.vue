@@ -18,6 +18,8 @@ import DinhTrang from "../components/Dinh_Trang.vue";
 import ChanTrang from "../components/Chan_Trang.vue";
 import ThanhDieuHuong from "../components/Thanh_Dieu_Huong.vue";
 import ToastNotification from "../../components/ToastNotification.vue";
+import { refreshCurrentUser } from "../../services/api";
+import { getFirstAccessibleUserRoute, hasAnyPermission } from "../../utils/permissions";
 import "../../assets/js/bootstrap.bundle.min.js";
 import "../../assets/js/jquery.min.js";
 import "../../assets/plugins/simplebar/js/simplebar.min.js";
@@ -43,7 +45,42 @@ export default {
         };
     },
     mounted() {
-        // keeping mounted method
+        window.addEventListener('focus', this.handleWindowFocus);
+    },
+    beforeUnmount() {
+        window.removeEventListener('focus', this.handleWindowFocus);
+    },
+    methods: {
+        async handleWindowFocus() {
+            await refreshCurrentUser({ force: true, silent: true });
+            this.redirectIfRouteForbidden();
+        },
+        redirectIfRouteForbidden() {
+            if (!this.$route.meta?.requiresAuth) {
+                return;
+            }
+
+            let currentUser = null;
+            try {
+                currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+            } catch (_error) {
+                currentUser = null;
+            }
+
+            if (hasAnyPermission(currentUser, this.$route.meta?.permissions || [])) {
+                return;
+            }
+
+            const fallbackRoute = getFirstAccessibleUserRoute(currentUser);
+            if (fallbackRoute && fallbackRoute !== this.$route.path) {
+                this.$router.replace(fallbackRoute);
+            }
+        },
+    },
+    watch: {
+        '$route'() {
+            this.redirectIfRouteForbidden();
+        }
     },
     components  :   {
         DinhTrang, ThanhDieuHuong, ChanTrang, ToastNotification

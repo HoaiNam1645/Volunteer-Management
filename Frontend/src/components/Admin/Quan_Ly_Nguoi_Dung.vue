@@ -235,11 +235,18 @@
 							</div>
 							<div class="col-md-3">
 								<label class="form-label small fw-bold">{{ $t('admin.userManagement.modal.role') }} <span class="text-danger">*</span></label>
-								<select v-model="formData.vai_tro" class="form-select">
+								<select v-if="!isEditing" v-model="formData.vai_tro" class="form-select">
 									<option value="tinh_nguyen_vien">{{ $t('admin.userManagement.roles.volunteer') }}</option>
 									<option value="kiem_duyet_vien">{{ $t('admin.userManagement.roles.coordinator') }}</option>
 									<option value="quan_tri_vien">{{ $t('admin.userManagement.roles.admin') }}</option>
 								</select>
+								<input
+									v-else
+									:value="getRoleLabel(formData.vai_tro)"
+									type="text"
+									class="form-control"
+									readonly
+								>
 							</div>
 							<div class="col-md-3">
 								<label class="form-label small fw-bold">{{ $t('admin.userManagement.modal.status') }}</label>
@@ -616,6 +623,7 @@ export default {
 			try {
 				const payload = { ...this.formData };
 				if (!payload.mat_khau) delete payload.mat_khau;
+				if (this.isEditing) delete payload.vai_tro;
 
 				if (this.isEditing) {
 					await api.put(`/admin/nguoi-dung/${this.editingUserId}`, payload);

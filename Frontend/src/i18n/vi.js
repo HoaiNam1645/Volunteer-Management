@@ -803,8 +803,8 @@ export default {
             settings: 'Cài đặt',
             logout: 'Đăng xuất',
             permissionSection: 'PHÂN QUYỀN',
-            permissions: 'Phân quyền',
-            userPermissions: 'Phân quyền user',
+            permissions: 'Phân quyền KDV',
+            userPermissions: 'Phân quyền TNV',
             notifications: {
                 title: 'Thông báo',
                 markAllRead: 'Đánh dấu tất cả đã đọc',
@@ -1030,15 +1030,15 @@ export default {
             }
         },
         permissions: {
-            title: 'Phân quyền hệ thống',
-            subtitle: 'Tích quyền theo từng module cho tài khoản quản trị và kiểm duyệt ngay trên một bảng duy nhất.',
+            title: 'Phân quyền kiểm duyệt viên',
+            subtitle: 'Màn này chỉ cấu hình quyền cho tài khoản kiểm duyệt viên. KDV chỉ còn màn Chiến dịch và các thao tác liên quan.',
             badges: {
-                default: 'Mặc định theo vai trò',
-                custom: 'Tùy chỉnh thủ công',
+                default: 'Vai trò KDV',
+                custom: 'Tùy chỉnh thao tác',
             },
             summary: {
-                totalAccounts: 'Tài khoản quản trị',
-                admins: 'Quản trị viên',
+                totalAccounts: 'Tổng tài khoản KDV',
+                reviewers: 'Kiểm duyệt viên',
                 defaultMode: 'Đang dùng mặc định',
                 customMode: 'Đang tùy chỉnh',
             },
@@ -1055,12 +1055,7 @@ export default {
             },
             groups: {
                 dashboard: 'Dashboard',
-                userManagement: 'Người dùng',
-                categoryManagement: 'Danh mục',
                 campaignReview: 'Chiến dịch',
-                aiManagement: 'AI',
-                statistics: 'Thống kê',
-                permissionManagement: 'Phân quyền',
             },
             columns: {
                 access: 'Truy cập',
@@ -1072,13 +1067,13 @@ export default {
                 save: 'Lưu',
             },
             table: {
-                title: 'Ma trận phân quyền admin',
+                title: 'Ma trận phân quyền KDV',
                 summary: '{groups} nhóm chức năng · {permissions} quyền · Hiển thị {from}-{to} / {total} tài khoản',
                 rowsPerPage: 'Số dòng / trang',
                 currentAccount: 'Tài khoản hiện tại',
                 empty: 'Không tìm thấy tài khoản phù hợp để phân quyền.',
                 pagination: 'Trang {page} / {totalPages} · Đang hiển thị {from}-{to} / {total} tài khoản',
-                ariaPagination: 'Phân trang phân quyền admin',
+                ariaPagination: 'Phân trang phân quyền KDV',
                 columns: {
                     account: 'Tài khoản',
                     role: 'Vai trò',
@@ -1100,14 +1095,14 @@ export default {
             },
         },
         userPermissions: {
-            title: 'Phân quyền chức năng user',
-            subtitle: 'Cấu hình quyền cho các màn phía người dùng như hồ sơ, chiến dịch, điều phối, báo cáo và theo dõi phản hồi.',
+            title: 'Phân quyền tình nguyện viên',
+            subtitle: 'Cấu hình quyền cho các màn phía tình nguyện viên. Bỏ quyền xem sẽ ẩn menu và chặn truy cập màn hình tương ứng.',
             badges: {
-                scope: 'Scope user',
-                separateTable: 'Bảng phân quyền riêng',
+                scope: 'Vai trò TNV',
+                separateTable: 'Theo từng màn',
             },
             summary: {
-                totalAccounts: 'Tổng tài khoản',
+                totalAccounts: 'Tổng tài khoản TNV',
                 volunteers: 'Tình nguyện viên',
                 defaultMode: 'Đang dùng mặc định',
                 customMode: 'Đang tùy chỉnh',
@@ -1144,7 +1139,7 @@ export default {
                 save: 'Lưu',
             },
             table: {
-                title: 'Ma trận phân quyền user',
+                title: 'Ma trận phân quyền TNV',
                 summary: '{groups} nhóm chức năng · {permissions} quyền · Hiển thị {from}-{to} / {total} tài khoản',
                 rowsPerPage: 'Số dòng / trang',
                 currentAccount: 'Tài khoản hiện tại',

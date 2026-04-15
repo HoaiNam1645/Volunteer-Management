@@ -85,8 +85,6 @@ class PermissionRegistry
             'ai_recommendation.view',
         ],
         'kiem_duyet_vien' => [
-            'account_center.view',
-            'account_center.manage',
             'dashboard.view',
             'campaign_review.view',
             'campaign_review.manage',
@@ -112,6 +110,22 @@ class PermissionRegistry
             'trust_eval.refresh',
             'trust_eval.statistics',
         ],
+    ];
+
+    public const REVIEWER_PERMISSION_GROUPS = [
+        'dashboard',
+        'campaign_review',
+    ];
+
+    public const VOLUNTEER_PERMISSION_GROUPS = [
+        'account_center',
+        'competency_profile',
+        'volunteer_campaigns',
+        'campaign_coordination',
+        'campaign_report_monitoring',
+        'feedback_tracking',
+        'campaign_participation',
+        'ai_recommendation',
     ];
 
     public static function normalizeScope(?string $scope): string
@@ -144,6 +158,24 @@ class PermissionRegistry
             ->all();
     }
 
+    public static function permissionsForGroups(array $groupKeys): array
+    {
+        return collect($groupKeys)
+            ->flatMap(fn (string $groupKey) => static::GROUPS[$groupKey]['permissions'] ?? [])
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public static function editablePermissionsForScope(?string $scope): array
+    {
+        $scope = static::normalizeScope($scope);
+
+        return $scope === 'user'
+            ? static::permissionsForGroups(static::VOLUNTEER_PERMISSION_GROUPS)
+            : static::permissionsForGroups(static::REVIEWER_PERMISSION_GROUPS);
+    }
+
     public static function defaultsForRole(?string $role): array
     {
         return static::ROLE_DEFAULTS[$role] ?? [];
@@ -151,16 +183,50 @@ class PermissionRegistry
 
     public static function defaultPermissionsForRoleAndScope(?string $role, ?string $scope): array
     {
-        $scopePermissions = static::permissionsForScope($scope);
+        $scopePermissions = static::editablePermissionsForScope($scope);
 
         return array_values(array_intersect(static::defaultsForRole($role), $scopePermissions));
     }
 
     public static function permissionsForScopeFromList(array $permissions, ?string $scope): array
     {
-        $scopePermissions = static::permissionsForScope($scope);
+        $scopePermissions = static::editablePermissionsForScope($scope);
 
         return array_values(array_intersect(static::normalize($permissions), $scopePermissions));
+    }
+
+    public static function allowedPermissionsForRole(?string $role): array
+    {
+        return match ($role) {
+            'tinh_nguyen_vien' => static::permissionsForGroups(static::VOLUNTEER_PERMISSION_GROUPS),
+            'kiem_duyet_vien' => static::permissionsForGroups(static::REVIEWER_PERMISSION_GROUPS),
+            'quan_tri_vien' => static::allPermissions(),
+            default => static::allPermissions(),
+        };
+    }
+
+    public static function filterPermissionsForRole(?string $role, array $permissions): array
+    {
+        return array_values(array_intersect(
+            static::normalize($permissions),
+            static::allowedPermissionsForRole($role)
+        ));
+    }
+
+    public static function withViewDependencies(array $permissions): array
+    {
+        $normalized = collect(static::normalize($permissions));
+
+        $dependentViews = $normalized
+            ->filter(fn (string $permission) => str_ends_with($permission, '.manage'))
+            ->map(fn (string $permission) => preg_replace('/\.manage$/', '.view', $permission))
+            ->filter(fn (?string $permission) => is_string($permission) && in_array($permission, static::allPermissions(), true));
+
+        return $normalized
+            ->merge($dependentViews)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public static function normalize(?array $permissions): array

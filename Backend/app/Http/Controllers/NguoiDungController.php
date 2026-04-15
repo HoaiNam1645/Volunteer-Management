@@ -89,17 +89,7 @@ class NguoiDungController extends Controller
 
         $payload = $this->validateAdminUser($request, $user);
 
-        $vaiTroMoi = $payload['vai_tro'];
-        $trangThaiMoi = $payload['trang_thai'];
-        $quyenMoi = $vaiTroMoi !== $user->vai_tro
-            ? PermissionRegistry::defaultsForRole($vaiTroMoi)
-            : $user->layTatCaQuyen();
-
-        $this->assertSystemPermissionCoverage($user, $quyenMoi, $vaiTroMoi, $trangThaiMoi);
-
-        if ($vaiTroMoi !== $user->vai_tro) {
-            $payload['quyen_han'] = null;
-        }
+        $this->assertSystemPermissionCoverage($user, $user->layTatCaQuyen(), $user->vai_tro, $payload['trang_thai']);
 
         $user->update($payload);
         $user->loadCount(['dangKyThamGias', 'chienDichs']);
@@ -230,7 +220,7 @@ class NguoiDungController extends Controller
                     'tuy_chinh'  => $statsUsers->where('su_dung_mac_dinh_pham_vi', false)->count(),
                 ],
                 'scope'                 => $scopeConfig['scope'],
-                'available_permissions' => PermissionRegistry::permissionsForScope($scopeConfig['scope']),
+                'available_permissions' => $scopeConfig['permissions'],
             ],
         ]);
     }
@@ -238,7 +228,7 @@ class NguoiDungController extends Controller
     public function capNhatPhanQuyen(Request $request, int $id)
     {
         $scopeConfig = $this->resolvePermissionScopeConfig($request->input('pham_vi'));
-        $scopePermissions = PermissionRegistry::permissionsForScope($scopeConfig['scope']);
+        $scopePermissions = $scopeConfig['permissions'];
 
         $user = NguoiDung::query()
             ->whereNull('xoa_luc')
@@ -283,21 +273,28 @@ class NguoiDungController extends Controller
     {
         $userId = $user?->id;
 
-        $validated = $request->validate([
+        $rules = [
             'ho_ten'              => 'required|string|max:150',
             'email'               => ['required', 'email', 'max:255', Rule::unique('nguoi_dungs', 'email')->ignore($userId)],
             'so_dien_thoai'       => 'nullable|string|max:20',
-            'vai_tro'             => 'required|in:tinh_nguyen_vien,kiem_duyet_vien,quan_tri_vien',
             'trang_thai'          => 'required|in:cho_duyet,hoat_dong,bi_khoa',
             'mat_khau'            => ($user ? 'nullable' : 'required') . '|string|min:8',
             'xac_thuc_email'      => 'nullable|boolean',
-        ]);
+        ];
+
+        if ($user) {
+            $rules['vai_tro'] = 'sometimes|in:tinh_nguyen_vien,kiem_duyet_vien,quan_tri_vien';
+        } else {
+            $rules['vai_tro'] = 'required|in:tinh_nguyen_vien,kiem_duyet_vien,quan_tri_vien';
+        }
+
+        $validated = $request->validate($rules);
 
         $payload = [
             'ho_ten'        => $validated['ho_ten'],
             'email'         => $validated['email'],
             'so_dien_thoai' => $validated['so_dien_thoai'] ?? null,
-            'vai_tro'       => $validated['vai_tro'],
+            'vai_tro'       => $user?->vai_tro ?? $validated['vai_tro'],
             'trang_thai'    => $validated['trang_thai'],
         ];
 
@@ -381,8 +378,9 @@ class NguoiDungController extends Controller
         return [
             'scope' => $scope,
             'roles' => $scope === 'user'
-                ? ['tinh_nguyen_vien', 'kiem_duyet_vien', 'quan_tri_vien']
-                : ['kiem_duyet_vien', 'quan_tri_vien'],
+                ? ['tinh_nguyen_vien']
+                : ['kiem_duyet_vien'],
+            'permissions' => PermissionRegistry::editablePermissionsForScope($scope),
         ];
     }
 

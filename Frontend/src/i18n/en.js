@@ -803,8 +803,8 @@ export default {
             settings: 'Settings',
             logout: 'Log Out',
             permissionSection: 'PERMISSIONS',
-            permissions: 'Permissions',
-            userPermissions: 'User permissions',
+            permissions: 'Reviewer permissions',
+            userPermissions: 'Volunteer permissions',
             notifications: {
                 title: 'Notifications',
                 markAllRead: 'Mark all as read',
@@ -1030,15 +1030,15 @@ export default {
             }
         },
         permissions: {
-            title: 'System permissions',
-            subtitle: 'Assign module-based permissions for admin and reviewer accounts in a single matrix.',
+            title: 'Reviewer permissions',
+            subtitle: 'This screen only configures reviewer accounts. Reviewers now only keep the Campaign screen and its related actions.',
             badges: {
-                default: 'Default by role',
-                custom: 'Manual override',
+                default: 'Reviewer role',
+                custom: 'Action override',
             },
             summary: {
-                totalAccounts: 'Admin accounts',
-                admins: 'Administrators',
+                totalAccounts: 'Total reviewer accounts',
+                reviewers: 'Reviewers',
                 defaultMode: 'Using default',
                 customMode: 'Using custom',
             },
@@ -1055,12 +1055,7 @@ export default {
             },
             groups: {
                 dashboard: 'Dashboard',
-                userManagement: 'Users',
-                categoryManagement: 'Categories',
                 campaignReview: 'Campaigns',
-                aiManagement: 'AI',
-                statistics: 'Statistics',
-                permissionManagement: 'Permissions',
             },
             columns: {
                 access: 'Access',
@@ -1072,13 +1067,13 @@ export default {
                 save: 'Save',
             },
             table: {
-                title: 'Admin permission matrix',
+                title: 'Reviewer permission matrix',
                 summary: '{groups} feature groups · {permissions} permissions · Showing {from}-{to} / {total} accounts',
                 rowsPerPage: 'Rows / page',
                 currentAccount: 'Current account',
                 empty: 'No matching accounts were found for permission assignment.',
                 pagination: 'Page {page} / {totalPages} · Showing {from}-{to} / {total} accounts',
-                ariaPagination: 'Admin permission pagination',
+                ariaPagination: 'Reviewer permission pagination',
                 columns: {
                     account: 'Account',
                     role: 'Role',
@@ -1100,14 +1095,14 @@ export default {
             },
         },
         userPermissions: {
-            title: 'User feature permissions',
-            subtitle: 'Configure permissions for user-side screens such as profile, campaigns, coordination, reports, and feedback tracking.',
+            title: 'Volunteer permissions',
+            subtitle: 'Configure volunteer-facing screens. Removing view will hide the menu entry and block access to the page.',
             badges: {
-                scope: 'User scope',
-                separateTable: 'Separate permission table',
+                scope: 'Volunteer role',
+                separateTable: 'Per-screen matrix',
             },
             summary: {
-                totalAccounts: 'Total accounts',
+                totalAccounts: 'Total volunteer accounts',
                 volunteers: 'Volunteers',
                 defaultMode: 'Using default',
                 customMode: 'Using custom',
@@ -1144,7 +1139,7 @@ export default {
                 save: 'Save',
             },
             table: {
-                title: 'User permission matrix',
+                title: 'Volunteer permission matrix',
                 summary: '{groups} feature groups · {permissions} permissions · Showing {from}-{to} / {total} accounts',
                 rowsPerPage: 'Rows / page',
                 currentAccount: 'Current account',

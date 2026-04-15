@@ -21,7 +21,7 @@
 					<div class="nav-section">
 					<span class="nav-section-title" v-show="!sidebarCollapsed">{{ $t('admin.layout.overview') }}</span>
 					<ul class="nav flex-column">
-						<li class="nav-item" v-if="can('dashboard.view') && !isReviewer">
+						<li class="nav-item" v-if="can('dashboard.view')">
 							<router-link to="/admin" class="nav-link" :class="{ active: $route.path === '/admin' }">
 								<i class="fa-solid fa-gauge-high"></i>
 								<span v-show="!sidebarCollapsed">{{ $t('admin.layout.dashboard') }}</span>
@@ -215,8 +215,8 @@
 <script>
 import ToastNotification from '../../components/ToastNotification.vue';
 import LanguageSwitcher from '../../components/LanguageSwitcher.vue';
-import api from '../../services/api';
-import { hasPermission } from '../../utils/permissions';
+import api, { refreshCurrentUser } from '../../services/api';
+import { getFirstAccessibleAdminRoute, hasPermission } from '../../utils/permissions';
 
 export default {
 	name: 'BoCucAdmin',
@@ -255,9 +255,11 @@ export default {
 	},
 	mounted() {
 		window.addEventListener('user-updated', this.handleUserUpdated);
+		window.addEventListener('focus', this.handleWindowFocus);
 	},
 	beforeUnmount() {
 		window.removeEventListener('user-updated', this.handleUserUpdated);
+		window.removeEventListener('focus', this.handleWindowFocus);
 	},
 	methods: {
 		can(permission) {
@@ -265,6 +267,11 @@ export default {
 		},
 		handleUserUpdated() {
 			this.loadCurrentUser();
+		},
+		async handleWindowFocus() {
+			await refreshCurrentUser({ force: true, silent: true });
+			this.loadCurrentUser();
+			this.redirectIfRouteForbidden();
 		},
 		async handleLogout() {
 			try {
@@ -285,6 +292,21 @@ export default {
 				this.currentUser = null;
 			}
 		},
+		redirectIfRouteForbidden() {
+			const requiredPermissions = this.$route.meta?.permissions || [];
+			if (!requiredPermissions.length) {
+				return;
+			}
+
+			if (requiredPermissions.some((permission) => this.can(permission))) {
+				return;
+			}
+
+			const fallbackRoute = getFirstAccessibleAdminRoute(this.currentUser);
+			if (fallbackRoute && fallbackRoute !== this.$route.path) {
+				this.$router.replace(fallbackRoute);
+			}
+		},
 		toggleSidebar() {
 			this.sidebarCollapsed = !this.sidebarCollapsed;
 		}
@@ -292,6 +314,7 @@ export default {
 	watch: {
 		'$route'() {
 			this.loadCurrentUser();
+			this.redirectIfRouteForbidden();
 		}
 	}
 }
