@@ -393,7 +393,15 @@
 
 							<div class="mb-4">
 								<h6 class="fw-bold small mb-2"><i class="fa-solid fa-file-lines text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.description') }}</h6>
-								<ul v-if="detailCampaignDescriptionItems.length > 1" class="text-muted small mb-0 ps-3 lh-lg campaign-description-list">
+								<div v-if="detailCampaignDescriptionSections.length" class="row g-3">
+									<div v-for="section in detailCampaignDescriptionSections" :key="section.key" class="col-md-6">
+										<div class="campaign-description-card h-100">
+											<div class="small fw-bold text-primary mb-2">{{ section.label }}</div>
+											<div class="text-muted small lh-lg mb-0">{{ section.value }}</div>
+										</div>
+									</div>
+								</div>
+								<ul v-else-if="detailCampaignDescriptionItems.length > 1" class="text-muted small mb-0 ps-3 lh-lg campaign-description-list">
 									<li v-for="(item, index) in detailCampaignDescriptionItems" :key="`admin-dashboard-campaign-description-${index}`" class="mb-2">
 										{{ item }}
 									</li>
@@ -508,7 +516,7 @@
 <script>
 import api from '../../services/api';
 import { hasPermission } from '../../utils/permissions';
-import { parseCampaignDescription } from '../../utils/campaignDescription';
+import { extractCampaignDescriptionSections, parseCampaignDescription } from '../../utils/campaignDescription';
 
 export default {
 	name: 'AdminDashboard',
@@ -597,6 +605,9 @@ export default {
 			const end = Math.min(total, start + 2);
 			const adjustedStart = Math.max(1, end - 2);
 			return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
+		},
+		detailCampaignDescriptionSections() {
+			return extractCampaignDescriptionSections(this.detailCampaign?.description || '');
 		},
 		detailCampaignDescriptionItems() {
 			return parseCampaignDescription(this.detailCampaign?.description || '');
@@ -1072,6 +1083,13 @@ export default {
 
 .history-item:last-child {
 	border-bottom: none !important;
+}
+
+.campaign-description-card {
+	border: 1px solid rgba(13, 110, 253, 0.12);
+	border-radius: 1rem;
+	padding: 0.9rem 1rem;
+	background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(13, 110, 253, 0.01));
 }
 
 .campaign-description-list li:last-child {

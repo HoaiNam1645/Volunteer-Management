@@ -76,7 +76,15 @@
 					<div class="card border-0 shadow-sm rounded-4 mb-4">
 						<div class="card-body p-4 p-md-5">
 							<h4 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-info me-2"></i>{{ $t('campaignDetail.aboutTitle') }}</h4>
-							<ul v-if="campaignDescriptionItems.length > 1" class="text-muted lh-lg mb-0 ps-3 campaign-description-list">
+							<div v-if="campaignDescriptionSections.length" class="row g-3">
+								<div v-for="section in campaignDescriptionSections" :key="section.key" class="col-md-6">
+									<div class="campaign-description-card h-100">
+										<div class="small fw-bold text-primary mb-2">{{ section.label }}</div>
+										<div class="text-muted lh-lg mb-0">{{ section.value }}</div>
+									</div>
+								</div>
+							</div>
+							<ul v-else-if="campaignDescriptionItems.length > 1" class="text-muted lh-lg mb-0 ps-3 campaign-description-list">
 								<li v-for="(item, index) in campaignDescriptionItems" :key="`campaign-public-description-${index}`" class="mb-2">
 									{{ item }}
 								</li>
@@ -369,6 +377,7 @@
 <script>
 import api from '@/services/api.js';
 import { hasPermission } from '@/utils/permissions';
+import { extractCampaignDescriptionSections, parseCampaignDescription } from '@/utils/campaignDescription';
 
 export default {
 	name: 'ChiTietChienDichPublic',
@@ -435,11 +444,11 @@ export default {
 		activeCampaignImage() {
 			return this.campaign.images[this.activeImageIndex] || this.campaign.images[0] || '';
 		},
+		campaignDescriptionSections() {
+			return extractCampaignDescriptionSections(this.campaign.description || '');
+		},
 		campaignDescriptionItems() {
-			return String(this.campaign.description || '')
-				.split('\n')
-				.map((item) => item.replace(/^\s*[-•]\s*/, '').trim())
-				.filter(Boolean);
+			return parseCampaignDescription(this.campaign.description || '');
 		},
 		currentUser() {
 			try {
@@ -1224,6 +1233,12 @@ export default {
 	border-radius: 16px;
 	border: 1px dashed #cbd5e1;
 	background: #f8fafc;
+}
+.campaign-description-card {
+	border: 1px solid rgba(13, 110, 253, 0.12);
+	border-radius: 1rem;
+	padding: 1rem 1.1rem;
+	background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(13, 110, 253, 0.01));
 }
 .gallery-thumb {
 	opacity: 0.75;

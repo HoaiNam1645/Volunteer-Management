@@ -234,7 +234,15 @@
 
 						<div class="mb-4">
 							<h6 class="fw-bold small mb-2"><i class="fa-solid fa-file-lines text-primary me-2"></i>{{ $t('admin.campaignManagement.detailModal.description') }}</h6>
-							<ul v-if="detailTargetDescriptionItems.length > 1" class="text-muted small mb-0 ps-3 lh-lg campaign-description-list">
+							<div v-if="detailTargetDescriptionSections.length" class="row g-3">
+								<div v-for="section in detailTargetDescriptionSections" :key="section.key" class="col-md-6">
+									<div class="campaign-description-card h-100">
+										<div class="small fw-bold text-primary mb-2">{{ section.label }}</div>
+										<div class="text-muted small lh-lg mb-0">{{ section.value }}</div>
+									</div>
+								</div>
+							</div>
+							<ul v-else-if="detailTargetDescriptionItems.length > 1" class="text-muted small mb-0 ps-3 lh-lg campaign-description-list">
 								<li v-for="(item, index) in detailTargetDescriptionItems" :key="`review-campaign-description-${index}`" class="mb-2">
 									{{ item }}
 								</li>
@@ -506,7 +514,7 @@
 import ConfirmModal from '../../components/ConfirmModal.vue';
 import TrustEvalPanel from '../Admin/TrustEval/TrustEvalPanel.vue';
 import api from '../../services/api';
-import { parseCampaignDescription } from '../../utils/campaignDescription';
+import { extractCampaignDescriptionSections, parseCampaignDescription } from '../../utils/campaignDescription';
 import { hasPermission } from '../../utils/permissions';
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
@@ -591,6 +599,9 @@ export default {
 		},
 		filteredCampaigns() {
 			return this.campaigns;
+		},
+		detailTargetDescriptionSections() {
+			return extractCampaignDescriptionSections(this.detailTarget?.description || '');
 		},
 		detailTargetDescriptionItems() {
 			return parseCampaignDescription(this.detailTarget?.description || '');
@@ -1225,6 +1236,13 @@ export default {
 	border: 1px solid #e9ecef;
 	border-radius: 16px;
 	padding: 1rem;
+}
+
+.campaign-description-card {
+	border: 1px solid rgba(13, 110, 253, 0.12);
+	border-radius: 1rem;
+	padding: 0.9rem 1rem;
+	background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(13, 110, 253, 0.01));
 }
 .cancel-reason-alert {
 	background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.04));

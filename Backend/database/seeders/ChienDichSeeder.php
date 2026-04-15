@@ -37,7 +37,14 @@ class ChienDichSeeder extends Seeder
         $chienDichs = [
             [
                 'tieu_de'           => 'Trồng cây xanh tại Công viên Gia Định',
-                'mo_ta'             => 'Cùng nhau trồng 500 cây xanh tại công viên Gia Định nhằm tăng diện tích cây xanh cho thành phố. Hoạt động bao gồm đào hố, trồng cây, tưới nước và chăm sóc cây non.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'phủ xanh thêm khu vực công viên Gia Định và nâng cao ý thức bảo vệ môi trường trong cộng đồng',
+                    'problem' => 'mật độ cây xanh tại một số khu vực công cộng còn thấp và người dân chưa có nhiều hoạt động thực hành bảo vệ môi trường',
+                    'tasks' => 'đào hố, trồng cây, tưới nước, dọn khu vực trồng và hướng dẫn người tham gia chăm sóc cây non đúng cách',
+                    'commitment' => 'có mặt đúng giờ, làm việc theo nhóm, tuân thủ hướng dẫn an toàn lao động và tham gia trọn vẹn ca hoạt động',
+                    'benefits' => 'được cung cấp dụng cụ làm việc, nước uống, áo chiến dịch và xác nhận tham gia hoạt động cộng đồng',
+                    'contact' => 'Ban điều phối môi trường VMS, hotline 0909 100 101, email moi-truong@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[0] ?? $loaiIds[0], // Môi trường
                 'dia_diem'          => 'Công viên Gia Định, Quận Gò Vấp, TP.HCM',
                 'vi_do'             => 10.8231,
@@ -52,7 +59,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Dạy tiếng Anh miễn phí cho trẻ em vùng cao',
-                'mo_ta'             => 'Chương trình dạy tiếng Anh cơ bản cho trẻ em tiểu học tại xã Tà Xùa, Sơn La. Tình nguyện viên sẽ dạy 2 buổi/ngày trong 3 ngày liên tục.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'bổ trợ kiến thức tiếng Anh cơ bản và tạo môi trường học tập tích cực cho trẻ em vùng cao',
+                    'problem' => 'nhiều em học sinh tại khu vực này thiếu điều kiện tiếp cận lớp học ngoại ngữ và hoạt động tương tác thực hành',
+                    'tasks' => 'đứng lớp theo nhóm nhỏ, hỗ trợ phát âm, tổ chức trò chơi học tập và đồng hành cùng giáo viên phụ trách trong 3 ngày liên tục',
+                    'commitment' => 'chuẩn bị giáo án đơn giản, tham gia đủ các buổi dạy và giữ thái độ kiên nhẫn, tích cực với học sinh',
+                    'benefits' => 'được hỗ trợ tài liệu giảng dạy, chỗ nghỉ cơ bản, suất ăn và giấy xác nhận tham gia chương trình',
+                    'contact' => 'Điều phối giáo dục khu vực Tây Bắc, hotline 0909 100 102, email giaoduc@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[1] ?? $loaiIds[0], // Giáo dục
                 'dia_diem'          => 'Xã Tà Xùa, Huyện Bắc Yên, Sơn La',
                 'vi_do'             => 21.3256,
@@ -67,7 +81,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Khám sức khỏe miễn phí cho người cao tuổi',
-                'mo_ta'             => 'Phối hợp với Bệnh viện Đa khoa tổ chức khám sức khỏe, đo huyết áp, tư vấn dinh dưỡng miễn phí cho 200 người cao tuổi tại phường.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'hỗ trợ người cao tuổi được tiếp cận hoạt động khám sàng lọc và tư vấn sức khỏe miễn phí ngay tại địa phương',
+                    'problem' => 'nhiều người cao tuổi chưa có điều kiện theo dõi sức khỏe định kỳ và cần được hướng dẫn chăm sóc phù hợp',
+                    'tasks' => 'đón tiếp người dân, phân luồng, hỗ trợ đo chỉ số cơ bản, ghi nhận thông tin và hướng dẫn di chuyển giữa các bàn khám',
+                    'commitment' => 'làm việc cẩn thận, giữ thái độ tôn trọng với người cao tuổi và tuân thủ phân công của đội ngũ y tế',
+                    'benefits' => 'được tập huấn nhanh trước ca, hỗ trợ ăn nhẹ, áo nhận diện và chứng nhận tham gia chiến dịch',
+                    'contact' => 'Tổ y tế cộng đồng VMS, hotline 0909 100 103, email yte@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[2] ?? $loaiIds[0], // Y tế
                 'dia_diem'          => 'Nhà Văn hóa Phường 10, Quận 3, TP.HCM',
                 'vi_do'             => 10.7756,
@@ -82,7 +103,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Dọn dẹp bãi biển Sơn Trà',
-                'mo_ta'             => 'Hoạt động thu gom rác thải nhựa, làm sạch 2km bờ biển thuộc khu vực Sơn Trà. Dụng cụ thu gom sẽ được ban tổ chức cung cấp.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'làm sạch bãi biển Sơn Trà và lan tỏa thông điệp giảm rác thải nhựa tại khu vực ven biển',
+                    'problem' => 'rác thải nhựa và rác sinh hoạt tích tụ dọc bờ biển gây ảnh hưởng đến cảnh quan và hệ sinh thái',
+                    'tasks' => 'thu gom rác, phân loại rác tại chỗ, vận chuyển về điểm tập kết và hỗ trợ truyền thông cho người dân, du khách',
+                    'commitment' => 'mang giày phù hợp, tuân thủ hướng dẫn an toàn ngoài trời và tham gia đủ thời lượng chương trình',
+                    'benefits' => 'được cấp bao tay, kẹp gắp rác, nước uống, áo sự kiện và xác nhận đóng góp cho hoạt động môi trường',
+                    'contact' => 'Nhóm điều phối biển xanh, hotline 0909 100 104, email bienxanh@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[0] ?? $loaiIds[0], // Môi trường
                 'dia_diem'          => 'Bãi biển Sơn Trà, Quận Sơn Trà, Đà Nẵng',
                 'vi_do'             => 16.1050,
@@ -96,7 +124,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Hỗ trợ nạn nhân lũ lụt tại Quảng Trị',
-                'mo_ta'             => 'Vận chuyển và phân phát hàng cứu trợ, dọn dẹp bùn đất, hỗ trợ người dân ổn định cuộc sống sau lũ.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'hỗ trợ khẩn cấp người dân vùng lũ sớm ổn định sinh hoạt và tiếp cận nhu yếu phẩm thiết yếu',
+                    'problem' => 'nhiều hộ gia đình bị ảnh hưởng bởi lũ lụt thiếu lương thực, vật dụng thiết yếu và nhân lực hỗ trợ dọn dẹp',
+                    'tasks' => 'vận chuyển hàng cứu trợ, phân phát nhu yếu phẩm, dọn bùn đất, khảo sát nhu cầu và hỗ trợ sắp xếp nơi ở tạm',
+                    'commitment' => 'chấp hành điều phối hiện trường, ưu tiên an toàn cá nhân và sẵn sàng làm việc trong điều kiện khẩn cấp',
+                    'benefits' => 'được trang bị bảo hộ cơ bản, hỗ trợ suất ăn, phương tiện di chuyển tại chỗ và xác nhận hoạt động cứu trợ',
+                    'contact' => 'Ban chỉ huy cứu trợ miền Trung, hotline 0909 100 105, email cuutro@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[4] ?? $loaiIds[0], // Cứu trợ thiên tai
                 'dia_diem'          => 'Huyện Hải Lăng, Quảng Trị',
                 'vi_do'             => 16.7100,
@@ -111,7 +146,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Xây nhà tình thương tại Nghệ An',
-                'mo_ta'             => 'Phối hợp xây dựng 2 căn nhà tình thương cho hộ gia đình khó khăn tại xã Quỳnh Thắng, Quỳnh Lưu, Nghệ An.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'chung tay cải thiện điều kiện nhà ở cho các hộ gia đình có hoàn cảnh khó khăn tại địa phương',
+                    'problem' => 'một số hộ dân vẫn đang sống trong nhà xuống cấp, thiếu an toàn và cần được sửa chữa hoặc xây mới',
+                    'tasks' => 'hỗ trợ vận chuyển vật liệu, phụ việc xây dựng cơ bản, dọn vệ sinh công trình và hậu cần cho đội thi công',
+                    'commitment' => 'tham gia theo ca được phân công, tuân thủ nghiêm ngặt quy định an toàn công trình và phối hợp với đội kỹ thuật',
+                    'benefits' => 'được hướng dẫn trước khi làm việc, hỗ trợ ăn uống tại chỗ, trang bị bảo hộ cơ bản và ghi nhận giờ công thiện nguyện',
+                    'contact' => 'Điều phối công trình cộng đồng, hotline 0909 100 106, email congdong@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[3] ?? $loaiIds[0], // Cộng đồng
                 'dia_diem'          => 'Xã Quỳnh Thắng, Huyện Quỳnh Lưu, Nghệ An',
                 'vi_do'             => 19.2342,
@@ -126,7 +168,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Ngày hội hiến máu Xuân 2026',
-                'mo_ta'             => 'Phối hợp với Viện Huyết học tổ chức ngày hội hiến máu nhân đạo. Tình nguyện viên hỗ trợ đón tiếp, hướng dẫn và chăm sóc người hiến máu.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'góp phần bổ sung nguồn máu dự trữ và nâng cao nhận thức cộng đồng về hiến máu nhân đạo',
+                    'problem' => 'nguồn máu phục vụ cấp cứu và điều trị luôn cần được bổ sung ổn định từ các chương trình hiến máu cộng đồng',
+                    'tasks' => 'đón tiếp người tham gia, hướng dẫn khai thông tin, điều phối khu vực chờ và hỗ trợ chăm sóc sau hiến máu',
+                    'commitment' => 'làm việc đúng quy trình, giao tiếp thân thiện và giữ thái độ cẩn trọng trong suốt thời gian chương trình diễn ra',
+                    'benefits' => 'được tập huấn nhanh, hỗ trợ suất ăn nhẹ, áo chương trình và giấy chứng nhận tham gia sự kiện nhân đạo',
+                    'contact' => 'Ban tổ chức hiến máu VMS, hotline 0909 100 107, email hienmau@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[2] ?? $loaiIds[0], // Y tế
                 'dia_diem'          => 'Trường ĐH Bách Khoa, Quận 10, TP.HCM',
                 'vi_do'             => 10.7725,
@@ -140,7 +189,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Phát quà Trung thu cho trẻ em mồ côi',
-                'mo_ta'             => 'Tổ chức chương trình vui Trung thu, phát lồng đèn và quà cho 150 trẻ em tại các mái ấm trên địa bàn quận Bình Thạnh.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'mang đến một mùa Trung thu vui vẻ, ấm áp và giàu trải nghiệm cho trẻ em tại các mái ấm',
+                    'problem' => 'nhiều em nhỏ có hoàn cảnh đặc biệt ít có cơ hội tham gia hoạt động lễ hội và nhận quà ý nghĩa trong dịp Trung thu',
+                    'tasks' => 'chuẩn bị quà tặng, tổ chức trò chơi, giao lưu văn nghệ, phát lồng đèn và hỗ trợ điều phối chương trình tại mái ấm',
+                    'commitment' => 'giữ thái độ tích cực, thân thiện với trẻ em, tham gia đủ ca và tuân thủ kịch bản hoạt động',
+                    'benefits' => 'được hỗ trợ hậu cần, tài liệu hoạt náo, suất ăn nhẹ và giấy xác nhận sau chương trình',
+                    'contact' => 'Nhóm điều phối thiếu nhi VMS, hotline 0909 100 108, email thieunhi@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[3] ?? $loaiIds[0], // Cộng đồng
                 'dia_diem'          => 'Mái ấm Hải Đường, Quận Bình Thạnh, TP.HCM',
                 'vi_do'             => 10.8050,
@@ -155,7 +211,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'tieu_de'           => 'Chương trình hỗ trợ thư viện vùng ven',
-                'mo_ta'             => 'Bổ sung đầu sách và tổ chức đọc sách cho trẻ em tại thư viện cộng đồng vùng ven.',
+                'mo_ta'             => $this->buildCampaignDescription([
+                    'purpose' => 'phát triển thói quen đọc sách và tạo thêm hoạt động học tập tích cực cho trẻ em vùng ven',
+                    'problem' => 'thư viện cộng đồng còn thiếu đầu sách phù hợp và chưa có nhiều hoạt động thu hút trẻ em đến đọc sách thường xuyên',
+                    'tasks' => 'phân loại sách, sắp xếp kệ, đọc sách cùng trẻ, tổ chức trò chơi tương tác và hỗ trợ vận hành góc thư viện',
+                    'commitment' => 'tham gia đúng giờ, giữ gìn sách và không gian thư viện, phối hợp tốt với người phụ trách địa phương',
+                    'benefits' => 'được hỗ trợ tài liệu hoạt động, nước uống, áo chiến dịch và xác nhận đóng góp cộng đồng',
+                    'contact' => 'Điều phối thư viện cộng đồng, hotline 0909 100 109, email thuvien@vms.vn',
+                ]),
                 'loai_chien_dich_id' => $loaiIds[1] ?? $loaiIds[0],
                 'dia_diem'          => 'Nhà văn hóa xã Bình Mỹ, Củ Chi, TP.HCM',
                 'vi_do'             => 10.9542,
@@ -192,7 +255,14 @@ class ChienDichSeeder extends Seeder
         $campaignTemplates = [
             [
                 'prefix' => 'Ngày chủ nhật xanh',
-                'mo_ta' => 'Chiến dịch tập trung làm sạch khu vực công cộng, phân loại rác và tuyên truyền bảo vệ môi trường cho người dân địa phương.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'cải thiện vệ sinh môi trường tại khu vực công cộng và lan tỏa thói quen sống xanh',
+                    'problem' => 'rác thải sinh hoạt chưa được phân loại tốt và ý thức bảo vệ môi trường tại địa phương còn hạn chế',
+                    'tasks' => 'làm sạch khu vực công cộng, phân loại rác, hỗ trợ vận chuyển rác và tuyên truyền trực tiếp cho người dân',
+                    'commitment' => 'tham gia trọn buổi, tuân thủ hướng dẫn phân loại rác và phối hợp theo đội nhóm',
+                    'benefits' => 'được cấp dụng cụ vệ sinh, nước uống, áo chiến dịch và xác nhận tham gia hoạt động môi trường',
+                    'contact' => 'Nhóm điều phối môi trường địa phương, hotline 0909 200 201, email sundaygreen@vms.vn',
+                ]),
                 'loai' => 'Môi trường',
                 'uu_tien' => 'cao',
                 'min' => 12,
@@ -201,7 +271,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Lớp học cộng đồng cuối tuần',
-                'mo_ta' => 'Tổ chức lớp học kỹ năng và học tập cho trẻ em có hoàn cảnh khó khăn, kết hợp sinh hoạt nhóm và hỗ trợ phụ huynh.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'bổ sung kiến thức và kỹ năng mềm cho trẻ em có hoàn cảnh khó khăn vào dịp cuối tuần',
+                    'problem' => 'nhiều em thiếu môi trường học tập bổ trợ và phụ huynh chưa có nhiều nguồn hỗ trợ đồng hành',
+                    'tasks' => 'dạy học theo nhóm nhỏ, tổ chức sinh hoạt nhóm, hỗ trợ bài tập và kết nối thông tin với phụ huynh',
+                    'commitment' => 'chuẩn bị nội dung trước buổi học, tham gia đủ lịch và giữ thái độ tích cực với học sinh',
+                    'benefits' => 'được cấp tài liệu hoạt động, hỗ trợ ăn nhẹ và xác nhận tham gia chương trình giáo dục cộng đồng',
+                    'contact' => 'Điều phối lớp học cộng đồng, hotline 0909 200 202, email lophoc@vms.vn',
+                ]),
                 'loai' => 'Giáo dục',
                 'uu_tien' => 'trung_binh',
                 'min' => 8,
@@ -210,7 +287,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Khám sức khỏe cộng đồng',
-                'mo_ta' => 'Hỗ trợ khám sàng lọc, tư vấn sức khỏe, phân luồng và chăm sóc người dân tại điểm khám lưu động.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'hỗ trợ người dân được tiếp cận khám sàng lọc và tư vấn sức khỏe ngay tại điểm khám lưu động',
+                    'problem' => 'nhiều người dân chưa chủ động kiểm tra sức khỏe định kỳ và cần được hướng dẫn y tế cơ bản',
+                    'tasks' => 'phân luồng, đo chỉ số cơ bản, hướng dẫn khai báo thông tin và hỗ trợ chăm sóc người dân tại điểm khám',
+                    'commitment' => 'làm việc đúng quy trình, giao tiếp lịch sự và tuân thủ điều phối của đội chuyên môn',
+                    'benefits' => 'được tập huấn nhanh, hỗ trợ ăn nhẹ, trang phục nhận diện và ghi nhận đóng góp cộng đồng',
+                    'contact' => 'Tổ điều phối y tế lưu động, hotline 0909 200 203, email khamsuckhoe@vms.vn',
+                ]),
                 'loai' => 'Y tế',
                 'uu_tien' => 'khan_cap',
                 'min' => 10,
@@ -219,7 +303,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Kết nối yêu thương',
-                'mo_ta' => 'Tổ chức hoạt động thăm hỏi, tặng quà và hỗ trợ sinh hoạt cho các nhóm yếu thế trong cộng đồng.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'mang lại sự quan tâm, hỗ trợ thiết thực và kết nối cộng đồng với các nhóm yếu thế',
+                    'problem' => 'nhiều người thuộc nhóm yếu thế thiếu nguồn hỗ trợ tinh thần, vật chất và các hoạt động đồng hành thường xuyên',
+                    'tasks' => 'thăm hỏi, tặng quà, hỗ trợ sinh hoạt cơ bản, ghi nhận nhu cầu và tổ chức các hoạt động giao lưu',
+                    'commitment' => 'giữ thái độ tôn trọng, lắng nghe người được hỗ trợ và tham gia theo ca đã đăng ký',
+                    'benefits' => 'được hỗ trợ hậu cần, nước uống, tài liệu chương trình và xác nhận tham gia chiến dịch',
+                    'contact' => 'Nhóm kết nối cộng đồng VMS, hotline 0909 200 204, email ketnoi@vms.vn',
+                ]),
                 'loai' => 'Cộng đồng',
                 'uu_tien' => 'cao',
                 'min' => 10,
@@ -228,7 +319,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Tiếp sức vùng lũ',
-                'mo_ta' => 'Hỗ trợ vận chuyển hàng cứu trợ, khảo sát nhu cầu và phân phát nhu yếu phẩm cho người dân bị ảnh hưởng thiên tai.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'kịp thời hỗ trợ người dân vùng thiên tai tiếp cận nhu yếu phẩm và nguồn lực cần thiết',
+                    'problem' => 'người dân bị ảnh hưởng bởi mưa lũ đang thiếu hàng cứu trợ và cần thêm nhân lực hỗ trợ hiện trường',
+                    'tasks' => 'vận chuyển hàng, khảo sát nhu cầu, phân phát nhu yếu phẩm và hỗ trợ sắp xếp điểm tiếp nhận cứu trợ',
+                    'commitment' => 'sẵn sàng làm việc trong điều kiện khẩn cấp, tuân thủ an toàn và chấp hành điều phối tập trung',
+                    'benefits' => 'được hỗ trợ phương tiện nội bộ, đồ bảo hộ cơ bản, suất ăn và ghi nhận tham gia hoạt động cứu trợ',
+                    'contact' => 'Ban điều phối cứu trợ khẩn cấp, hotline 0909 200 205, email tiepsuzunglu@vms.vn',
+                ]),
                 'loai' => 'Cứu trợ thiên tai',
                 'uu_tien' => 'khan_cap',
                 'min' => 18,
@@ -237,7 +335,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Ngày hội thiếu nhi',
-                'mo_ta' => 'Tổ chức trò chơi, phát quà, giao lưu và hướng dẫn kỹ năng mềm cho trẻ em tại địa phương.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'tạo sân chơi vui tươi và hỗ trợ phát triển kỹ năng mềm cho trẻ em tại địa phương',
+                    'problem' => 'trẻ em thiếu không gian vui chơi bổ ích và các hoạt động hướng dẫn kỹ năng ngoài giờ học',
+                    'tasks' => 'tổ chức trò chơi, phát quà, giao lưu, hỗ trợ sân khấu và hướng dẫn kỹ năng mềm theo nhóm',
+                    'commitment' => 'tham gia đúng giờ, giữ năng lượng tích cực và tuân thủ kịch bản chương trình cho trẻ em',
+                    'benefits' => 'được hỗ trợ hậu cần, tài liệu hoạt náo, nước uống và giấy xác nhận tham gia',
+                    'contact' => 'Điều phối sự kiện thiếu nhi, hotline 0909 200 206, email ngayhoithieunhi@vms.vn',
+                ]),
                 'loai' => 'Thiếu nhi',
                 'uu_tien' => 'trung_binh',
                 'min' => 8,
@@ -246,7 +351,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Chăm sóc người cao tuổi',
-                'mo_ta' => 'Thăm hỏi, hỗ trợ sinh hoạt, tổ chức hoạt động giao lưu và đo huyết áp cho người cao tuổi.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'đồng hành, chăm sóc và tạo thêm hoạt động giao lưu cho người cao tuổi trong cộng đồng',
+                    'problem' => 'nhiều người cao tuổi cần được hỗ trợ sinh hoạt nhẹ nhàng và có thêm cơ hội giao tiếp, kết nối',
+                    'tasks' => 'thăm hỏi, hỗ trợ sinh hoạt, tổ chức giao lưu, đo huyết áp cơ bản và ghi nhận nhu cầu hỗ trợ',
+                    'commitment' => 'giữ thái độ kiên nhẫn, nhẹ nhàng, tôn trọng người cao tuổi và tuân thủ lịch trình điều phối',
+                    'benefits' => 'được tập huấn ngắn, hỗ trợ hậu cần, áo nhận diện và xác nhận tham gia hoạt động cộng đồng',
+                    'contact' => 'Tổ điều phối người cao tuổi, hotline 0909 200 207, email nguoicaotuoi@vms.vn',
+                ]),
                 'loai' => 'Người cao tuổi',
                 'uu_tien' => 'trung_binh',
                 'min' => 6,
@@ -255,7 +367,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Công nghệ cho cộng đồng',
-                'mo_ta' => 'Hỗ trợ người dân làm quen với dịch vụ số, thiết bị cơ bản và kỹ năng sử dụng công nghệ trong đời sống.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'giúp người dân tiếp cận thuận tiện hơn với công nghệ số và dịch vụ công trực tuyến',
+                    'problem' => 'nhiều người dân còn gặp khó khăn khi sử dụng điện thoại thông minh, ứng dụng số và các dịch vụ trực tuyến',
+                    'tasks' => 'hướng dẫn thao tác cơ bản trên thiết bị, hỗ trợ cài ứng dụng cần thiết và giải đáp thắc mắc trực tiếp',
+                    'commitment' => 'giải thích rõ ràng, kiên nhẫn, hỗ trợ đúng nội dung chương trình và tham gia đủ ca đã đăng ký',
+                    'benefits' => 'được cung cấp tài liệu hướng dẫn, nước uống, áo chiến dịch và ghi nhận đóng góp chuyên môn',
+                    'contact' => 'Nhóm công nghệ cộng đồng, hotline 0909 200 208, email congnghe@vms.vn',
+                ]),
                 'loai' => 'Công nghệ vì cộng đồng',
                 'uu_tien' => 'thap',
                 'min' => 5,
@@ -264,7 +383,14 @@ class ChienDichSeeder extends Seeder
             ],
             [
                 'prefix' => 'Sơn sửa nhà tình thương',
-                'mo_ta' => 'Hỗ trợ sửa chữa, sơn mới và hoàn thiện các hạng mục cơ bản cho nhà của hộ gia đình khó khăn.',
+                'mo_ta' => $this->buildCampaignDescription([
+                    'purpose' => 'cải thiện không gian sống an toàn và sạch sẽ hơn cho các hộ gia đình khó khăn',
+                    'problem' => 'nhiều căn nhà xuống cấp cần được sửa chữa các hạng mục cơ bản nhưng thiếu nhân lực hỗ trợ',
+                    'tasks' => 'sơn mới, dọn dẹp, phụ việc sửa chữa đơn giản và hỗ trợ hậu cần cho nhóm thi công chính',
+                    'commitment' => 'tuân thủ hướng dẫn an toàn, tham gia đủ thời lượng và phối hợp chặt chẽ với nhóm phụ trách kỹ thuật',
+                    'benefits' => 'được trang bị bảo hộ cơ bản, hỗ trợ ăn uống và xác nhận giờ công tham gia chiến dịch',
+                    'contact' => 'Ban điều phối nhà tình thương, hotline 0909 200 209, email sonsuanhanh@vms.vn',
+                ]),
                 'loai' => 'Nhà ở / Công trình',
                 'uu_tien' => 'cao',
                 'min' => 12,
@@ -491,5 +617,19 @@ class ChienDichSeeder extends Seeder
                 'ghi_chu' => 'Tình nguyện viên đã đăng ký tham gia chiến dịch.',
             ],
         };
+    }
+
+    private function buildCampaignDescription(array $parts): string
+    {
+        return collect([
+            'Chiến dịch này được tổ chức nhằm mục đích ' . trim((string) ($parts['purpose'] ?? '')),
+            'Chiến dịch tập trung giải quyết vấn đề hoặc nhu cầu là ' . trim((string) ($parts['problem'] ?? '')),
+            'Tình nguyện viên sẽ trực tiếp thực hiện các công việc như ' . trim((string) ($parts['tasks'] ?? '')),
+            'Khi tham gia, tình nguyện viên cần cam kết ' . trim((string) ($parts['commitment'] ?? '')),
+            'Quyền lợi hoặc hỗ trợ dành cho tình nguyện viên bao gồm ' . trim((string) ($parts['benefits'] ?? '')),
+            'Thông tin liên hệ của người phụ trách chiến dịch là ' . trim((string) ($parts['contact'] ?? '')),
+        ])
+            ->map(fn (string $sentence) => rtrim(trim($sentence), ". \t\n\r\0\x0B") . '.')
+            ->implode(' ');
     }
 }

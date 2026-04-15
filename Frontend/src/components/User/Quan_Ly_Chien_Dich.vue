@@ -241,7 +241,7 @@
 
 		<!-- CREATE/EDIT MODAL -->
 		<div class="modal fade" id="campaignModal" tabindex="-1" ref="campaignModal">
-			<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-dialog campaign-modal-2xl modal-dialog-centered modal-dialog-scrollable">
 				<div class="modal-content border-0 shadow">
 					<div class="modal-header border-bottom px-4 pt-4 pb-3">
 						<h5 class="modal-title fw-bold fs-4 text-dark">{{ isEditing ? $t('coordinator.editCampaignTitle') : $t('coordinator.createCampaignTitle') }}</h5>
@@ -258,34 +258,33 @@
 									<div v-if="formErrors.title" class="invalid-feedback d-block">{{ formErrors.title }}</div>
 								</div>
 								<div class="col-12">
-									<div class="d-flex align-items-center justify-content-between gap-3 mb-2">
-										<label class="form-label fw-semibold small mb-0">{{ $t('coordinator.descriptionLabel') }} <span class="text-danger">*</span></label>
-										<button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addDescriptionItem">
-											<i class="fa-solid fa-plus me-1"></i>Thêm ý mô tả
-										</button>
-									</div>
-									<div class="d-flex flex-column gap-2">
-										<div v-for="(item, index) in formData.descriptionItems" :key="`description-item-${index}`" class="d-flex align-items-start gap-2">
-											<div class="flex-grow-1">
-												<textarea
-													class="form-control"
-													rows="2"
-													:class="{ 'is-invalid': formErrors.description }"
-													v-model.trim="formData.descriptionItems[index]"
-													:placeholder="`${$t('coordinator.descriptionPlaceholder')} (${index + 1})`"
-													required></textarea>
+									<label class="form-label fw-semibold small mb-2">{{ $t('coordinator.descriptionLabel') }} <span class="text-danger">*</span></label>
+									<div class="row g-3">
+										<div v-for="field in descriptionFieldConfigs" :key="field.key" class="col-12 col-xl-6">
+											<label class="form-label fw-semibold small">{{ field.label }} <span class="text-danger">*</span></label>
+											<textarea
+												class="form-control"
+												rows="3"
+												:class="{ 'is-invalid': formErrors[`description_${field.key}`] }"
+												v-model.trim="formData.descriptionForm[field.key]"
+												:placeholder="field.placeholder"
+												required></textarea>
+											<div v-if="formErrors[`description_${field.key}`]" class="invalid-feedback d-block">
+												{{ formErrors[`description_${field.key}`] }}
 											</div>
-											<button
-												type="button"
-												class="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0 mt-1 upload-remove-btn"
-												@click="removeDescriptionItem(index)"
-												:title="'Xóa ý mô tả'"
-												:disabled="formData.descriptionItems.length === 1">
-												<i class="fa-solid fa-xmark"></i>
-											</button>
 										</div>
 									</div>
+								</div>
+								<div class="col-12">
+									<label class="form-label fw-semibold small">Mô tả hoàn chỉnh</label>
+									<textarea
+										class="form-control bg-light-subtle"
+										rows="6"
+										:value="generatedDescriptionValue"
+										readonly
+									></textarea>
 									<div v-if="formErrors.description" class="invalid-feedback d-block">{{ formErrors.description }}</div>
+									<div class="form-text">Nội dung này sẽ được gửi lên hệ thống làm mô tả chiến dịch.</div>
 								</div>
 								<div class="col-12">
 									<div class="d-flex align-items-center justify-content-between gap-3 mb-2">
@@ -560,6 +559,54 @@ const PRIORITY_MAP_REVERSE = { urgent: 'khan_cap', high: 'cao', medium: 'trung_b
 // Status mapping: DB enum → frontend key
 const STATUS_MAP = { cho_duyet: 'pending', tu_choi: 'rejected', da_duyet: 'approved', dang_dien_ra: 'active', hoan_thanh: 'completed', yeu_cau_huy: 'pending_cancel', da_huy: 'cancelled', nhap: 'draft' };
 
+const DESCRIPTION_FIELD_CONFIG = [
+	{
+		key: 'purpose',
+		label: 'Chiến dịch này được tổ chức nhằm mục đích gì?',
+		placeholder: 'Ví dụ: Hỗ trợ học sinh vùng sâu có thêm điều kiện học tập và sinh hoạt tốt hơn.',
+		sentence: 'Chiến dịch này được tổ chức nhằm mục đích {value}.',
+	},
+	{
+		key: 'problem',
+		label: 'Vấn đề hoặc nhu cầu nào mà chiến dịch muốn giải quyết?',
+		placeholder: 'Ví dụ: Thiếu sách vở, vật dụng học tập và hoạt động đồng hành cho học sinh.',
+		sentence: 'Chiến dịch tập trung giải quyết vấn đề hoặc nhu cầu là {value}.',
+	},
+	{
+		key: 'tasks',
+		label: 'Tình nguyện viên sẽ thực hiện những công việc cụ thể nào?',
+		placeholder: 'Ví dụ: Phân loại quà tặng, tổ chức trò chơi, hỗ trợ hậu cần và hướng dẫn các em.',
+		sentence: 'Tình nguyện viên sẽ trực tiếp thực hiện các công việc như {value}.',
+	},
+	{
+		key: 'commitment',
+		label: 'Tình nguyện viên cần cam kết những gì khi tham gia?',
+		placeholder: 'Ví dụ: Có mặt đúng giờ, phối hợp theo nhóm và tuân thủ hướng dẫn của ban tổ chức.',
+		sentence: 'Khi tham gia, tình nguyện viên cần cam kết {value}.',
+	},
+	{
+		key: 'benefits',
+		label: 'Quyền lợi hoặc hỗ trợ dành cho tình nguyện viên là gì?',
+		placeholder: 'Ví dụ: Được hỗ trợ ăn trưa, cấp giấy chứng nhận và hướng dẫn trước khi tham gia.',
+		sentence: 'Quyền lợi hoặc hỗ trợ dành cho tình nguyện viên bao gồm {value}.',
+	},
+	{
+		key: 'contact',
+		label: 'Thông tin liên hệ của người phụ trách chiến dịch là gì?',
+		placeholder: 'Ví dụ: Chị Lan - 09xx xxx xxx - lan@vms.vn.',
+		sentence: 'Thông tin liên hệ của người phụ trách chiến dịch là {value}.',
+	},
+];
+
+const DESCRIPTION_FIELD_PREFIXES = {
+	purpose: 'Chiến dịch này được tổ chức nhằm mục đích',
+	problem: 'Chiến dịch tập trung giải quyết vấn đề hoặc nhu cầu là',
+	tasks: 'Tình nguyện viên sẽ trực tiếp thực hiện các công việc như',
+	commitment: 'Khi tham gia, tình nguyện viên cần cam kết',
+	benefits: 'Quyền lợi hoặc hỗ trợ dành cho tình nguyện viên bao gồm',
+	contact: 'Thông tin liên hệ của người phụ trách chiến dịch là',
+};
+
 export default {
 	name: "QuanLyChienDich",
 	components: { PageHeader, StatCards, ConfirmModal },
@@ -604,7 +651,10 @@ export default {
 			formErrors: {},
 			formData: {
 				title: '', description: '', category: '', priority: '',
-				descriptionItems: [''],
+				descriptionForm: DESCRIPTION_FIELD_CONFIG.reduce((accumulator, field) => {
+					accumulator[field.key] = '';
+					return accumulator;
+				}, {}),
 				location: '', latitude: null, longitude: null,
 				startDate: '', endDate: '',
 				maxVolunteers: null, minVolunteers: null, requiredSkills: [],
@@ -650,6 +700,12 @@ export default {
 				name: this.$t(`skillNames.${i + 1}`),
 				icon: ['fa-solid fa-calendar-check','fa-solid fa-boxes-stacked','fa-solid fa-kit-medical','fa-solid fa-bullhorn','fa-solid fa-chalkboard-teacher','fa-solid fa-laptop-code','fa-solid fa-utensils','fa-solid fa-truck','fa-solid fa-brain','fa-solid fa-camera'][i]
 			}));
+		},
+		descriptionFieldConfigs() {
+			return DESCRIPTION_FIELD_CONFIG;
+		},
+		generatedDescriptionValue() {
+			return this.buildDescriptionPayload();
 		},
 		canManageCampaigns() {
 			try {
@@ -1130,7 +1186,7 @@ export default {
 			this.formErrors = {};
 			this.formData = {
 				title: '', description: '', category: '', priority: '',
-				descriptionItems: [''],
+				descriptionForm: this.createDescriptionForm(),
 				location: '', latitude: null, longitude: null,
 				startDate: '', endDate: '', maxVolunteers: null, minVolunteers: null, requiredSkills: [],
 				coverUrl: null,
@@ -1155,7 +1211,7 @@ export default {
 			this._justOpenedEdit = true;
 			this.formData = {
 				...c,
-				descriptionItems: this.parseDescriptionItems(c.description),
+				descriptionForm: this.parseDescriptionForm(c.description),
 				requiredSkills: [...c.requiredSkills],
 				coverUrl: c.coverUrl || c.images?.[0] || null,
 				images: [...(c.images || [])],
@@ -1189,30 +1245,71 @@ export default {
 				this.loadCampaigns(page);
 			}
 		},
-		parseDescriptionItems(description) {
+		createDescriptionForm() {
+			return DESCRIPTION_FIELD_CONFIG.reduce((accumulator, field) => {
+				accumulator[field.key] = '';
+				return accumulator;
+			}, {});
+		},
+		parseDescriptionForm(description) {
+			const fallback = this.createDescriptionForm();
 			const items = String(description || '')
+				.replace(/\r/g, '')
 				.split('\n')
 				.map((item) => item.replace(/^\s*[-•]\s*/, '').trim())
 				.filter(Boolean);
-			return items.length ? items : [''];
+
+			if (!items.length) {
+				return fallback;
+			}
+
+			const matchedKeys = new Set();
+			items.forEach((item) => {
+				DESCRIPTION_FIELD_CONFIG.forEach((field) => {
+					const prefix = DESCRIPTION_FIELD_PREFIXES[field.key];
+					if (!prefix || matchedKeys.has(field.key)) return;
+					if (item.startsWith(prefix)) {
+						fallback[field.key] = item.slice(prefix.length).replace(/^[:\s]+/, '').replace(/[.]+$/, '').trim();
+						matchedKeys.add(field.key);
+					}
+				});
+			});
+
+			if (matchedKeys.size === 0) {
+				DESCRIPTION_FIELD_CONFIG.forEach((field, index) => {
+					fallback[field.key] = items[index] || '';
+				});
+			}
+
+			if (matchedKeys.size > 0 && matchedKeys.size < DESCRIPTION_FIELD_CONFIG.length) {
+				const remainingItems = items.filter((item) => !Array.from(matchedKeys).some((key) => item.startsWith(DESCRIPTION_FIELD_PREFIXES[key])));
+				DESCRIPTION_FIELD_CONFIG.forEach((field) => {
+					if (!fallback[field.key] && remainingItems.length) {
+						fallback[field.key] = remainingItems.shift() || '';
+					}
+				});
+			}
+
+			return fallback;
+		},
+		normalizeDescriptionFieldValue(value) {
+			return String(value || '')
+				.replace(/\s+/g, ' ')
+				.trim()
+				.replace(/[.]+$/, '');
 		},
 		buildDescriptionPayload() {
-			return (this.formData.descriptionItems || [])
-				.map((item) => item.trim())
+			return DESCRIPTION_FIELD_CONFIG
+				.map((field) => {
+					const value = this.normalizeDescriptionFieldValue(this.formData.descriptionForm?.[field.key]);
+					if (!value) return '';
+					return field.sentence.replace('{value}', value);
+				})
 				.filter(Boolean)
-				.map((item) => `- ${item}`)
-				.join('\n');
+				.join(' ');
 		},
 		syncDescriptionValue() {
 			this.formData.description = this.buildDescriptionPayload();
-		},
-		addDescriptionItem() {
-			this.formData.descriptionItems.push('');
-		},
-		removeDescriptionItem(index) {
-			if ((this.formData.descriptionItems || []).length === 1) return;
-			this.formData.descriptionItems.splice(index, 1);
-			this.syncDescriptionValue();
 		},
 		createCampaignImageInput(file = null) {
 			return {
@@ -1293,8 +1390,17 @@ export default {
 			if (!this.formData.title?.trim()) errors.title = 'Vui lòng nhập tên chiến dịch.';
 			else if (this.formData.title.trim().length < 5) errors.title = 'Tên chiến dịch phải có ít nhất 5 ký tự.';
 
-			if (!descriptionPayload.trim()) errors.description = 'Vui lòng nhập ít nhất 1 ý mô tả chiến dịch.';
-			else if (descriptionPayload.replace(/[-•\n\s]/g, '').length < 20) errors.description = 'Mô tả chiến dịch phải có ít nhất 20 ký tự.';
+			DESCRIPTION_FIELD_CONFIG.forEach((field) => {
+				if (!this.normalizeDescriptionFieldValue(this.formData.descriptionForm?.[field.key])) {
+					errors[`description_${field.key}`] = 'Vui lòng nhập nội dung này.';
+				}
+			});
+
+			if (!descriptionPayload.trim()) {
+				errors.description = 'Vui lòng hoàn thiện phần mô tả chiến dịch.';
+			} else if (descriptionPayload.replace(/\s/g, '').length < 60) {
+				errors.description = 'Mô tả hoàn chỉnh còn quá ngắn, vui lòng nhập đầy đủ hơn.';
+			}
 
 			if (!this.formData.category) errors.category = 'Vui lòng chọn loại chiến dịch.';
 			if (!this.formData.priority) errors.priority = 'Vui lòng chọn mức độ ưu tiên.';
@@ -1599,6 +1705,10 @@ export default {
 </script>
 
 <style scoped>
+.campaign-modal-2xl {
+	max-width: min(1480px, calc(100vw - 2rem));
+}
+
 .campaign-avatar { width: 40px; height: 40px; }
 .campaign-grid-banner { height: 90px; }
 .min-w-0 { min-width: 0; }

@@ -42,7 +42,15 @@
 					</div>
 					<div class="card-body p-4">
 						<h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-align-left me-2 text-primary"></i>{{ $t('campaignDetail.campaignDescription') }}</h6>
-						<ul v-if="campaignDescriptionItems.length > 1" class="text-muted mb-0 ps-3 campaign-description-list">
+						<div v-if="campaignDescriptionSections.length" class="row g-3">
+							<div v-for="section in campaignDescriptionSections" :key="section.key" class="col-md-6">
+								<div class="campaign-description-card h-100">
+									<div class="small fw-bold text-primary mb-2">{{ section.label }}</div>
+									<div class="text-muted lh-lg mb-0">{{ section.value }}</div>
+								</div>
+							</div>
+						</div>
+						<ul v-else-if="campaignDescriptionItems.length > 1" class="text-muted mb-0 ps-3 campaign-description-list">
 							<li v-for="(item, index) in campaignDescriptionItems" :key="`campaign-description-${index}`" class="mb-2">
 								{{ item }}
 							</li>
@@ -51,14 +59,14 @@
 					</div>
 				</div>
 
-				<div v-if="campaign.images.length > 0" class="card border-0 shadow-sm mb-4">
-					<div class="card-body p-4">
+				<div v-if="campaign.images.length > 0" class="card border-0 shadow-sm rounded-4 mb-4">
+					<div class="card-body p-4 p-md-5">
 						<div class="d-flex align-items-center justify-content-between mb-3">
-							<h6 class="fw-bold text-dark mb-0"><i class="fa-regular fa-images me-2 text-primary"></i>Thư viện ảnh</h6>
+							<h4 class="fw-bold mb-0"><i class="fa-regular fa-images text-primary me-2"></i>Hình ảnh chiến dịch</h4>
 							<span class="badge bg-light text-dark border">{{ campaign.images.length }} ảnh</span>
 						</div>
 						<div class="campaign-gallery-main rounded-4 overflow-hidden border mb-3">
-							<img :src="activeCampaignImage" alt="Ảnh chiến dịch" class="campaign-gallery-main-image">
+							<img :src="activeCampaignImage" alt="Hình ảnh chiến dịch" class="campaign-gallery-main-image">
 						</div>
 						<div class="row g-2" v-if="campaign.images.length > 1">
 							<div v-for="(image, index) in campaign.images" :key="`${campaign.id}-gallery-${index}`" class="col-4 col-md-3">
@@ -508,6 +516,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
 import api from '../../services/api'
 import { hasPermission } from '../../utils/permissions'
+import { extractCampaignDescriptionSections, parseCampaignDescription } from '../../utils/campaignDescription'
 
 const PRIORITY_MAP = { khan_cap: 'urgent', cao: 'high', trung_binh: 'medium', thap: 'low' };
 const STATUS_MAP = { cho_duyet: 'pending', tu_choi: 'rejected', da_duyet: 'approved', dang_dien_ra: 'active', hoan_thanh: 'completed', da_huy: 'cancelled', yeu_cau_huy: 'pending_cancel', nhap: 'draft' };
@@ -569,11 +578,11 @@ export default {
 		activeCampaignImage() {
 			return this.campaign.images[this.activeImageIndex] || this.campaign.images[0] || '';
 		},
+		campaignDescriptionSections() {
+			return extractCampaignDescriptionSections(this.campaign.description || '');
+		},
 		campaignDescriptionItems() {
-			return String(this.campaign.description || '')
-				.split('\n')
-				.map((item) => item.replace(/^\s*[-•]\s*/, '').trim())
-				.filter(Boolean);
+			return parseCampaignDescription(this.campaign.description || '');
 		},
 		availableSkills() {
 			if (this.skillsList.length > 0) {
@@ -1180,6 +1189,13 @@ export default {
 	height: 82px;
 	object-fit: contain;
 	background: #f8f9fa;
+}
+
+.campaign-description-card {
+	border: 1px solid rgba(13, 110, 253, 0.12);
+	border-radius: 1rem;
+	padding: 1rem 1.1rem;
+	background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(13, 110, 253, 0.01));
 }
 
 .gallery-thumb {
