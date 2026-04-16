@@ -63,8 +63,12 @@
 				<div class="col-lg-8">
 					<!-- Kỹ năng -->
 					<div class="card border-0 shadow-sm mb-4" id="skills-section">
-						<div class="card-header bg-white border-bottom py-3">
+						<div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between gap-2">
 							<h6 class="fw-bold mb-0"><i class="fa-solid fa-tools text-primary me-2"></i>{{ $t('profile.skillsTitle') }}</h6>
+							<button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" :disabled="!canManageProfile || creatingSkill" @click="createSkillFromInput">
+								<span v-if="creatingSkill" class="spinner-border spinner-border-sm me-1" role="status"></span>
+								<i v-else class="fa-solid fa-plus me-1"></i>{{ $t('common.add') }}
+							</button>
 						</div>
 						<div class="card-body">
 							<p class="text-muted small mb-3">{{ $t('profile.skillsDesc') }}</p>
@@ -74,12 +78,20 @@
 									:class="profile.skills.includes(skill.id) ? 'bg-primary text-white shadow-sm' : 'bg-light text-dark border'"
 									style="font-size: 13px; cursor: pointer;"
 									@click="toggleSkill(skill.id)">
-									<i :class="skill.icon" class="me-1"></i>{{ skill.name }}
+									{{ skill.name }}
 								</span>
 							</div>
 							<div class="bg-light rounded-3 p-3">
 								<label class="form-label small fw-bold">{{ $t('profile.otherSkillsTitle') }}</label>
-								<input type="text" class="form-control form-control-sm" v-model="profile.otherSkills" :placeholder="$t('profile.otherSkillsPlaceholder')">
+								<div class="input-group input-group-sm">
+									<input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': skillCreateError }" v-model.trim="profile.otherSkills" :placeholder="$t('profile.otherSkillsPlaceholder')" @keydown.enter.prevent="createSkillFromInput">
+									<button type="button" class="btn btn-primary" :disabled="!canManageProfile || creatingSkill" @click="createSkillFromInput">
+										<span v-if="creatingSkill" class="spinner-border spinner-border-sm" role="status"></span>
+										<i v-else class="fa-solid fa-plus"></i>
+									</button>
+								</div>
+								<div v-if="skillCreateError" class="invalid-feedback d-block">{{ skillCreateError }}</div>
+								<div class="form-text">Nhập kỹ năng chưa có trong danh sách rồi bấm thêm để tạo mới và chọn luôn.</div>
 							</div>
 						</div>
 					</div>
@@ -280,6 +292,8 @@ export default {
 		return {
 			saving: false,
 			loading: true,
+			creatingSkill: false,
+			skillCreateError: '',
 			localAlertMessage: '',
 			localAlertSuccess: false,
 			availableSkills: [],
@@ -341,6 +355,13 @@ export default {
 		await this.loadData();
 	},
 	methods: {
+		mapSkillOption(kn) {
+			return {
+				id: kn.id,
+				name: kn.ten,
+				icon: kn.bieu_tuong || 'fa-solid fa-star',
+			};
+		},
 		async loadData() {
 			this.loading = true;
 			try {
@@ -353,11 +374,7 @@ export default {
 
 				// Skills catalog
 				if (kyNangRes.data.status === 1) {
-					this.availableSkills = kyNangRes.data.data.map(kn => ({
-						id: kn.id,
-						name: kn.ten,
-						icon: kn.bieu_tuong || 'fa-solid fa-star',
-					}));
+					this.availableSkills = kyNangRes.data.data.map((kn) => this.mapSkillOption(kn));
 				}
 
 				// Regions catalog
@@ -408,6 +425,47 @@ export default {
 			const idx = this.profile.skills.indexOf(id);
 			if (idx > -1) this.profile.skills.splice(idx, 1);
 			else this.profile.skills.push(id);
+		},
+		async createSkillFromInput() {
+			const name = String(this.profile.otherSkills || '').trim();
+			if (!name) {
+				this.skillCreateError = 'Vui lòng nhập tên kỹ năng cần thêm.';
+				return;
+			}
+
+			this.creatingSkill = true;
+			this.skillCreateError = '';
+
+			try {
+				const { data } = await api.post('/nguoi-dung/ky-nang', { ten: name });
+				const skill = data?.data;
+				if (!skill?.id) {
+					throw new Error('INVALID_RESPONSE');
+				}
+
+				const mappedSkill = this.mapSkillOption(skill);
+				const existedIndex = this.availableSkills.findIndex((item) => item.id === mappedSkill.id);
+				if (existedIndex > -1) this.availableSkills.splice(existedIndex, 1, mappedSkill);
+				else this.availableSkills.push(mappedSkill);
+				this.availableSkills.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+				if (!this.profile.skills.includes(mappedSkill.id)) {
+					this.profile.skills.push(mappedSkill.id);
+				}
+
+				this.profile.otherSkills = '';
+				this.toast?.showToast?.('success', 'Thành công!', data?.message || 'Đã thêm kỹ năng mới.');
+			} catch (error) {
+				const responseData = error.response?.data;
+				if (responseData?.errors) {
+					const firstKey = Object.keys(responseData.errors)[0];
+					this.skillCreateError = responseData.errors[firstKey]?.[0] || 'Dữ liệu không hợp lệ.';
+				} else {
+					this.skillCreateError = responseData?.message || 'Không thể thêm kỹ năng mới.';
+				}
+			} finally {
+				this.creatingSkill = false;
+			}
 		},
 		toggleRegion(id) {
 			const idx = this.profile.regions.indexOf(id);

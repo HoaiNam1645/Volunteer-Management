@@ -59,6 +59,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::middleware('permission:competency_profile.manage')->group(function () {
         Route::put('/nguoi-dung/ho-so-nang-luc', [NguoiDungController::class, 'luuHoSoNangLuc']);
+        Route::post('/nguoi-dung/ky-nang', [DanhMucController::class, 'taoKyNangHoSo']);
     });
 });
 

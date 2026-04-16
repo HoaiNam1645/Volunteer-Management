@@ -160,6 +160,59 @@ class DanhMucController extends Controller
         ], 201);
     }
 
+    public function taoKyNangHoSo(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user || !$user->coQuyen('competency_profile.manage')) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Bạn không có quyền thêm kỹ năng cho hồ sơ năng lực.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'ten' => 'required|string|max:100',
+        ]);
+
+        $name = trim($validated['ten']);
+        $existing = KyNang::query()
+            ->whereNull('xoa_luc')
+            ->whereRaw('LOWER(ten) = ?', [mb_strtolower($name, 'UTF-8')])
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'status' => 1,
+                'message' => 'Kỹ năng đã tồn tại, hệ thống đã chọn lại mục hiện có.',
+                'data' => [
+                    'id' => $existing->id,
+                    'ten' => $existing->ten,
+                    'bieu_tuong' => $existing->bieu_tuong,
+                    'mo_ta' => $existing->mo_ta,
+                ],
+            ]);
+        }
+
+        $record = KyNang::create([
+            'ten' => $name,
+            'bieu_tuong' => null,
+            'mo_ta' => null,
+            'hoat_dong' => true,
+        ]);
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'Thêm kỹ năng thành công.',
+            'data' => [
+                'id' => $record->id,
+                'ten' => $record->ten,
+                'bieu_tuong' => $record->bieu_tuong,
+                'mo_ta' => $record->mo_ta,
+            ],
+        ], 201);
+    }
+
     public function capNhatQuanLy(Request $request, string $type, int $id)
     {
         [$modelClass, $payload] = $this->resolveCategoryPayload($type, $request, $id);
