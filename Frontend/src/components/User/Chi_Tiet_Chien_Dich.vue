@@ -35,6 +35,12 @@
 								<span v-if="registration.statusLabel" class="badge bg-light text-dark border px-3 py-2 rounded-pill">{{ registration.statusLabel }}</span>
 							</div>
 							<h1 class="fw-bold mb-3 display-6 lh-base">{{ campaign.title }}</h1>
+							<div v-if="campaign.cancelReason && ['yeu_cau_huy', 'da_huy'].includes(campaign.status)" class="alert alert-warning border-0 mb-3">
+								<div class="fw-semibold mb-1">
+									<i class="fa-solid fa-triangle-exclamation me-2"></i>{{ $t('campaignDetail.cancelReasonTitle') }}
+								</div>
+								<div class="small mb-0">{{ campaign.cancelReason }}</div>
+							</div>
 							<div class="row g-3 text-muted mt-1">
 								<div class="col-sm-6 d-flex align-items-center gap-3">
 									<div class="icon-circle bg-danger text-white"><i class="fa-solid fa-location-dot"></i></div>
@@ -432,6 +438,7 @@ export default {
 				canRegister: false,
 				canConfirm: false,
 				canCancelRegistration: false,
+				cancelReason: '',
 			},
 			registration: {
 				status: '',
@@ -666,6 +673,7 @@ export default {
 				deadline: this.formatDate(item.han_dang_ky),
 				status: item.trang_thai,
 				statusLabel: this.getCampaignStatusLabel(item.trang_thai),
+				cancelReason: item.ly_do_huy || '',
 				priority: item.muc_do_uu_tien,
 				priorityLabel: this.getPriorityLabel(item.muc_do_uu_tien),
 				categoryLabel: item.loai_chien_dich?.ten || this.$t('campaignDetail.defaultCategory'),
@@ -701,6 +709,8 @@ export default {
 				da_duyet: 'approved',
 				dang_dien_ra: 'active',
 				hoan_thanh: 'completed',
+				yeu_cau_huy: 'pending_cancel',
+				da_huy: 'cancelled',
 			}[status] || status;
 			return this.$t(`statuses.${key}`) || status;
 		},
@@ -728,6 +738,8 @@ export default {
 				da_duyet: 'bg-success text-white',
 				dang_dien_ra: 'bg-primary text-white',
 				hoan_thanh: 'bg-secondary text-white',
+				yeu_cau_huy: 'bg-warning text-dark',
+				da_huy: 'bg-danger text-white',
 			}[status] || 'bg-light text-dark';
 		},
 		formatDate(date) {

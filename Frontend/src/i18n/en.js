@@ -315,6 +315,7 @@ export default {
         explore: 'Explore',
         notFoundTitle: 'Campaign not found',
         notFoundDesc: 'The campaign does not exist or is no longer visible.',
+        cancelReasonTitle: 'Campaign cancellation reason',
         backToList: 'Back to campaign list',
         loadErrorMessage: 'Unable to load campaign detail.',
         locationLabel: 'Location',

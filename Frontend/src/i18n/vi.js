@@ -315,6 +315,7 @@ export default {
         explore: 'Khám phá',
         notFoundTitle: 'Không tìm thấy chiến dịch',
         notFoundDesc: 'Chiến dịch không tồn tại hoặc không còn hiển thị.',
+        cancelReasonTitle: 'Lý do hủy chiến dịch',
         backToList: 'Quay lại danh sách',
         loadErrorMessage: 'Không thể tải chi tiết chiến dịch.',
         locationLabel: 'Địa điểm',

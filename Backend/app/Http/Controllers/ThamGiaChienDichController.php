@@ -255,10 +255,9 @@ class ThamGiaChienDichController extends Controller
     {
         $user = auth('api')->user();
 
-        $campaign = ChienDich::query()
+        $detailQuery = ChienDich::query()
             ->where('id', $id)
             ->whereNull('xoa_luc')
-            ->whereIn('trang_thai', self::PUBLIC_STATUSES)
             ->with([
                 'loaiChienDich:id,ten,bieu_tuong,mau_sac',
                 'kyNangs:ky_nangs.id,ten',
@@ -266,8 +265,21 @@ class ThamGiaChienDichController extends Controller
                 'nguoiTao:id,ho_ten,email',
                 'duyetBoi:id,ho_ten,email',
                 'feedbacks.nguoiDung:id,ho_ten,email',
-            ])
+            ]);
+
+        $campaign = (clone $detailQuery)
+            ->whereIn('trang_thai', self::PUBLIC_STATUSES)
             ->first();
+
+        if (
+            !$campaign
+            && $user
+            && $this->coLichSuThamGiaChienDich((int) $id, (int) $user->id)
+        ) {
+            $campaign = (clone $detailQuery)
+                ->whereIn('trang_thai', ['yeu_cau_huy', 'da_huy'])
+                ->first();
+        }
 
         if (!$campaign) {
             return response()->json([
@@ -607,6 +619,10 @@ class ThamGiaChienDichController extends Controller
     {
         $dangKy = $this->dangKyHienTai($campaign->id, $user?->id);
         $flags = $this->buildAvailabilityFlags($campaign, $dangKy);
+        $lyDoHuy = null;
+        if (in_array($campaign->trang_thai, ['yeu_cau_huy', 'da_huy'], true)) {
+            $lyDoHuy = $dangKy?->ly_do_huy ?: ($campaign->ly_do_tu_choi ?: null);
+        }
 
         return [
             'id' => $campaign->id,
@@ -623,6 +639,7 @@ class ThamGiaChienDichController extends Controller
             'han_dang_ky' => optional($campaign->han_dang_ky)->format('Y-m-d'),
             'muc_do_uu_tien' => $campaign->muc_do_uu_tien,
             'trang_thai' => $campaign->trang_thai,
+            'ly_do_huy' => $lyDoHuy,
             'so_luong_toi_da' => $campaign->so_luong_toi_da,
             'so_dang_ky' => $campaign->so_dang_ky,
             'so_xac_nhan' => $campaign->so_xac_nhan,
@@ -685,6 +702,14 @@ class ThamGiaChienDichController extends Controller
             ->where('nguoi_dung_id', $userId)
             ->latest('id')
             ->first();
+    }
+
+    private function coLichSuThamGiaChienDich(int $campaignId, int $userId): bool
+    {
+        return DangKyThamGia::query()
+            ->where('chien_dich_id', $campaignId)
+            ->where('nguoi_dung_id', $userId)
+            ->exists();
     }
 
     private function buildAvailabilityFlags(ChienDich $campaign, ?DangKyThamGia $dangKy): array

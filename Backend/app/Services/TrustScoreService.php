@@ -355,6 +355,7 @@ class TrustScoreService
         $creator = $campaign->nguoiTao;
         $score = 0.5;
         $flags = [];
+        $creatorAccountAge = null;
 
         // === CAMPAIGN FEATURES ===
         if ($campaign->anh_bia) {
@@ -444,7 +445,7 @@ class TrustScoreService
             }
 
             $creatorAccountAge = $creator->tao_luc
-                ? Carbon::today()->startOfDay()->diffInDays($creator->tao_luc->startOfDay())
+                ? max(0, Carbon::today()->startOfDay()->diffInDays(Carbon::parse($creator->tao_luc)->startOfDay(), false))
                 : null;
 
             $creatorCampaigns = $creator->chienDichs()->count();
@@ -588,9 +589,9 @@ class TrustScoreService
 
             'content_analysis' => [
                 'text_risk_keyword_count' => count(array_filter($flags, fn ($f) => $f['category'] === 'CONTENT_SAFETY')),
-                'text_risk_score' => null,
-                'vagueness_score' => null,
-                'safety_description_score' => null,
+                'text_risk_score' => $this->calculateFallbackTextRiskScore($flags),
+                'vagueness_score' => $this->calculateFallbackVaguenessScore($campaign->mo_ta ?? ''),
+                'safety_description_score' => $this->calculateFallbackSafetyDescriptionScore($campaign->mo_ta ?? ''),
                 'risk_keywords_found' => [],
             ],
 
@@ -667,7 +668,7 @@ class TrustScoreService
         }
 
         $accountAge = $volunteer->tao_luc
-            ? Carbon::today()->startOfDay()->diffInDays($volunteer->tao_luc->startOfDay())
+            ? max(0, Carbon::today()->startOfDay()->diffInDays(Carbon::parse($volunteer->tao_luc)->startOfDay(), false))
             : null;
 
         if ($accountAge !== null && $accountAge < 7) {
@@ -946,6 +947,53 @@ class TrustScoreService
         }
 
         return array_slice(array_unique($questions), 0, 5);
+    }
+
+    private function calculateFallbackTextRiskScore(array $flags): float
+    {
+        $riskKeywordCount = count(array_filter($flags, fn ($f) => ($f['category'] ?? null) === 'CONTENT_SAFETY'));
+        return round(min(1.0, $riskKeywordCount * 0.25), 4);
+    }
+
+    private function calculateFallbackVaguenessScore(string $description): float
+    {
+        $descLength = mb_strlen(trim($description));
+
+        $score = match (true) {
+            $descLength <= 20 => 0.9,
+            $descLength <= 50 => 0.7,
+            $descLength <= 120 => 0.4,
+            default => 0.2,
+        };
+
+        return round($score, 4);
+    }
+
+    private function calculateFallbackSafetyDescriptionScore(string $description): float
+    {
+        $descriptionLower = mb_strtolower($description);
+        $safetyKeywords = [
+            'an toàn',
+            'bao hiem',
+            'bảo hiểm',
+            'hỗ trợ',
+            'ho tro',
+            'khẩn cấp',
+            'khan cap',
+            'liên hệ',
+            'lien he',
+            'quy trình',
+            'quy trinh',
+        ];
+
+        $matches = 0;
+        foreach ($safetyKeywords as $keyword) {
+            if (str_contains($descriptionLower, $keyword)) {
+                $matches++;
+            }
+        }
+
+        return round(min(1.0, $matches / 3), 4);
     }
 
     private function calculateProfileCompleteness(NguoiDung $volunteer): float

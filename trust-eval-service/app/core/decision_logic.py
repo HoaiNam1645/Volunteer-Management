@@ -55,7 +55,7 @@ class DecisionLogic:
             return self._reject(
                 reason="Chiến dịch không đáp ứng các điều kiện bắt buộc. "
                        "Vui lòng sửa các lỗi nghiêm trọng trước khi gửi duyệt.",
-                confidence="HIGH",
+                confidence="LOW",
                 flags=flags,
             )
 

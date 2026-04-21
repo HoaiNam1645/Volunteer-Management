@@ -92,6 +92,10 @@ class ContentAnalysis(BaseModel):
     vagueness_score: Optional[float] = None
     safety_description_score: Optional[float] = None
     risk_keywords_found: list[str] = Field(default_factory=list)
+    risk_keyword_details: list[dict[str, Any]] = Field(default_factory=list)
+    vagueness_signals: list[dict[str, Any]] = Field(default_factory=list)
+    safety_signals: list[dict[str, Any]] = Field(default_factory=list)
+    text_risk_breakdown: dict[str, Any] = Field(default_factory=dict)
 
 
 # ==================== SHAP EXPLANATION ====================

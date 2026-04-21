@@ -228,6 +228,9 @@ class ModelLoader:
         Used when ML models are not available (Phase 2).
         """
         score = 0.5
+        creator_account_age_days = features.get("creator_account_age_days")
+        if creator_account_age_days is None:
+            creator_account_age_days = 0
 
         # Campaign features
         if features.get("has_cover_image"):
@@ -262,7 +265,7 @@ class ModelLoader:
             score += 0.05
         if features.get("creator_campaign_count", 0) > 10:
             score += 0.10
-        if features.get("creator_account_age_days", 0) >= 30:
+        if creator_account_age_days >= 30:
             score += 0.08
         if features.get("creator_avg_campaign_participation"):
             score += 0.05
@@ -284,7 +287,7 @@ class ModelLoader:
             score -= 0.05
         if not features.get("creator_has_verified_email"):
             score -= 0.05
-        if features.get("creator_account_age_days", 999) < 7:
+        if creator_account_age_days < 7:
             score -= 0.10
         if (features.get("creator_previous_cancellation_rate") or 0) > 0.3:
             score -= 0.15

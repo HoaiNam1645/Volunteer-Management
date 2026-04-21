@@ -65,7 +65,7 @@
 
 			<div class="row g-3">
 				<!-- LEFT COLUMN: Trust Score + Risk -->
-				<div class="col-lg-5">
+				<div class="col-12">
 					<!-- Trust Score Card -->
 					<div class="eval-card mb-3">
 						<div class="eval-card-header">
@@ -224,7 +224,7 @@
 				</div>
 
 				<!-- RIGHT COLUMN: Decision Support + SHAP -->
-				<div class="col-lg-7">
+				<div class="col-12">
 					<!-- Decision Support -->
 					<div class="eval-card mb-3" v-if="evaluation.decision_support">
 						<div class="eval-card-body">
@@ -252,7 +252,7 @@
 						</div>
 						<div class="eval-card-body">
 							<div class="row g-2">
-								<div class="col-6 col-md-3">
+								<div class="col-12">
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.riskKeywords') }}</div>
 										<div class="fw-bold text-danger">
@@ -260,7 +260,7 @@
 										</div>
 									</div>
 								</div>
-								<div class="col-6 col-md-3">
+								<div class="col-12">
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.vagueness') }}</div>
 										<div class="fw-bold" :class="scoreClass(evaluation.content_analysis.vagueness_score)">
@@ -268,7 +268,7 @@
 										</div>
 									</div>
 								</div>
-								<div class="col-6 col-md-3">
+								<div class="col-12">
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.safetyDesc') }}</div>
 										<div class="fw-bold text-success">
@@ -276,7 +276,7 @@
 										</div>
 									</div>
 								</div>
-								<div class="col-6 col-md-3">
+								<div class="col-12">
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.textRiskScore') }}</div>
 										<div class="fw-bold" :class="scoreClass(evaluation.content_analysis.text_risk_score)">
@@ -295,6 +295,69 @@
 									>
 										{{ kw }}
 									</span>
+								</div>
+							</div>
+							<div v-if="getRiskKeywordDetails(evaluation.content_analysis).length" class="content-detail-block mt-3">
+								<div class="content-detail-title">Chi tiết từ khóa rủi ro</div>
+								<div
+									v-for="(kw, idx) in getRiskKeywordDetails(evaluation.content_analysis)"
+									:key="`kw-detail-${idx}`"
+									class="content-detail-item"
+								>
+									<div class="d-flex align-items-center gap-2 flex-wrap">
+										<span class="badge bg-danger-subtle text-danger border border-danger">{{ kw.keyword }}</span>
+										<span class="badge bg-light text-muted border">{{ kw.severity }}</span>
+									</div>
+									<div v-if="kw.locations?.length" class="small text-muted mt-1">
+										<div v-for="(loc, locIdx) in kw.locations" :key="`kw-loc-${idx}-${locIdx}`">
+											{{ formatLocation(loc) }}: "{{ loc.snippet || kw.match }}"
+										</div>
+									</div>
+									<div v-else class="small text-muted mt-1">Không có vị trí chi tiết.</div>
+								</div>
+							</div>
+							<div v-if="getVaguenessSignals(evaluation.content_analysis).length" class="content-detail-block mt-3">
+								<div class="content-detail-title">Vì sao nội dung bị mơ hồ</div>
+								<div
+									v-for="(signal, idx) in getVaguenessSignals(evaluation.content_analysis)"
+									:key="`vague-${idx}`"
+									class="content-detail-item"
+								>
+									<div class="small">
+										<span class="fw-semibold">{{ signal.detail }}</span>
+										<span class="text-muted ms-1">(tác động: +{{ formatScore(signal.weight) }})</span>
+									</div>
+								</div>
+							</div>
+							<div v-if="getSafetySignals(evaluation.content_analysis).length" class="content-detail-block mt-3">
+								<div class="content-detail-title">Chi tiết mô tả an toàn</div>
+								<div
+									v-for="(safety, idx) in getSafetySignals(evaluation.content_analysis)"
+									:key="`safety-${idx}`"
+									class="content-detail-item"
+								>
+									<div class="small">
+										<span class="fw-semibold">Mức:</span> {{ safety.level || '-' }}
+									</div>
+									<div class="small text-muted mt-1">
+										<span class="fw-semibold">Strong:</span> {{ (safety.strong_matches || []).join(', ') || 'Không có' }}
+									</div>
+									<div class="small text-muted">
+										<span class="fw-semibold">Weak:</span> {{ (safety.weak_matches || []).join(', ') || 'Không có' }}
+									</div>
+								</div>
+							</div>
+							<div v-if="getRiskBreakdownEntries(evaluation.content_analysis).length" class="content-detail-block mt-3">
+								<div class="content-detail-title">Chi tiết điểm rủi ro văn bản</div>
+								<div class="content-detail-item">
+									<div
+										v-for="entry in getRiskBreakdownEntries(evaluation.content_analysis)"
+										:key="entry.key"
+										class="small d-flex justify-content-between border-bottom py-1"
+									>
+										<span class="text-muted">{{ entry.label }}</span>
+										<span class="fw-semibold">{{ formatScore(entry.value) }}</span>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -547,6 +610,38 @@ export default {
 			if (value >= 0.4) return 'text-warning';
 			return 'text-success';
 		},
+		getRiskKeywordDetails(contentAnalysis) {
+			if (!contentAnalysis) return [];
+			return contentAnalysis.risk_keyword_details || [];
+		},
+		getVaguenessSignals(contentAnalysis) {
+			if (!contentAnalysis) return [];
+			return contentAnalysis.vagueness_signals || [];
+		},
+		getSafetySignals(contentAnalysis) {
+			if (!contentAnalysis) return [];
+			return contentAnalysis.safety_signals || [];
+		},
+		getRiskBreakdownEntries(contentAnalysis) {
+			const breakdown = contentAnalysis?.text_risk_breakdown || {};
+			const mapping = [
+				{ key: 'keyword_component', label: 'Thành phần từ khóa' },
+				{ key: 'vagueness_component', label: 'Thành phần mơ hồ' },
+				{ key: 'safety_component', label: 'Điều chỉnh an toàn' },
+				{ key: 'suspicious_contact_component', label: 'Liên hệ không chính thức' },
+				{ key: 'final_score', label: 'Điểm cuối' },
+			];
+			return mapping
+				.filter((item) => breakdown[item.key] !== undefined && breakdown[item.key] !== null)
+				.map((item) => ({ ...item, value: breakdown[item.key] }));
+		},
+		formatLocation(location) {
+			if (!location) return '-';
+			const source = location.source === 'title' ? 'Tiêu đề' : 'Mô tả';
+			const start = location.start ?? 0;
+			const end = location.end ?? 0;
+			return `${source} [${start}-${end}]`;
+		},
 	},
 };
 </script>
@@ -630,6 +725,32 @@ export default {
 	border-radius: 8px;
 	padding: 0.625rem;
 	text-align: center;
+}
+
+.content-detail-block {
+	background: #f8f9fa;
+	border: 1px solid #e9ecef;
+	border-radius: 8px;
+	padding: 0.625rem;
+}
+
+.content-detail-title {
+	font-size: 12px;
+	font-weight: 700;
+	color: #495057;
+	margin-bottom: 0.5rem;
+}
+
+.content-detail-item {
+	background: #fff;
+	border: 1px solid #e9ecef;
+	border-radius: 6px;
+	padding: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.content-detail-item:last-child {
+	margin-bottom: 0;
 }
 
 .notification-banner {

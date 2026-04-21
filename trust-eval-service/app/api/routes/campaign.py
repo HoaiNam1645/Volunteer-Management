@@ -288,10 +288,43 @@ async def evaluate_campaign(campaign_id: int):
 
         # If CRITICAL errors, return early without ML evaluation
         if not validation_result["passed"]:
+            analyzer = ContentAnalyzer(
+                title=campaign.get("tieu_de", ""),
+                description=campaign.get("mo_ta", ""),
+            )
+            content_analysis = analyzer.analyze()
+            content_flags = format_risk_flags_from_analysis(content_analysis)
+
+            trust_result = {
+                "raw_score": 0.2,
+                "calibrated_probability": 0.2,
+                "label": _map_score_to_label(0.2),
+                "confidence": _map_score_to_confidence(0.2),
+            }
+            risk_level = _map_score_to_risk_level(
+                trust_result["calibrated_probability"],
+                content_analysis.get("text_risk_score", 0.0),
+            )
+
+            all_flags = (
+                validation_result.get("critical_errors", [])
+                + validation_result.get("warnings", [])
+                + content_flags
+            )
+            decision = DecisionLogic().decide(
+                trust_score=trust_result["calibrated_probability"],
+                risk_level=risk_level,
+                text_risk_score=content_analysis.get("text_risk_score", 0.0),
+                is_anomaly=False,
+                anomaly_types=[],
+                flags=all_flags,
+                validation_passed=False,
+            )
+
             return await _build_evaluation_response(
-                campaign_id, campaign, creator, {}, {},
-                validation_result, {}, {}, None,
-                None, None,
+                campaign_id, campaign, creator, {},
+                validation_result, trust_result, content_analysis, None,
+                decision, None,
             )
 
         # Step 3: Feature Extraction
@@ -385,20 +418,48 @@ async def _build_evaluation_response(
 ) -> CampaignEvaluationResponse:
     """Build the full CampaignEvaluationResponse."""
 
+    has_calibrated_score = (
+        bool(trust_result)
+        and trust_result.get("calibrated_probability") is not None
+    )
+    default_probability = (
+        0.2 if validation_result and not validation_result.get("passed", True) else 0.5
+    )
+    calibrated_probability = (
+        float(trust_result.get("calibrated_probability"))
+        if has_calibrated_score
+        else default_probability
+    )
+    raw_score = (
+        float(trust_result.get("raw_score"))
+        if trust_result and trust_result.get("raw_score") is not None
+        else calibrated_probability
+    )
+
     trust_score_obj = TrustScore(
-        raw_score=trust_result.get("raw_score"),
-        calibrated_probability=trust_result.get("calibrated_probability"),
-        label=trust_result.get("label"),
-        confidence=trust_result.get("confidence"),
+        raw_score=raw_score,
+        calibrated_probability=calibrated_probability,
+        label=(
+            trust_result.get("label")
+            if trust_result and trust_result.get("label") is not None
+            else _map_score_to_label(calibrated_probability)
+        ),
+        confidence=(
+            trust_result.get("confidence")
+            if trust_result and trust_result.get("confidence") is not None
+            else _map_score_to_confidence(calibrated_probability)
+        ),
     )
 
     # Build risk assessment
     risk_level = "LOW"
-    if trust_result:
+    if has_calibrated_score:
         risk_level = _map_score_to_risk_level(
-            trust_result.get("calibrated_probability", 1.0),
+            calibrated_probability,
             content_analysis.get("text_risk_score", 0.0) if content_analysis else 0.0
         )
+    elif validation_result and not validation_result.get("passed", True):
+        risk_level = "HIGH"
 
     all_flags = []
     if validation_result:
@@ -419,8 +480,7 @@ async def _build_evaluation_response(
 
     risk_assessment = RiskAssessment(
         overall_risk_level=risk_level,
-        risk_score=round(1.0 - (trust_result.get("calibrated_probability", 0.5)
-                               if trust_result else 0.5), 4),
+        risk_score=round(1.0 - calibrated_probability, 4),
         flags=all_flags,
         anomaly_score=anomaly_result.get("anomaly_score") if anomaly_result else None,
         is_anomaly=anomaly_result.get("is_anomaly", False) if anomaly_result else False,
@@ -438,6 +498,10 @@ async def _build_evaluation_response(
             risk_keywords_found=[
                 kw["keyword"] for kw in content_analysis.get("risk_keywords_found", [])
             ],
+            risk_keyword_details=content_analysis.get("risk_keyword_details", []),
+            vagueness_signals=content_analysis.get("vagueness_signals", []),
+            safety_signals=content_analysis.get("safety_signals", []),
+            text_risk_breakdown=content_analysis.get("text_risk_breakdown", {}),
         )
 
     decision_support = None
@@ -517,6 +581,26 @@ def _map_score_to_risk_level(trust_score: float, text_risk_score: float) -> str:
     if combined >= 0.20:
         return "HIGH"
     return "CRITICAL"
+
+
+def _map_score_to_label(score: float) -> str:
+    if score >= 0.80:
+        return "RELIABLE_HIGH"
+    if score >= 0.60:
+        return "RELIABLE"
+    if score >= 0.40:
+        return "NEUTRAL"
+    if score >= 0.20:
+        return "SUSPICIOUS"
+    return "SUSPICIOUS_HIGH"
+
+
+def _map_score_to_confidence(score: float) -> str:
+    if score >= 0.75 or score <= 0.25:
+        return "HIGH"
+    if score >= 0.55 or score <= 0.35:
+        return "MEDIUM"
+    return "LOW"
 
 
 def _build_volunteer_features(creator: dict) -> Optional[dict]:
