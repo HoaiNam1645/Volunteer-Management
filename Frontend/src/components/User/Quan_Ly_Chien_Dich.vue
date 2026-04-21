@@ -245,7 +245,7 @@
 				<div class="modal-content border-0 shadow">
 					<div class="modal-header border-bottom px-4 pt-4 pb-3">
 						<h5 class="modal-title fw-bold fs-4 text-dark">{{ isEditing ? $t('coordinator.editCampaignTitle') : $t('coordinator.createCampaignTitle') }}</h5>
-						<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="isSaving"></button>
 					</div>
 					<div class="modal-body px-4 py-4">
 						<form @submit.prevent="saveCampaign">
@@ -542,9 +542,10 @@
 						</form>
 					</div>
 					<div class="modal-footer bg-light border-0 px-4">
-						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ $t('coordinator.cancelBtn') }}</button>
-						<button type="button" class="btn btn-primary shadow-sm" @click="saveCampaign" :disabled="!canManageCampaigns">
-							<i class="fa-solid fa-paper-plane me-1"></i>{{ isEditing ? $t('coordinator.updateBtn') : $t('coordinator.submitBtn') }}
+						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" :disabled="isSaving">{{ $t('coordinator.cancelBtn') }}</button>
+						<button type="button" class="btn btn-primary shadow-sm" @click="saveCampaign" :disabled="!canManageCampaigns || isSaving">
+							<i v-if="isSaving" class="fa-solid fa-spinner fa-spin me-1"></i>
+							<i v-else class="fa-solid fa-paper-plane me-1"></i>{{ isSaving ? 'Đang xử lý...' : (isEditing ? $t('coordinator.updateBtn') : $t('coordinator.submitBtn')) }}
 						</button>
 					</div>
 				</div>
@@ -1628,6 +1629,7 @@ export default {
 			return Object.keys(errors).length === 0;
 		},
 		async saveCampaign() {
+			if (this.isSaving) return;
 			if (!this.validateCampaignForm()) {
 				if (this.toast) this.toast.showToast('error', 'Lỗi', this.$t('coordinator.fillAllFields'));
 				else alert(this.$t('coordinator.fillAllFields'));
@@ -1660,27 +1662,29 @@ export default {
 			(this.formData.detailImages || []).forEach((file, index) => payload.append(`anh_phu[${index}]`, file));
 
 			try {
+				let res = null;
 				if (this.isEditing) {
 					payload.append('_method', 'PUT');
-					const res = await api.post(`/tinh-nguyen-vien/chien-dich/${this.formData.id}`, payload, {
+					res = await api.post(`/tinh-nguyen-vien/chien-dich/${this.formData.id}`, payload, {
 						headers: { 'Content-Type': 'multipart/form-data' }
 					});
-					if (res.data.status === 1) {
-						if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
-					}
 				} else {
-					const res = await api.post('/tinh-nguyen-vien/chien-dich', payload, {
+					res = await api.post('/tinh-nguyen-vien/chien-dich', payload, {
 						headers: { 'Content-Type': 'multipart/form-data' }
 					});
-					if (res.data.status === 1) {
-						if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message);
-					}
 				}
-				bootstrap.Modal.getInstance(this.$refs.campaignModal)?.hide();
+
+				if (res?.data?.status !== 1) {
+					throw new Error(res?.data?.message || 'Có lỗi xảy ra.');
+				}
+
+				if (this.toast) this.toast.showToast('success', 'Thành công!', res.data.message || this.$t('common.success'));
+				if (!this.isEditing) this.resetForm();
+				bootstrap.Modal.getOrCreateInstance(this.$refs.campaignModal)?.hide();
 				await this.loadCampaigns();
 			} catch (err) {
-				const msg = err.response?.data?.message || 'Có lỗi xảy ra.';
-					if (this.toast) this.toast.showToast('error', 'Lỗi', msg);
+				const msg = err.response?.data?.message || err.message || 'Có lỗi xảy ra.';
+				if (this.toast) this.toast.showToast('error', 'Lỗi', msg);
 				else alert(msg);
 			} finally {
 				this.isSaving = false;

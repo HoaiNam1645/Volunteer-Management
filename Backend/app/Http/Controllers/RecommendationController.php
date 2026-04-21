@@ -8,6 +8,7 @@ use App\Models\DangKyThamGia;
 use App\Models\NguoiDung;
 use App\Services\RecommendationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class RecommendationController extends Controller
@@ -39,6 +40,9 @@ class RecommendationController extends Controller
     {
         $user = auth('api')->user();
         $profileGaps = [];
+        $limit = max(1, min((int) $request->input('limit', 6), 30));
+        $nearbyOnly = filter_var($request->input('nearby_only', false), FILTER_VALIDATE_BOOLEAN);
+        $priority = $request->input('priority');
 
         if ($user->kyNangs()->count() === 0) {
             $profileGaps[] = 'Thiếu kỹ năng';
@@ -52,14 +56,27 @@ class RecommendationController extends Controller
             $profileGaps[] = 'Thiếu vị trí hiện tại';
         }
 
-        $recommendations = $this->recommendationService->recommendCampaignsForVolunteer(
-            $user,
-            max(1, min((int) $request->input('limit', 6), 30)),
-            [
-                'nearby_only' => filter_var($request->input('nearby_only', false), FILTER_VALIDATE_BOOLEAN),
-                'priority' => $request->input('priority'),
-            ]
-        );
+        $cacheKey = 'recommendation:campaigns:' . md5(json_encode([
+            'user_id' => (int) $user->id,
+            'user_updated_at' => optional($user->updated_at)?->timestamp,
+            'skill_count' => $user->kyNangs()->count(),
+            'availability_count' => $user->lichRanhs()->count(),
+            'has_location' => (bool) ($user->vi_do && $user->kinh_do),
+            'limit' => $limit,
+            'nearby_only' => $nearbyOnly,
+            'priority' => $priority,
+        ], JSON_UNESCAPED_UNICODE));
+
+        $recommendations = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($user, $limit, $nearbyOnly, $priority) {
+            return $this->recommendationService->recommendCampaignsForVolunteer(
+                $user,
+                $limit,
+                [
+                    'nearby_only' => $nearbyOnly,
+                    'priority' => $priority,
+                ]
+            );
+        });
 
         return response()->json([
             'status' => 1,
@@ -68,8 +85,8 @@ class RecommendationController extends Controller
             'meta' => [
                 'profile_gaps' => $profileGaps,
                 'applied_filters' => [
-                    'nearby_only' => filter_var($request->input('nearby_only', false), FILTER_VALIDATE_BOOLEAN),
-                    'priority' => $request->input('priority'),
+                    'nearby_only' => $nearbyOnly,
+                    'priority' => $priority,
                 ],
             ],
         ]);
@@ -79,6 +96,8 @@ class RecommendationController extends Controller
     {
         $user = auth('api')->user();
         $mode = $request->input('mode', 'list');
+        $limit = max(1, min((int) $request->input('limit', 30), 50));
+        $onlyAvailable = filter_var($request->input('only_available', true), FILTER_VALIDATE_BOOLEAN);
         $campaignId = (int) $request->input('campaign_id');
         $campaign = ChienDich::query()
             ->where('id', $campaignId)
@@ -93,33 +112,48 @@ class RecommendationController extends Controller
             ], 404);
         }
 
-        $result = $this->recommendationService->recommendVolunteersForCampaign(
-            $user,
-            $campaign,
-            max(1, min((int) $request->input('limit', 30), 50)),
-            filter_var($request->input('only_available', true), FILTER_VALIDATE_BOOLEAN)
-        );
+        $cacheKey = 'recommendation:volunteers:' . md5(json_encode([
+            'user_id' => (int) $user->id,
+            'campaign_id' => (int) $campaign->id,
+            'campaign_updated_at' => optional($campaign->updated_at)?->timestamp,
+            'campaign_start' => optional($campaign->ngay_bat_dau)?->format('Y-m-d'),
+            'campaign_end' => optional($campaign->ngay_ket_thuc)?->format('Y-m-d'),
+            'mode' => $mode,
+            'limit' => $limit,
+            'only_available' => $onlyAvailable,
+        ], JSON_UNESCAPED_UNICODE));
 
-        $payload = [
-            'de_xuat_uu_tien' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'rat_phu_hop')),
-            'du_phong_phu_hop' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'phu_hop')),
-            'can_nhac_them' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'can_nhac')),
-            'o_xa_nhung_dung_khu_vuc' => $result['remote_area_matches'],
-            'remote_area_matches' => $result['remote_area_matches'],
-            'all' => $result['recommendations'],
-            'excluded' => $result['excluded'],
-        ];
+        $payload = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($user, $campaign, $limit, $onlyAvailable, $mode) {
+            $result = $this->recommendationService->recommendVolunteersForCampaign(
+                $user,
+                $campaign,
+                $limit,
+                $onlyAvailable
+            );
 
-        if ($mode === 'allocation') {
-            $allocation = $this->recommendationService->buildAllocationSuggestion($user, $campaign);
-            $payload = array_merge($payload, [
-                'recommended_primary' => $allocation['recommended_primary'],
-                'recommended_backup' => $allocation['recommended_backup'],
-                'remote_area_matches' => $allocation['remote_area_matches'],
-                'resource_summary' => $allocation['resource_summary'],
-                'risk_flags' => $allocation['risk_flags'],
-            ]);
-        }
+            $data = [
+                'de_xuat_uu_tien' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'rat_phu_hop')),
+                'du_phong_phu_hop' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'phu_hop')),
+                'can_nhac_them' => array_values(array_filter($result['recommendations'], fn ($item) => $item['match_level'] === 'can_nhac')),
+                'o_xa_nhung_dung_khu_vuc' => $result['remote_area_matches'],
+                'remote_area_matches' => $result['remote_area_matches'],
+                'all' => $result['recommendations'],
+                'excluded' => $result['excluded'],
+            ];
+
+            if ($mode === 'allocation') {
+                $allocation = $this->recommendationService->buildAllocationSuggestion($user, $campaign);
+                $data = array_merge($data, [
+                    'recommended_primary' => $allocation['recommended_primary'],
+                    'recommended_backup' => $allocation['recommended_backup'],
+                    'remote_area_matches' => $allocation['remote_area_matches'],
+                    'resource_summary' => $allocation['resource_summary'],
+                    'risk_flags' => $allocation['risk_flags'],
+                ]);
+            }
+
+            return $data;
+        });
 
         return response()->json([
             'status' => 1,

@@ -163,7 +163,7 @@
 								<h6 class="fw-bold small text-uppercase text-muted mb-3">{{ $t('campaignList.location') }}</h6>
 								<select class="form-select form-select-sm" v-model="filters.location">
 									<option value="">{{ $t('campaignList.allAreas') }}</option>
-									<option v-for="location in filterMeta.locations" :key="location.value" :value="location.value">{{ location.value }}</option>
+									<option v-for="location in filterMeta.locations" :key="location.value" :value="location.value">{{ location.label || location.value }}</option>
 								</select>
 							</div>
 
@@ -654,7 +654,13 @@ export default {
 				if (this.filters.category.length) {
 					params.loai_chien_dich_ids = this.filters.category.join(',');
 				}
-				if (this.filters.location) params.dia_diem = this.filters.location;
+				if (this.filters.location) {
+					if (/^\d+$/.test(String(this.filters.location))) {
+						params.khu_vuc_id = this.filters.location;
+					} else {
+						params.dia_diem = this.filters.location;
+					}
+				}
 				if (this.filters.coordinator) params.nguoi_tao_id = this.filters.coordinator;
 
 				const res = await api.get('/chien-dich', { params });

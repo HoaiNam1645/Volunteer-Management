@@ -1840,7 +1840,7 @@ export default {
         loading: 'Analyzing volunteer profiles, availability, and distance...',
         allocationTitle: 'Allocation suggestion',
         allocationDesc: 'Primary invitees, backup group, and workforce shortage warnings.',
-        sendSelectedEmails: 'Send selected emails ({count})',
+        sendSelectedEmails: 'Send email to selected volunteers',
         inviteTop: 'Invite top N',
         minLabel: 'Minimum',
         maxLabel: 'Maximum',

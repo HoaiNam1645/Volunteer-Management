@@ -1840,7 +1840,7 @@ export default {
         loading: 'Đang phân tích hồ sơ tình nguyện viên, lịch rảnh và khoảng cách...',
         allocationTitle: 'Đề xuất phân bổ',
         allocationDesc: 'Nhóm nên mời trước, nhóm dự phòng và cảnh báo thiếu hụt nhân sự.',
-        sendSelectedEmails: 'Gửi email đã chọn ({count})',
+        sendSelectedEmails: 'Gửi Email cho TNV đã chọn',
         inviteTop: 'Mời top N',
         minLabel: 'Tối thiểu',
         maxLabel: 'Tối đa',

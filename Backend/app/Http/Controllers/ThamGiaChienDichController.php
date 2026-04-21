@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\SendMailJob;
 use App\Models\ChienDich;
 use App\Models\DangKyThamGia;
+use App\Models\KhuVuc;
 use App\Models\LoaiChienDich;
 use App\Models\ThongBao;
 use Illuminate\Http\Request;
@@ -70,28 +71,22 @@ class ThamGiaChienDichController extends Controller
                 $statusCounts[$statusKey] = ($statusCounts[$statusKey] ?? 0) + 1;
             });
 
-        $locations = [
-            [
-                'value' => 'TP.HCM',
-                'count' => (clone $baseQuery)->where('dia_diem', 'like', '%TP.HCM%')->count(),
-            ],
-            [
-                'value' => 'Hà Nội',
-                'count' => (clone $baseQuery)->where('dia_diem', 'like', '%Hà Nội%')->count(),
-            ],
-            [
-                'value' => 'Đà Nẵng',
-                'count' => (clone $baseQuery)->where('dia_diem', 'like', '%Đà Nẵng%')->count(),
-            ],
-            [
-                'value' => 'Khác',
-                'count' => (clone $baseQuery)
-                    ->where('dia_diem', 'not like', '%TP.HCM%')
-                    ->where('dia_diem', 'not like', '%Hà Nội%')
-                    ->where('dia_diem', 'not like', '%Đà Nẵng%')
-                    ->count(),
-            ],
-        ];
+        $locationCounts = (clone $baseQuery)
+            ->select('chien_dichs.khu_vuc_id', DB::raw('COUNT(chien_dichs.id) as total'))
+            ->whereNotNull('chien_dichs.khu_vuc_id')
+            ->groupBy('chien_dichs.khu_vuc_id')
+            ->pluck('total', 'chien_dichs.khu_vuc_id');
+
+        $locations = KhuVuc::query()
+            ->orderBy('ten')
+            ->get(['id', 'ten'])
+            ->map(fn ($item) => [
+                'value' => (string) $item->id,
+                'label' => $item->ten,
+                'count' => (int) ($locationCounts[$item->id] ?? 0),
+            ])
+            ->filter(fn ($item) => $item['count'] > 0)
+            ->values();
 
         return response()->json([
             'status' => 1,
@@ -104,7 +99,7 @@ class ThamGiaChienDichController extends Controller
                     ['value' => 'completed', 'count' => (int) ($statusCounts['completed'] ?? 0)],
                 ],
                 'categories' => $categories,
-                'locations' => array_values(array_filter($locations, fn ($item) => $item['count'] > 0)),
+                'locations' => $locations,
                 'creators' => $creators->map(fn ($item) => [
                     'value' => (string) $item->id,
                     'label' => $item->ho_ten,
@@ -181,7 +176,9 @@ class ThamGiaChienDichController extends Controller
             }
         }
 
-        if ($request->filled('dia_diem')) {
+        if ($request->filled('khu_vuc_id')) {
+            $query->where('khu_vuc_id', $request->integer('khu_vuc_id'));
+        } elseif ($request->filled('dia_diem')) {
             $diaDiem = trim($request->dia_diem);
             if ($diaDiem === 'Khác') {
                 $query->where(function ($subQuery) {
@@ -800,3 +797,4 @@ class ThamGiaChienDichController extends Controller
         Cache::forget("campaigns:participation-reminder-sent:{$dangKyId}");
     }
 }
+

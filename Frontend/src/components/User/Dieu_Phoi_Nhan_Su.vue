@@ -96,9 +96,6 @@
 							<button class="btn btn-outline-primary btn-sm" :disabled="!canManageCoordination || inviteLoading || selectedInviteIds.length === 0" @click="inviteSelectedVolunteers">
 								<i class="fa-solid fa-envelope me-1"></i>{{ $t('coordinationScreen.sendSelectedEmails', { count: selectedInviteIds.length }) }}
 							</button>
-							<button class="btn btn-success btn-sm" :disabled="!canManageCoordination || inviteLoading || allocationPrimary.length === 0" @click="invitePrimaryGroup">
-								<i class="fa-solid fa-paper-plane me-1"></i>{{ $t('coordinationScreen.inviteTop') }}
-							</button>
 						</div>
 					</div>
 					<div class="card-body p-4">
@@ -135,347 +132,114 @@
 							</div>
 						</div>
 
-						<div class="row g-4">
-							<div class="col-12">
-								<div class="border rounded-4 p-3 h-100">
-									<div class="d-flex align-items-center justify-content-between mb-3">
-										<div class="d-flex align-items-center gap-3">
-											<h6 class="fw-bold mb-0">{{ $t('coordinationScreen.primaryGroup') }}</h6>
-											<div v-if="allocationPrimary.length" class="form-check mb-0 small">
-												<input
-													:id="'select-primary-all'"
-													class="form-check-input"
-													type="checkbox"
-													:checked="isGroupFullySelected(allocationPrimary)"
-													@change="toggleGroupSelection(allocationPrimary, $event.target.checked)">
-												<label class="form-check-label" :for="'select-primary-all'">{{ $t('coordinationScreen.selectAll') }}</label>
-											</div>
-										</div>
-										<span class="badge bg-success text-white rounded-pill">{{ allocationPrimary.length }}</span>
-									</div>
-									<div class="small text-muted mb-3">{{ $t('coordinationScreen.primaryDesc') }}</div>
-									<div v-if="allocationPrimary.length === 0" class="small text-muted">{{ $t('coordinationScreen.noPrimary') }}</div>
-										<div v-else class="d-flex flex-column gap-2">
-											<div v-for="volunteer in paginatedAllocationPrimary" :key="'primary-' + volunteer.id" class="list-row-card list-row-card-primary">
-												<div class="form-check flex-shrink-0 mb-0">
-													<input
-														:id="'primary-select-' + volunteer.id"
-														class="form-check-input"
-														type="checkbox"
-														:checked="isVolunteerSelected(volunteer.id)"
-														@change="toggleVolunteerSelection(volunteer.id, $event.target.checked)">
-												</div>
-												<div class="list-row-main min-w-0">
-													<div class="list-row-inline">
-														<div class="fw-semibold text-dark text-truncate">{{ volunteer.name }}</div>
-														<span class="list-row-score">{{ volunteer.finalScore }}%</span>
-														<span v-if="volunteer.registrationStatusLabel" class="badge rounded-pill border text-dark bg-light">{{ volunteer.registrationStatusLabel }}</span>
-														<div class="small text-muted compact-meta">
-															{{ getVolunteerListMeta(volunteer) }}
-														</div>
-													</div>
-												</div>
-												<div class="d-flex gap-2 flex-shrink-0">
-													<button class="btn btn-sm btn-light border rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.primaryGroup'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-													<button class="btn btn-sm btn-outline-primary rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">{{ getInviteButtonLabel(volunteer) }}</button>
-											</div>
-										</div>
-										<div class="mt-2">
-											<div class="small text-muted mb-2">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedAllocationPrimary.length, total: allocationPrimary.length }) }}</div>
-											<div class="d-flex justify-content-end">
-												<nav v-if="totalPrimaryPages > 1">
-													<ul class="pagination pagination-sm mb-0">
-														<li class="page-item" :class="{ disabled: primaryPage === 1 }">
-															<button class="page-link" @click="changePage('primaryPage', primaryPage - 1, totalPrimaryPages)">{{ $t('pagination.prev') }}</button>
-														</li>
-														<li
-															v-for="page in getVisiblePages(primaryPage, totalPrimaryPages)"
-															:key="'primary-page-' + page"
-															class="page-item"
-															:class="{ active: primaryPage === page, disabled: page === '...' }">
-															<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('primaryPage', page, totalPrimaryPages)">{{ page }}</button>
-														</li>
-														<li class="page-item" :class="{ disabled: primaryPage === totalPrimaryPages }">
-															<button class="page-link" @click="changePage('primaryPage', primaryPage + 1, totalPrimaryPages)">{{ $t('pagination.next') }}</button>
-														</li>
-													</ul>
-												</nav>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-
-							<div v-if="excludedVolunteers.length > 0" class="border rounded-4 p-3 bg-light mt-4">
+						<div class="border rounded-4 p-3 h-100">
 							<div class="d-flex align-items-center justify-content-between mb-3">
 								<div class="d-flex align-items-center gap-3">
-									<div>
-										<div class="fw-semibold">{{ $t('coordinationScreen.excludedGroup') }}</div>
-										<div class="small text-muted">{{ $t('coordinationScreen.excludedDesc') }}</div>
-									</div>
-									<div v-if="excludedVolunteers.length" class="form-check mb-0 small">
+									<h6 class="fw-bold mb-0">
+										<i class="fa-solid fa-list-check me-2 text-primary"></i>{{ $t('coordinationScreen.recommendedVolunteers') }}
+									</h6>
+									<div v-if="filteredVolunteerTableRows.length" class="form-check mb-0 small">
 										<input
-											:id="'select-excluded-all'"
+											:id="'select-volunteer-all'"
 											class="form-check-input"
 											type="checkbox"
-											:checked="isGroupFullySelected(excludedVolunteers)"
-											@change="toggleGroupSelection(excludedVolunteers, $event.target.checked)">
-										<label class="form-check-label" :for="'select-excluded-all'">{{ $t('coordinationScreen.selectAll') }}</label>
+											:checked="isGroupFullySelected(filteredVolunteerTableRows)"
+											@change="toggleGroupSelection(filteredVolunteerTableRows, $event.target.checked)">
+										<label class="form-check-label" :for="'select-volunteer-all'">{{ $t('coordinationScreen.selectAll') }}</label>
 									</div>
 								</div>
-								<span class="badge bg-secondary text-white rounded-pill">{{ filteredExcludedVolunteers.length }}</span>
+								<span class="badge bg-primary text-white rounded-pill">{{ filteredVolunteerTableRows.length }}</span>
 							</div>
-							<div class="mb-3">
-								<label class="form-label fw-semibold small">{{ $t('coordinationScreen.searchExcludedVolunteerLabel') }}</label>
-								<div class="input-group">
-									<span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted small"></i></span>
-									<input
-										v-model.trim="excludedVolunteerSearchQuery"
-										type="text"
-										class="form-control border-start-0"
-										:placeholder="$t('coordinationScreen.searchExcludedVolunteerPlaceholder')">
-								</div>
-							</div>
-								<div v-for="item in paginatedExcludedVolunteers" :key="'excluded-' + item.id" class="list-row-card list-row-card-excluded">
-									<div class="form-check flex-shrink-0 mb-0">
-										<input
-											:id="'excluded-select-' + item.id"
-											class="form-check-input"
-											type="checkbox"
-											:checked="isVolunteerSelected(item.id)"
-											@change="toggleVolunteerSelection(item.id, $event.target.checked)">
-									</div>
-									<div class="list-row-main min-w-0">
-										<div class="list-row-inline">
-											<div class="fw-semibold text-dark text-truncate">{{ item.ho_ten }}</div>
-											<span class="list-row-score">{{ Math.round(item.final_score || 0) }}%</span>
-											<span v-if="getRegistrationStatusLabel(item.registration_status)" class="badge rounded-pill border text-dark bg-light">{{ getRegistrationStatusLabel(item.registration_status) }}</span>
-											<div class="small text-muted compact-meta">{{ getVolunteerListMeta(mapExcludedVolunteerForUi(item)) }}</div>
-										</div>
-									</div>
-										<div class="d-flex gap-2 flex-shrink-0">
-											<button class="btn btn-sm btn-light border rounded-pill px-3" @click="openVolunteerDetail(mapExcludedVolunteerForUi(item), $t('coordinationScreen.excludedGroup'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-											<button class="btn btn-sm btn-primary rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(item)" @click="inviteVolunteers([item.id])">
-												{{ getInviteButtonLabel(item) }}
-											</button>
-										</div>
-									</div>
-							<div class="mt-2">
-								<div class="small text-muted mb-2">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedExcludedVolunteers.length, total: filteredExcludedVolunteers.length }) }}</div>
-								<div class="d-flex justify-content-end">
-									<nav v-if="totalExcludedPages > 1">
-										<ul class="pagination pagination-sm mb-0">
-											<li class="page-item" :class="{ disabled: excludedPage === 1 }">
-												<button class="page-link" @click="changePage('excludedPage', excludedPage - 1, totalExcludedPages)">{{ $t('pagination.prev') }}</button>
-											</li>
-											<li
-												v-for="page in getVisiblePages(excludedPage, totalExcludedPages)"
-												:key="'excluded-page-' + page"
-												class="page-item"
-												:class="{ active: excludedPage === page, disabled: page === '...' }">
-												<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('excludedPage', page, totalExcludedPages)">{{ page }}</button>
-											</li>
-											<li class="page-item" :class="{ disabled: excludedPage === totalExcludedPages }">
-												<button class="page-link" @click="changePage('excludedPage', excludedPage + 1, totalExcludedPages)">{{ $t('pagination.next') }}</button>
-											</li>
-										</ul>
-									</nav>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
 
-				<div class="card border-0 shadow-sm">
-						<div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
-						<div>
-							<h6 class="fw-bold mb-1"><i class="fa-solid fa-user-check me-2 text-primary"></i>{{ $t('coordinationScreen.recommendedVolunteers') }}</h6>
-							<div class="text-muted small">{{ $t('coordinationScreen.recommendedDesc') }}</div>
-						</div>
-						<div class="d-flex align-items-center gap-3">
-							<div v-if="displayedRecommendedVolunteers.length" class="form-check mb-0 small">
-								<input
-									:id="'select-recommend-all'"
-									class="form-check-input"
-									type="checkbox"
-									:checked="isGroupFullySelected(displayedRecommendedVolunteers)"
-									@change="toggleGroupSelection(displayedRecommendedVolunteers, $event.target.checked)">
-								<label class="form-check-label" :for="'select-recommend-all'">{{ $t('coordinationScreen.selectAll') }}</label>
-							</div>
-							<span class="badge bg-primary text-white rounded-pill">{{ displayedRecommendedVolunteers.length }}</span>
-						</div>
-					</div>
-					<div class="card-body p-4">
-						<div v-if="displayedRecommendedVolunteers.length === 0" class="text-center py-4 text-muted">
-							<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
-							{{ $t('coordinationScreen.noRecommendedVolunteers') }}
-						</div>
-							<div v-else class="d-flex flex-column gap-3">
-								<div v-for="volunteer in paginatedRecommendedVolunteers" :key="'suggest-' + volunteer.id" class="list-row-card list-row-card-recommendation">
-									<div class="form-check flex-shrink-0 mb-0">
-										<input
-											:id="'recommend-select-' + volunteer.id"
-											class="form-check-input"
-											type="checkbox"
-											:checked="isVolunteerSelected(volunteer.id)"
-											@change="toggleVolunteerSelection(volunteer.id, $event.target.checked)">
-									</div>
-									<div class="list-row-main min-w-0">
-										<div class="list-row-inline">
-											<div class="fw-semibold text-dark text-truncate">{{ volunteer.name }}</div>
-											<span class="list-row-score">{{ volunteer.finalScore }}%</span>
-											<span v-if="volunteer.registrationStatusLabel" class="badge rounded-pill border text-dark bg-light">{{ volunteer.registrationStatusLabel }}</span>
-											<div class="small text-muted compact-meta">{{ getVolunteerListMeta(volunteer) }}</div>
-										</div>
-									</div>
-									<div class="d-flex gap-2 flex-shrink-0">
-										<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.recommendedVolunteers'))">
-										{{ $t('coordinationScreen.viewDetail') }}
-									</button>
-									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
-										{{ getInviteButtonLabel(volunteer) }}
-									</button>
+							<div class="row g-2 mb-3">
+								<div class="col-md-4">
+									<select v-model="tableFilterArea" class="form-select form-select-sm">
+										<option value="all">Khu vực: Tất cả</option>
+										<option value="same_area">Khu vực: Trùng khu vực chiến dịch</option>
+										<option value="remote_area">Khu vực: Ở xa nhưng đúng khu vực</option>
+										<option value="other_area">Khu vực: Khác khu vực</option>
+									</select>
+								</div>
+								<div class="col-md-4">
+									<select v-model="tableFilterProfile" class="form-select form-select-sm">
+										<option value="all">Hồ sơ: Tất cả</option>
+										<option value="outstanding">Hồ sơ: Nổi bật</option>
+										<option value="not_outstanding">Hồ sơ: Không nổi bật</option>
+									</select>
+								</div>
+								<div class="col-md-4">
+									<select v-model="tableFilterDistance" class="form-select form-select-sm">
+										<option value="all">Khoảng cách: Tất cả</option>
+										<option value="near">Khoảng cách: Ở gần (≤ 10km)</option>
+										<option value="far">Khoảng cách: Ở xa (> 20km)</option>
+										<option value="unknown">Khoảng cách: Chưa rõ</option>
+									</select>
 								</div>
 							</div>
-							<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
-								<div class="small text-muted">{{ $t('coordinationScreen.showingRecommendedCount', { showing: paginatedRecommendedVolunteers.length, total: displayedRecommendedVolunteers.length }) }}</div>
-								<nav v-if="totalRecommendationPages > 1">
+
+							<div v-if="filteredVolunteerTableRows.length === 0" class="text-center py-4 text-muted">
+								<i class="fa-solid fa-user-slash d-block fs-3 mb-2 opacity-25"></i>
+								{{ $t('coordinationScreen.noRecommendedVolunteers') }}
+							</div>
+
+							<div v-else class="table-responsive">
+								<table class="table align-middle mb-0">
+									<thead>
+										<tr>
+											<th style="width: 44px;"></th>
+											<th>{{ $t('coordinationScreen.recommendedVolunteers') }}</th>
+											<th style="width: 120px;">Điểm</th>
+											<th style="min-width: 220px;">Thông tin</th>
+											<th style="width: 220px;" class="text-end">{{ $t('common.actions') }}</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr v-for="volunteer in paginatedVolunteerTableRows" :key="'row-' + volunteer.id + '-' + volunteer.groupCode">
+											<td>
+												<input
+													:id="'table-select-' + volunteer.id"
+													class="form-check-input"
+													type="checkbox"
+													:checked="isVolunteerSelected(volunteer.id)"
+													@change="toggleVolunteerSelection(volunteer.id, $event.target.checked)">
+											</td>
+											<td>
+												<div class="fw-semibold text-dark">{{ volunteer.name }}</div>
+												<div v-if="volunteer.registrationStatusLabel" class="small text-muted">{{ volunteer.registrationStatusLabel }}</div>
+											</td>
+											<td>
+												<span class="fw-semibold">{{ volunteer.finalScore }}%</span>
+											</td>
+											<td>
+												<div class="small text-muted">{{ getVolunteerListMeta(volunteer) }}</div>
+											</td>
+											<td class="text-end">
+												<div class="d-inline-flex gap-2">
+													<button class="btn btn-outline-secondary btn-sm" @click="openVolunteerDetail(volunteer, volunteer.groupLabel)">{{ $t('coordinationScreen.viewDetail') }}</button>
+													<button class="btn btn-primary btn-sm" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">{{ getInviteButtonLabel(volunteer) }}</button>
+												</div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+
+							<div v-if="filteredVolunteerTableRows.length" class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mt-3">
+								<div class="small text-muted">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedVolunteerTableRows.length, total: filteredVolunteerTableRows.length }) }}</div>
+								<nav v-if="totalVolunteerTablePages > 1">
 									<ul class="pagination pagination-sm mb-0">
 										<li class="page-item" :class="{ disabled: recommendationPage === 1 }">
-											<button class="page-link" @click="changePage('recommendationPage', recommendationPage - 1, totalRecommendationPages)">{{ $t('pagination.prev') }}</button>
+											<button class="page-link" @click="changePage('recommendationPage', recommendationPage - 1, totalVolunteerTablePages)">{{ $t('pagination.prev') }}</button>
 										</li>
 										<li
-											v-for="page in getVisiblePages(recommendationPage, totalRecommendationPages)"
-											:key="'recommend-page-' + page"
+											v-for="page in getVisiblePages(recommendationPage, totalVolunteerTablePages)"
+											:key="'table-page-' + page"
 											class="page-item"
 											:class="{ active: recommendationPage === page, disabled: page === '...' }">
-											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('recommendationPage', page, totalRecommendationPages)">{{ page }}</button>
+											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('recommendationPage', page, totalVolunteerTablePages)">{{ page }}</button>
 										</li>
-										<li class="page-item" :class="{ disabled: recommendationPage === totalRecommendationPages }">
-											<button class="page-link" @click="changePage('recommendationPage', recommendationPage + 1, totalRecommendationPages)">{{ $t('pagination.next') }}</button>
-										</li>
-									</ul>
-								</nav>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="card border-0 shadow-sm mt-4">
-					<div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
-						<div>
-							<h6 class="fw-bold mb-1"><i class="fa-solid fa-map-location-dot me-2 text-warning"></i>{{ $t('coordinationScreen.remoteAreaTitle') }}</h6>
-							<div class="text-muted small">{{ $t('coordinationScreen.remoteAreaDesc') }}</div>
-						</div>
-						<div class="d-flex align-items-center gap-3">
-							<div v-if="remoteAreaVolunteers.length" class="form-check mb-0 small">
-								<input
-									:id="'select-remote-area-all'"
-									class="form-check-input"
-									type="checkbox"
-									:checked="isGroupFullySelected(remoteAreaVolunteers)"
-									@change="toggleGroupSelection(remoteAreaVolunteers, $event.target.checked)">
-								<label class="form-check-label" :for="'select-remote-area-all'">{{ $t('coordinationScreen.selectAll') }}</label>
-							</div>
-							<span class="badge bg-warning text-dark rounded-pill">{{ remoteAreaVolunteers.length }}</span>
-						</div>
-					</div>
-					<div class="card-body p-4">
-						<div v-if="remoteAreaVolunteers.length === 0" class="text-center py-4 text-muted">
-							<i class="fa-solid fa-route d-block fs-3 mb-2 opacity-25"></i>
-							{{ $t('coordinationScreen.noRemoteArea') }}
-						</div>
-						<div v-else class="d-flex flex-column gap-3">
-							<div v-for="volunteer in paginatedRemoteAreaVolunteers" :key="'remote-area-' + volunteer.id" class="list-row-card list-row-card-remote-area">
-								<div class="form-check flex-shrink-0 mb-0">
-									<input
-										:id="'remote-area-select-' + volunteer.id"
-										class="form-check-input"
-										type="checkbox"
-										:checked="isVolunteerSelected(volunteer.id)"
-										@change="toggleVolunteerSelection(volunteer.id, $event.target.checked)">
-								</div>
-								<div class="list-row-main min-w-0">
-									<div class="list-row-inline">
-										<div class="fw-semibold text-dark text-truncate">{{ volunteer.name }}</div>
-										<span class="badge rounded-pill border border-warning text-warning-emphasis bg-warning-subtle">{{ $t('coordinationScreen.remoteAreaBadge') }}</span>
-										<span v-if="volunteer.registrationStatusLabel" class="badge rounded-pill border text-dark bg-light">{{ volunteer.registrationStatusLabel }}</span>
-										<div class="small text-muted compact-meta">{{ getVolunteerListMeta(volunteer) }}</div>
-									</div>
-								</div>
-								<div class="d-flex gap-2 flex-shrink-0">
-									<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.remoteAreaTitle'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
-										{{ getInviteButtonLabel(volunteer) }}
-									</button>
-								</div>
-							</div>
-							<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
-								<div class="small text-muted">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedRemoteAreaVolunteers.length, total: remoteAreaVolunteers.length }) }}</div>
-								<nav v-if="totalRemoteAreaPages > 1">
-									<ul class="pagination pagination-sm mb-0">
-										<li class="page-item" :class="{ disabled: remoteAreaPage === 1 }">
-											<button class="page-link" @click="changePage('remoteAreaPage', remoteAreaPage - 1, totalRemoteAreaPages)">{{ $t('pagination.prev') }}</button>
-										</li>
-										<li v-for="page in getVisiblePages(remoteAreaPage, totalRemoteAreaPages)" :key="'remote-area-page-' + page" class="page-item" :class="{ active: remoteAreaPage === page, disabled: page === '...' }">
-											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('remoteAreaPage', page, totalRemoteAreaPages)">{{ page }}</button>
-										</li>
-										<li class="page-item" :class="{ disabled: remoteAreaPage === totalRemoteAreaPages }">
-											<button class="page-link" @click="changePage('remoteAreaPage', remoteAreaPage + 1, totalRemoteAreaPages)">{{ $t('pagination.next') }}</button>
-										</li>
-									</ul>
-								</nav>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="card border-0 shadow-sm mt-4">
-					<div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
-						<div>
-							<h6 class="fw-bold mb-1"><i class="fa-solid fa-ranking-star me-2 text-warning"></i>{{ $t('coordinationScreen.profileHighlightTitle') }}</h6>
-							<div class="text-muted small">{{ $t('coordinationScreen.profileHighlightDesc') }}</div>
-						</div>
-						<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="toggleProfileSort">
-							<i class="fa-solid fa-arrow-up-wide-short me-1"></i>{{ profileSortLabel }}
-						</button>
-					</div>
-					<div class="card-body p-4">
-						<div v-if="sortedProfileHighlightVolunteers.length === 0" class="text-center py-4 text-muted">
-							<i class="fa-solid fa-chart-line d-block fs-3 mb-2 opacity-25"></i>
-							{{ $t('coordinationScreen.noProfileHighlights') }}
-						</div>
-						<div v-else class="d-flex flex-column gap-3">
-							<div v-for="volunteer in paginatedProfileHighlightVolunteers" :key="'profile-' + volunteer.id" class="list-row-card">
-								<div class="list-row-main min-w-0">
-									<div class="list-row-inline">
-										<div class="fw-semibold text-dark text-truncate">{{ volunteer.name }}</div>
-										<span class="list-row-score">{{ volunteer.breakdown.profileStrength }}%</span>
-										<div class="small text-muted compact-meta">
-											{{ $t('coordinationScreen.profileStrengthMeta', { experience: volunteer.experienceCount, certificates: volunteer.certificateCount }) }}
-										</div>
-									</div>
-								</div>
-								<div class="d-flex gap-2 flex-shrink-0">
-									<button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="openVolunteerDetail(volunteer, $t('coordinationScreen.profileHighlightTitle'))">{{ $t('coordinationScreen.viewDetail') }}</button>
-									<button class="btn btn-primary btn-sm rounded-pill px-3" :disabled="!canManageCoordination || inviteLoading || !canInviteVolunteer(volunteer)" @click="inviteVolunteers([volunteer.id])">
-										{{ getInviteButtonLabel(volunteer) }}
-									</button>
-								</div>
-							</div>
-							<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
-								<div class="small text-muted">{{ $t('coordinationScreen.showingGroupCount', { showing: paginatedProfileHighlightVolunteers.length, total: sortedProfileHighlightVolunteers.length }) }}</div>
-								<nav v-if="totalProfileHighlightPages > 1">
-									<ul class="pagination pagination-sm mb-0">
-										<li class="page-item" :class="{ disabled: profileHighlightPage === 1 }">
-											<button class="page-link" @click="changePage('profileHighlightPage', profileHighlightPage - 1, totalProfileHighlightPages)">{{ $t('pagination.prev') }}</button>
-										</li>
-										<li v-for="page in getVisiblePages(profileHighlightPage, totalProfileHighlightPages)" :key="'profile-page-' + page" class="page-item" :class="{ active: profileHighlightPage === page, disabled: page === '...' }">
-											<button class="page-link" :disabled="page === '...'" @click="typeof page === 'number' && changePage('profileHighlightPage', page, totalProfileHighlightPages)">{{ page }}</button>
-										</li>
-										<li class="page-item" :class="{ disabled: profileHighlightPage === totalProfileHighlightPages }">
-											<button class="page-link" @click="changePage('profileHighlightPage', profileHighlightPage + 1, totalProfileHighlightPages)">{{ $t('pagination.next') }}</button>
+										<li class="page-item" :class="{ disabled: recommendationPage === totalVolunteerTablePages }">
+											<button class="page-link" @click="changePage('recommendationPage', recommendationPage + 1, totalVolunteerTablePages)">{{ $t('pagination.next') }}</button>
 										</li>
 									</ul>
 								</nav>
@@ -726,6 +490,9 @@ export default {
 				profileHighlightPage: 1,
 				profileSortMode: 'strongest',
 				selectedInviteIds: [],
+				tableFilterArea: 'all',
+				tableFilterProfile: 'all',
+				tableFilterDistance: 'all',
 			recommendedVolunteers: [],
 			remoteAreaVolunteers: [],
 			excludedVolunteers: [],
@@ -877,10 +644,56 @@ export default {
 		statCards() {
 				return [
 				{ label: this.$t('coordinationScreen.statsCampaigns'), value: this.campaigns.length, icon: 'fa-solid fa-flag', color: 'primary' },
-				{ label: this.$t('coordinationScreen.statsRecommended'), value: this.displayedRecommendedVolunteers.length, icon: 'fa-solid fa-user-check', color: 'success' },
+				{ label: this.$t('coordinationScreen.statsRecommended'), value: this.volunteerTableRows.length, icon: 'fa-solid fa-user-check', color: 'success' },
 				{ label: this.$t('coordinationScreen.statsPrimary'), value: this.allocationPrimary.length, icon: 'fa-solid fa-bolt', color: 'warning' },
 				{ label: this.$t('coordinationScreen.statsRisks'), value: this.allocationRisks.length, icon: 'fa-solid fa-triangle-exclamation', color: 'danger' },
 			];
+		},
+		volunteerTableRows() {
+			const rows = [];
+			const seen = new Set();
+			const appendRows = (list = [], groupCode = '', groupLabel = '') => {
+				list.forEach((item) => {
+					if (!item || seen.has(item.id)) return;
+					seen.add(item.id);
+					rows.push({
+						...item,
+						groupCode,
+						groupLabel,
+					});
+				});
+			};
+
+			appendRows(this.allocationPrimary, 'primary', this.$t('coordinationScreen.primaryGroup'));
+			appendRows(this.displayedRecommendedVolunteers, 'recommendation', this.$t('coordinationScreen.recommendedVolunteers'));
+			appendRows(this.remoteAreaVolunteers, 'remote_area', this.$t('coordinationScreen.remoteAreaTitle'));
+			appendRows(this.excludedVolunteers.map((item) => this.mapExcludedVolunteerForUi(item)), 'excluded', this.$t('coordinationScreen.excludedGroup'));
+
+			return rows.sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
+		},
+		filteredVolunteerTableRows() {
+			return this.volunteerTableRows.filter((item) => {
+				if (this.tableFilterArea === 'same_area' && !this.isSameCampaignArea(item)) return false;
+				if (this.tableFilterArea === 'remote_area' && item.groupCode !== 'remote_area') return false;
+				if (this.tableFilterArea === 'other_area' && this.isSameCampaignArea(item)) return false;
+
+				const profileStrength = Number(item?.breakdown?.profileStrength || 0);
+				if (this.tableFilterProfile === 'outstanding' && profileStrength < 70) return false;
+				if (this.tableFilterProfile === 'not_outstanding' && profileStrength >= 70) return false;
+
+				const distance = item?.distanceValue;
+				if (this.tableFilterDistance === 'near' && !(distance !== null && distance !== undefined && distance <= 10)) return false;
+				if (this.tableFilterDistance === 'far' && !(distance !== null && distance !== undefined && distance > 20)) return false;
+				if (this.tableFilterDistance === 'unknown' && (distance !== null && distance !== undefined)) return false;
+
+				return true;
+			});
+		},
+		paginatedVolunteerTableRows() {
+			return this.paginateItems(this.filteredVolunteerTableRows, this.recommendationPage);
+		},
+		totalVolunteerTablePages() {
+			return this.getTotalPages(this.filteredVolunteerTableRows);
 		},
 		displayedRecommendedVolunteers() {
 			const primaryIds = new Set(this.allocationPrimary.map((item) => item.id));
@@ -981,6 +794,18 @@ export default {
 		totalRecommendationPages(total) {
 			this.recommendationPage = this.clampPage(this.recommendationPage, total);
 		},
+		totalVolunteerTablePages(total) {
+			this.recommendationPage = this.clampPage(this.recommendationPage, total);
+		},
+		tableFilterArea() {
+			this.recommendationPage = 1;
+		},
+		tableFilterProfile() {
+			this.recommendationPage = 1;
+		},
+		tableFilterDistance() {
+			this.recommendationPage = 1;
+		},
 		excludedVolunteerSearchQuery() {
 			this.excludedPage = 1;
 		},
@@ -1044,6 +869,22 @@ export default {
 					phu_hop: 'bg-primary text-white',
 					can_nhac: 'bg-warning text-dark',
 				}[level] || 'bg-secondary text-white';
+			},
+			getVolunteerGroupBadgeClass(groupCode) {
+				return {
+					primary: 'bg-success text-white',
+					recommendation: 'bg-primary text-white',
+					remote_area: 'bg-warning text-dark',
+					excluded: 'bg-secondary text-white',
+				}[groupCode] || 'bg-light text-dark';
+			},
+			isSameCampaignArea(volunteer) {
+				const campaignArea = String(this.activeCampaign?.areaText || '').trim().toLowerCase();
+				const volunteerArea = String(volunteer?.areaText || '').trim().toLowerCase();
+				if (!campaignArea || !volunteerArea) {
+					return volunteer?.groupCode === 'remote_area';
+				}
+				return volunteerArea.includes(campaignArea) || campaignArea.includes(volunteerArea) || volunteer?.groupCode === 'remote_area';
 			},
 			getComparisonBadgeClass(percent) {
 				if (percent >= 80) return 'comparison-badge-good';
@@ -1476,9 +1317,6 @@ export default {
 		},
 		inviteSelectedVolunteers() {
 			this.inviteVolunteers(this.selectedInviteIds);
-		},
-		invitePrimaryGroup() {
-			this.inviteVolunteers(this.allocationPrimary.map((item) => item.id));
 		},
 		goToCampaignDetail() {
 			if (!this.selectedCampaignId) return;
