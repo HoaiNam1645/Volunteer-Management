@@ -16,7 +16,9 @@ async def health_check():
     try:
         import mlflow
         client = mlflow.tracking.MlflowClient(settings.mlflow_tracking_uri)
-        client.list_registered_models()
+        # MLflow client APIs differ across versions.
+        # For health check, verifying experiment lookup is enough to confirm connectivity.
+        client.get_experiment_by_name(settings.mlflow_experiment_name)
         mlflow_status = {"available": True}
     except Exception as e:
         mlflow_status = {"available": False, "error": str(e)}

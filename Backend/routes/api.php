@@ -170,14 +170,14 @@ Route::middleware(['auth:api', 'kiemDuyetVien'])->group(function () {
         Route::post('/trust-eval/campaign/{id}/refresh', [TrustEvalController::class, 'refreshCampaignEvaluation']);
     });
 
+    Route::middleware('permission:statistics.view')->group(function () {
+        Route::get('/trust-eval/statistics', [TrustEvalController::class, 'getStatistics']);
+    });
+
     Route::get('/trust-eval/ml-health', [TrustEvalController::class, 'getMlServiceHealth']);
 });
 
 Route::middleware(['auth:api', 'quanTriVien'])->group(function () {
-    Route::middleware('permission:trust_eval.statistics')->group(function () {
-        Route::get('/trust-eval/statistics', [TrustEvalController::class, 'getStatistics']);
-    });
-
     Route::get('/trust-eval/agreement-stats', [KdvFeedbackController::class, 'getAgreementStats']);
 });
 

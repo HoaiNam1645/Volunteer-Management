@@ -62,6 +62,9 @@ return [
 
         // Bật fallback rule-based khi ML service unavailable
         'fallback_enabled' => env('ML_TRUST_FALLBACK_ENABLED', true),
+
+        // Internal API key dùng để Laravel gọi ML service an toàn hơn
+        'internal_key' => env('ML_TRUST_INTERNAL_KEY'),
     ],
 
 ];

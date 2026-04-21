@@ -29,11 +29,11 @@ def _fetch_volunteer_data(volunteer_id: int) -> Optional[dict]:
     with get_db_cursor() as cursor:
         cursor.execute(
             "SELECT u.*, "
-            "(SELECT COUNT(*) FROM chung_chi_nguoi_dungs cc "
+            "(SELECT COUNT(*) FROM chung_chis cc "
             "  WHERE cc.nguoi_dung_id = u.id) as chung_chi_count, "
-            "(SELECT COUNT(*) FROM kinh_nghiem_nguoi_dungs kn "
+            "(SELECT COUNT(*) FROM kinh_nghiems kn "
             "  WHERE kn.nguoi_dung_id = u.id) as kinh_nghiem_count, "
-            "(SELECT COUNT(*) FROM ky_nang_nguoi_dungs knd "
+            "(SELECT COUNT(*) FROM nguoi_dung_ky_nangs knd "
             "  WHERE knd.nguoi_dung_id = u.id) as ky_nang_count "
             "FROM nguoi_dungs u "
             "WHERE u.id = %s AND u.xoa_luc IS NULL",
@@ -46,12 +46,12 @@ def _fetch_registrations(volunteer_id: int) -> list[dict]:
     """Fetch all registrations for a volunteer."""
     with get_db_cursor() as cursor:
         cursor.execute(
-            "SELECT dkt.id, dkt.chien_dich_id, dkt.trang_thai, dkt.ngay_dang_ky, "
+            "SELECT dkt.id, dkt.chien_dich_id, dkt.trang_thai, dkt.dang_ky_luc as ngay_dang_ky, "
             "dkt.huy_luc, cd.tieu_de "
             "FROM dang_ky_tham_gias dkt "
             "JOIN chien_dichs cd ON dkt.chien_dich_id = cd.id "
-            "WHERE dkt.nguoi_dung_id = %s AND dkt.xoa_luc IS NULL "
-            "ORDER BY dkt.ngay_dang_ky DESC",
+            "WHERE dkt.nguoi_dung_id = %s "
+            "ORDER BY dkt.dang_ky_luc DESC",
             (volunteer_id,)
         )
         return cursor.fetchall()
@@ -61,9 +61,9 @@ def _fetch_ratings_given(volunteer_id: int) -> list[dict]:
     """Fetch ratings this volunteer gave to campaigns."""
     with get_db_cursor() as cursor:
         cursor.execute(
-            "SELECT dg.so_sao, dg.noi_dung, dg.created_at "
-            "FROM danh_gia_tnvs dg "
-            "WHERE dg.tinh_nguyen_vien_id = %s AND dg.xoa_luc IS NULL",
+            "SELECT dg.so_sao, dg.nhan_xet as noi_dung, dg.tao_luc as created_at "
+            "FROM danh_gia_tnv dg "
+            "WHERE dg.danh_gia_boi = %s",
             (volunteer_id,)
         )
         return cursor.fetchall()
@@ -73,9 +73,9 @@ def _fetch_ratings_received(volunteer_id: int) -> list[dict]:
     """Fetch ratings received by this volunteer (from campaigns they participated)."""
     with get_db_cursor() as cursor:
         cursor.execute(
-            "SELECT dg.so_sao, dg.noi_dung, dg.created_at "
-            "FROM danh_gia_tnvs dg "
-            "WHERE dg.chi_dinh_id = %s AND dg.xoa_luc IS NULL",
+            "SELECT dg.so_sao, dg.nhan_xet as noi_dung, dg.tao_luc as created_at "
+            "FROM danh_gia_tnv dg "
+            "WHERE dg.tinh_nguyen_vien_id = %s",
             (volunteer_id,)
         )
         return cursor.fetchall()
@@ -318,4 +318,3 @@ def _generate_shap_explanation(
     except Exception as e:
         logger.warning(f"SHAP explanation failed: {e}")
         return None
-

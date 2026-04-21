@@ -17,7 +17,8 @@ from collections import defaultdict
 from functools import wraps
 from typing import Callable, Optional
 
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger("trust_eval_service")
@@ -166,6 +167,14 @@ class InternalAuth:
 # Global auth
 INTERNAL_AUTH = InternalAuth()
 
+# OpenAPI security scheme for Swagger UI ("Authorize" with X-Internal-Key)
+internal_api_key_header = APIKeyHeader(
+    name="X-Internal-Key",
+    auto_error=False,
+    scheme_name="InternalApiKey",
+    description="Internal API key for protected evaluate/train endpoints.",
+)
+
 
 # ─────────────────────────────────────────────
 # Middleware
@@ -227,8 +236,13 @@ async def internal_auth_middleware(request: Request, call_next):
     if request.method == "GET":
         return await call_next(request)
 
-    # Training endpoints - require auth
-    if path.startswith("/api/v1/train"):
+    protected_prefixes = (
+        "/api/v1/train",
+        "/api/v1/evaluate",
+    )
+
+    # Internal write/evaluation endpoints - require auth
+    if any(path.startswith(prefix) for prefix in protected_prefixes):
         if not INTERNAL_AUTH.validate(request):
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -253,6 +267,24 @@ def require_internal_key(func: Callable) -> Callable:
             )
         return await func(request, *args, **kwargs)
     return wrapper
+
+
+async def require_internal_key_openapi(
+    x_internal_key: Optional[str] = Security(internal_api_key_header),
+) -> None:
+    """
+    OpenAPI dependency so /docs shows X-Internal-Key auth input.
+
+    Enforcement mirrors middleware behavior for protected routes.
+    """
+    if not INTERNAL_AUTH._enabled:
+        return
+
+    if not x_internal_key or not hmac.compare_digest(x_internal_key, INTERNAL_AUTH._key):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing internal API key",
+        )
 
 
 # ─────────────────────────────────────────────

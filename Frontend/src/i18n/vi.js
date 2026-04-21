@@ -1056,6 +1056,8 @@ export default {
             groups: {
                 dashboard: 'Dashboard',
                 campaignReview: 'Chiến dịch',
+                aiManagement: 'Module AI',
+                statistics: 'Thống kê',
             },
             columns: {
                 access: 'Truy cập',

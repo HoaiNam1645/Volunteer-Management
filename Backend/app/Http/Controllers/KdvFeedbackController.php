@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CampaignEvaluation;
+use App\Models\EvaluationTrainingLabel;
 use App\Models\KdvFeedback;
 use App\Models\ChienDich;
 use Illuminate\Http\JsonResponse;
@@ -69,6 +70,14 @@ class KdvFeedbackController extends Controller
                         'kdv_decided_at' => now(),
                         'ml_agreement' => $mlAgreement,
                     ]);
+
+                    $this->storeTrainingLabel(
+                        $evaluation,
+                        $campaign,
+                        $user->id,
+                        $validated,
+                        $mlAgreement
+                    );
                 }
             } elseif ($validated['ml_action_correct'] !== null) {
                 $evaluation = CampaignEvaluation::where('chien_dich_id', $campaign->id)
@@ -93,6 +102,14 @@ class KdvFeedbackController extends Controller
                         'kdv_decided_at' => now(),
                         'ml_agreement' => $mlAgreement,
                     ]);
+
+                    $this->storeTrainingLabel(
+                        $evaluation,
+                        $campaign,
+                        $user->id,
+                        $validated,
+                        $mlAgreement
+                    );
                 }
             }
 
@@ -173,5 +190,54 @@ class KdvFeedbackController extends Controller
                 'by_action' => $byAction,
             ],
         ]);
+    }
+
+    private function storeTrainingLabel(
+        CampaignEvaluation $evaluation,
+        ChienDich $campaign,
+        int $kdvId,
+        array $validated,
+        bool $mlAgreement
+    ): void {
+        EvaluationTrainingLabel::create([
+            'chien_dich_id' => $campaign->id,
+            'evaluation_id' => $evaluation->id,
+            'kdv_id' => $kdvId,
+            'kdv_action' => $this->mapCampaignDecisionToTrainingAction(
+                $campaign->trang_thai,
+                $evaluation->recommended_action,
+                $validated['ml_action_correct'] ?? null
+            ),
+            'kdv_reason' => $validated['kdv_notes'] ?? null,
+            'ml_trust_score' => $evaluation->trust_score_calibrated,
+            'ml_risk_level' => $evaluation->risk_level,
+            'ml_recommended_action' => $evaluation->recommended_action,
+            'ml_agree_with_kdv' => $mlAgreement,
+            'kdv_satisfied_with_ml' => array_key_exists('ml_action_correct', $validated)
+                ? ((int) $validated['ml_action_correct']) === 1
+                : $mlAgreement,
+            'kdv_overridden_ml' => $validated['feedback_type'] === KdvFeedback::TYPE_OVERRIDE || !$mlAgreement,
+        ]);
+    }
+
+    private function mapCampaignDecisionToTrainingAction(
+        ?string $campaignStatus,
+        ?string $mlAction,
+        ?int $mlActionCorrect
+    ): string {
+        if ($campaignStatus === 'tu_choi') {
+            return 'reject';
+        }
+
+        if ($mlActionCorrect === 1) {
+            return match ($mlAction) {
+                'APPROVE_WITH_NOTE' => 'approve_with_note',
+                'REQUEST_ADDITIONAL_INFO' => 'request_info',
+                'REJECT' => 'reject',
+                default => 'approve',
+            };
+        }
+
+        return 'approve';
     }
 }

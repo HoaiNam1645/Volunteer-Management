@@ -79,40 +79,76 @@ class LabelGenerator:
         return samples
 
     def _labels_from_kdv_decisions(self) -> list[dict]:
-        """Lấy nhãn từ bảng campaign_evaluations (KDV đã review)."""
+        """Lấy nhãn từ feedback loop KDV và campaign evaluations theo schema hiện tại."""
         samples = []
+
+        action_map = {
+            "approve": 1,
+            "approve_with_note": 1,
+            "request_info": None,
+            "reject": 0,
+            "da_duyet": 1,
+            "hoan_thanh": 1,
+            "tu_choi": 0,
+        }
+
         try:
             self.db_cursor.execute("""
-                SELECT ce.campaign_id, ce.decision, ce.created_at,
-                       ce.trust_score, ce.risk_level
-                FROM campaign_evaluations ce
-                WHERE ce.decision IS NOT NULL
-                AND ce.decision != 'pending'
-                AND ce.xoa_luc IS NULL
-                ORDER BY ce.created_at DESC
+                SELECT etl.chien_dich_id AS campaign_id,
+                       etl.kdv_action,
+                       etl.created_at,
+                       etl.ml_trust_score,
+                       etl.ml_risk_level
+                FROM evaluation_training_labels etl
+                ORDER BY etl.created_at DESC
             """)
             rows = self.db_cursor.fetchall()
 
             for row in rows:
-                decision_map = {
-                    "APPROVE": 1,
-                    "APPROVE_WITH_NOTE": 1,
-                    "REQUEST_ADDITIONAL_INFO": None,  # Cần review lại
-                    "REJECT": 0,
-                }
-                label = decision_map.get(row["decision"])
+                label = action_map.get(row["kdv_action"])
+                if label is None:
+                    continue
 
-                # Chỉ lấy nhãn chắc chắn
-                if label is not None:
-                    samples.append({
-                        "campaign_id": row["campaign_id"],
-                        "label": label,
-                        "label_source": "kdv_decision",
-                        "label_confidence": "high",
-                        "decision": row["decision"],
-                        "trust_score": row.get("trust_score"),
-                        "risk_level": row.get("risk_level"),
-                    })
+                samples.append({
+                    "campaign_id": row["campaign_id"],
+                    "label": label,
+                    "label_source": "training_label",
+                    "label_confidence": "high",
+                    "decision": row["kdv_action"],
+                    "trust_score": row.get("ml_trust_score"),
+                    "risk_level": row.get("ml_risk_level"),
+                })
+
+        except Exception as e:
+            logger.warning(f"Error fetching training labels: {e}")
+
+        try:
+            self.db_cursor.execute("""
+                SELECT ce.chien_dich_id AS campaign_id,
+                       ce.kdv_final_action AS decision,
+                       ce.evaluated_at AS created_at,
+                       ce.trust_score_calibrated AS trust_score,
+                       ce.risk_level
+                FROM campaign_evaluations ce
+                WHERE ce.kdv_final_action IS NOT NULL
+                ORDER BY ce.evaluated_at DESC
+            """)
+            rows = self.db_cursor.fetchall()
+
+            for row in rows:
+                label = action_map.get(row["decision"])
+                if label is None:
+                    continue
+
+                samples.append({
+                    "campaign_id": row["campaign_id"],
+                    "label": label,
+                    "label_source": "kdv_decision",
+                    "label_confidence": "high",
+                    "decision": row["decision"],
+                    "trust_score": row.get("trust_score"),
+                    "risk_level": row.get("risk_level"),
+                })
 
         except Exception as e:
             logger.error(f"Error fetching KDV decisions: {e}")
@@ -192,9 +228,8 @@ class LabelGenerator:
                        COUNT(dg.id) as feedback_count,
                        MIN(dg.so_sao) as min_rating
                 FROM chien_dichs cd
-                JOIN danh_gia_tnvs dg ON cd.id = dg.chien_dich_id
+                JOIN danh_gia_tnv dg ON cd.id = dg.chien_dich_id
                 WHERE cd.xoa_luc IS NULL
-                AND dg.xoa_luc IS NULL
                 GROUP BY cd.id, cd.trang_thai
                 HAVING COUNT(dg.id) >= %s
             """, (self.MIN_FEEDBACK_FOR_PATTERN,))
@@ -241,11 +276,10 @@ class LabelGenerator:
             self.db_cursor.execute("""
                 SELECT cd.id, cd.trang_thai,
                        COUNT(bc.id) as report_count,
-                       SUM(CASE WHEN bc.trang_thai = 'da_xac_nhan' THEN 1 ELSE 0 END) as confirmed_count
+                       SUM(CASE WHEN bc.trang_thai = 'da_xu_ly' THEN 1 ELSE 0 END) as confirmed_count
                 FROM chien_dichs cd
-                JOIN bao_cao_chien_dichs bc ON cd.id = bc.chien_dich_id
+                JOIN bao_cao_chien_dich bc ON cd.id = bc.chien_dich_id
                 WHERE cd.xoa_luc IS NULL
-                AND bc.xoa_luc IS NULL
                 GROUP BY cd.id, cd.trang_thai
                 HAVING COUNT(bc.id) >= %s
             """, (self.MAX_REPORTS_SUSPICIOUS + 1,))
@@ -311,9 +345,10 @@ class LabelGenerator:
         """
         Loại bỏ duplicates, giữ nhãn có confidence cao nhất.
 
-        Priority: kdv_decision > campaign_status > feedback_pattern > report_pattern
+        Priority: training_label > kdv_decision > campaign_status > feedback_pattern > report_pattern
         """
         priority = {
+            "training_label": 5,
             "kdv_decision": 4,
             "campaign_status": 3,
             "feedback_pattern": 2,

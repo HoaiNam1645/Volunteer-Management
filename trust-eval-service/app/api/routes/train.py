@@ -103,7 +103,9 @@ async def train_campaign_model(
             training_samples=result.training_samples,
             validation_samples=result.validation_samples,
             campaign_model_path=result.campaign_model_path,
+            volunteer_model_path=result.volunteer_model_path,
             campaign_metrics=result.campaign_metrics,
+            volunteer_metrics=result.volunteer_metrics,
             mlflow_run_id=result.mlflow_run_id,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )

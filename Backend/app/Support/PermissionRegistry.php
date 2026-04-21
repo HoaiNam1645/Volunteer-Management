@@ -115,6 +115,8 @@ class PermissionRegistry
     public const REVIEWER_PERMISSION_GROUPS = [
         'dashboard',
         'campaign_review',
+        'ai_management',
+        'statistics',
     ];
 
     public const VOLUNTEER_PERMISSION_GROUPS = [

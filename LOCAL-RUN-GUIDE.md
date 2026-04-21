@@ -183,7 +183,10 @@ ML_TRUST_TIMEOUT=10
 ML_TRUST_CACHE_TTL=3600
 ML_TRUST_VOLUNTEER_CACHE_TTL=21600
 ML_TRUST_FALLBACK_ENABLED=true
+ML_TRUST_INTERNAL_KEY=vms-internal-key-2026
 ```
+
+`ML_TRUST_INTERNAL_KEY` phải trùng với `INTERNAL_API_KEY` của ML service. Backend sẽ gửi giá trị này qua header `X-Internal-Key` khi gọi các endpoint nội bộ.
 
 ### 5.2 Cấu hình Python ML Service
 
@@ -235,6 +238,9 @@ ANOMALY_MODEL_PATH=./models/campaign_anomaly_latest
 INTERNAL_API_KEY=vms-internal-key-2026
 LARAVEL_API_URL=http://localhost:8000
 
+# Lưu ý:
+# INTERNAL_API_KEY phải trùng chính xác với ML_TRUST_INTERNAL_KEY trong Backend/.env
+
 # ============================
 # LOGGING
 # ============================
@@ -262,7 +268,7 @@ pip install -r requirements.txt
 ### 5.4 Tạo thư mục cho models và logs
 
 ```bash
-mkdir -p models logs
+mkdir -p models logs hoặc New-Item -ItemType Directory -Force -Path models, logs
 ```
 
 ---
@@ -296,32 +302,10 @@ Kết quả mong đợi: cần ít nhất **100 chiến dịch** đã được d
 cd trust-eval-service
 source venv/bin/activate  # (Linux/Mac)
 # hoặc: .\venv\Scripts\activate  # (Windows PowerShell)
-
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
 # Chạy training pipeline
-python -c "
-from app.training.pipeline import TrainingPipeline, PipelineConfig
-
-config = PipelineConfig(
-    test_size=0.2,
-    random_state=42,
-    min_training_samples=100,
-    calibration_enabled=True,
-)
-pipeline = TrainingPipeline(config=config)
-result = pipeline.run_full_pipeline()
-
-print('=' * 60)
-print(f'Success: {result.success}')
-print(f'Training samples: {result.training_samples}')
-print(f'Validation samples: {result.validation_samples}')
-if result.campaign_metrics:
-    print(f'AUC-ROC: {result.campaign_metrics.get(\"auc_roc\"):.4f}')
-    print(f'ECE: {result.campaign_metrics.get(\"ece\"):.4f}')
-if result.error:
-    print(f'Error: {result.error}')
-print('=' * 60)
-"
-```
+python run_train_check.py
 
 ### 6.3 Training thành công
 
@@ -378,7 +362,7 @@ Mở terminal mới (terminal riêng để chạy nền):
 ```bash
 # Terminal 1: MLflow
 cd trust-eval-service
-source venv/bin/activate
+.\venv\Scripts\activate
 mlflow ui --host 0.0.0.0 --port 5000
 ```
 
@@ -391,7 +375,7 @@ Mở terminal mới:
 ```bash
 # Terminal 2: FastAPI ML Service
 cd trust-eval-service
-source venv/bin/activate
+.\venv\Scripts\activate
 
 # Development mode (auto-reload khi code thay đổi)
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
@@ -454,10 +438,12 @@ SELECT id FROM chien_dichs ORDER BY id DESC LIMIT 1;
 
 ```bash
 # Thay {campaign_id} bằng ID thực tế
-curl -X POST "http://localhost:8001/api/v1/evaluate/campaign/{campaign_id}"
+curl -X POST "http://localhost:8001/api/v1/evaluate/campaign/{campaign_id}" ^
+  -H "X-Internal-Key: vms-internal-key-2026"
 
 # Ví dụ:
-curl -X POST "http://localhost:8001/api/v1/evaluate/campaign/1"
+curl -X POST "http://localhost:8001/api/v1/evaluate/campaign/1" ^
+  -H "X-Internal-Key: vms-internal-key-2026"
 ```
 
 Kết quả mong đợi — JSON response chứa:
@@ -583,7 +569,8 @@ python -c "from app.training.pipeline import TrainingPipeline; r = TrainingPipel
 
 # === TEST ===
 curl http://localhost:8001/health
-curl -X POST "http://localhost:8001/api/v1/evaluate/campaign/1"
+curl -X POST "http://localhost:8001/api/v1/evaluate/campaign/1" ^
+  -H "X-Internal-Key: vms-internal-key-2026"
 ```
 
 ---

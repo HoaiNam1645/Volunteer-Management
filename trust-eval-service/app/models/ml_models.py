@@ -108,6 +108,31 @@ class ModelLoader:
             except Exception as e:
                 logger.warning(f"Could not load volunteer model: {e}")
 
+            # Load volunteer calibrator (Phase 3)
+            volunteer_calibration_paths = [
+                settings.volunteer_model_path,
+                "./models/volunteer_trust_latest",
+            ]
+            try:
+                import joblib
+                for calib_dir in volunteer_calibration_paths:
+                    if not os.path.isdir(calib_dir):
+                        continue
+                    for fname in os.listdir(calib_dir):
+                        if fname.endswith("_calibrator.pkl"):
+                            self._volunteer_calibrator = joblib.load(
+                                os.path.join(calib_dir, fname)
+                            )
+                            logger.info(f"Loaded volunteer calibrator: {fname}")
+                            calibration_loaded = True
+                            break
+                    if self._volunteer_calibrator is not None:
+                        break
+            except ImportError:
+                logger.warning("joblib not available for volunteer calibrator loading")
+            except Exception as e:
+                logger.warning(f"Could not load volunteer calibrator: {e}")
+
             self._loaded = model_loaded
             self._calibration_loaded = calibration_loaded
 

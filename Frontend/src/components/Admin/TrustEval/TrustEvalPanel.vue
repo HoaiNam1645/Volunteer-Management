@@ -351,6 +351,10 @@ export default {
 			type: Object,
 			default: null,
 		},
+		autoRunOnMissing: {
+			type: Boolean,
+			default: true,
+		},
 	},
 	data() {
 		return {
@@ -470,11 +474,24 @@ export default {
 			} catch (err) {
 				if (err.response?.status === 404) {
 					this.evaluation = null;
+					if (this.autoRunOnMissing && campaignId) {
+						await this.runInitialEvaluation(campaignId);
+					}
 				} else {
 					this.error = err.response?.data?.message || err.message || this.$t('trustEval.panel.loadError');
 				}
 			} finally {
 				this.loading = false;
+			}
+		},
+		async runInitialEvaluation(campaignId) {
+			try {
+				const result = await trustEvalApi.refreshCampaignEvaluation(campaignId);
+				this.evaluation = result;
+				this.notificationMessage = this.$t('trustEval.panel.refreshSuccess');
+				this.notificationType = 'success';
+			} catch (err) {
+				this.error = err.response?.data?.message || err.message || this.$t('trustEval.panel.refreshError');
 			}
 		},
 		async handleRefresh() {

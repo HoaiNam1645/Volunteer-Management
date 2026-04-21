@@ -37,7 +37,7 @@ Phase 6 implementation (Production Hardening):
 import logging
 import sys
 from datetime import datetime, timezone
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
@@ -80,16 +80,37 @@ app.add_middleware(
 from app.core.security import (
     rate_limit_middleware,
     internal_auth_middleware,
+    require_internal_key_openapi,
 )
 app.middleware("http")(rate_limit_middleware)
 app.middleware("http")(internal_auth_middleware)
 
 # Include routers
 app.include_router(health.router, prefix="", tags=["Health"])
-app.include_router(campaign.router, prefix="/api/v1", tags=["Campaign Evaluation"])
-app.include_router(volunteer.router, prefix="/api/v1", tags=["Volunteer Evaluation"])
-app.include_router(batch.router, prefix="/api/v1", tags=["Batch Evaluation"])
-app.include_router(train.router, prefix="/api/v1", tags=["Model Training"])
+app.include_router(
+    campaign.router,
+    prefix="/api/v1",
+    tags=["Campaign Evaluation"],
+    dependencies=[Depends(require_internal_key_openapi)],
+)
+app.include_router(
+    volunteer.router,
+    prefix="/api/v1",
+    tags=["Volunteer Evaluation"],
+    dependencies=[Depends(require_internal_key_openapi)],
+)
+app.include_router(
+    batch.router,
+    prefix="/api/v1",
+    tags=["Batch Evaluation"],
+    dependencies=[Depends(require_internal_key_openapi)],
+)
+app.include_router(
+    train.router,
+    prefix="/api/v1",
+    tags=["Model Training"],
+    dependencies=[Depends(require_internal_key_openapi)],
+)
 app.include_router(monitoring.router, prefix="/api/v1", tags=["Monitoring"])
 
 

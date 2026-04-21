@@ -220,11 +220,8 @@ class MLflowTracker:
 
             # Log all files in model directory
             if os.path.isdir(model_path):
-                for filename in os.listdir(model_path):
-                    filepath = os.path.join(model_path, filename)
-                    if os.path.isfile(filepath):
-                        mlflow.log_artifact(filepath)
-                        logger.info(f"Logged model artifact: {filename}")
+                mlflow.log_artifacts(model_path, artifact_path="model")
+                logger.info(f"Logged model artifact directory: {model_path}")
             elif os.path.isfile(model_path):
                 mlflow.log_artifact(model_path)
                 logger.info(f"Logged model artifact: {model_path}")
@@ -239,6 +236,7 @@ class MLflowTracker:
         model_version: Optional[str] = None,
         description: Optional[str] = None,
         tags: Optional[dict] = None,
+        run_id: Optional[str] = None,
     ) -> Optional[str]:
         """
         Register model vào MLflow Model Registry.
@@ -263,17 +261,12 @@ class MLflowTracker:
                 # Model already exists
                 pass
 
-            # Get run ID
-            run_id = None
-            if self._active_run:
-                run_id = self._active_run.info.run_id
-
             # Create model version
             model_uri = f"runs:/{run_id}/model" if run_id else model_path
 
             mv = client.create_model_version(
                 name=model_name,
-                source=model_path,
+                source=model_uri,
                 run_id=run_id,
                 description=description,
                 tags=tags,

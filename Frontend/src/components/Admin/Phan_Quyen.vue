@@ -448,6 +448,8 @@ export default {
 				'campaign_review.view': this.$t('admin.permissions.columns.view'),
 				'campaign_review.manage': this.$t('admin.permissions.columns.manage'),
 				'ai_management.view': this.$t('admin.permissions.columns.access'),
+				'trust_eval.view': this.$t('admin.permissions.columns.view'),
+				'trust_eval.refresh': this.$t('admin.permissions.columns.manage'),
 				'statistics.view': this.$t('admin.permissions.columns.access'),
 				'permission_management.view': this.$t('admin.permissions.columns.view'),
 				'permission_management.manage': this.$t('admin.permissions.columns.manage'),

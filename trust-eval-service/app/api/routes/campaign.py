@@ -102,10 +102,9 @@ def _fetch_creator_ratings(creator_id: int) -> list[dict]:
     with get_db_cursor() as cursor:
         cursor.execute(
             "SELECT dg.so_sao "
-            "FROM danh_gia_tnvs dg "
+            "FROM danh_gia_tnv dg "
             "JOIN chien_dichs cd ON dg.chien_dich_id = cd.id "
-            "WHERE cd.nguoi_tao_id = %s AND cd.xoa_luc IS NULL "
-            "AND dg.xoa_luc IS NULL",
+            "WHERE cd.nguoi_tao_id = %s AND cd.xoa_luc IS NULL",
             (creator_id,)
         )
         return cursor.fetchall()
@@ -119,9 +118,9 @@ def _fetch_creator_reports(creator_id: int) -> list[dict]:
     with get_db_cursor() as cursor:
         cursor.execute(
             "SELECT bc.id, bc.trang_thai, bc.noi_dung "
-            "FROM bao_cao_chien_dichs bc "
+            "FROM bao_cao_chien_dich bc "
             "JOIN chien_dichs cd ON bc.chien_dich_id = cd.id "
-            "WHERE cd.nguoi_tao_id = %s AND bc.xoa_luc IS NULL",
+            "WHERE cd.nguoi_tao_id = %s",
             (creator_id,)
         )
         return cursor.fetchall()
@@ -131,10 +130,10 @@ def _fetch_campaign_reviews(campaign_id: int) -> list[dict]:
     """Fetch review history for a campaign."""
     with get_db_cursor() as cursor:
         cursor.execute(
-            "SELECT lsk.id, lsk.hanh_dong, lsk.created_at "
+            "SELECT lsk.id, lsk.hanh_dong, lsk.tao_luc as created_at "
             "FROM lich_su_kiem_duyet_chien_dichs lsk "
             "WHERE lsk.chien_dich_id = %s "
-            "ORDER BY lsk.created_at ASC",
+            "ORDER BY lsk.tao_luc ASC",
             (campaign_id,)
         )
         return cursor.fetchall()
@@ -144,9 +143,9 @@ def _fetch_campaign_feedbacks(campaign_id: int) -> list[dict]:
     """Fetch TNV feedbacks for a campaign."""
     with get_db_cursor() as cursor:
         cursor.execute(
-            "SELECT ph.id, ph.noi_dung, ph.so_sao, ph.created_at "
-            "FROM phan_hoi_tnvs ph "
-            "WHERE ph.chien_dich_id = %s AND ph.xoa_luc IS NULL",
+            "SELECT ph.id, ph.nhan_xet as noi_dung, ph.so_sao, ph.tao_luc as created_at "
+            "FROM phan_hoi_tnv ph "
+            "WHERE ph.chien_dich_id = %s",
             (campaign_id,)
         )
         return cursor.fetchall()
@@ -158,7 +157,7 @@ def _fetch_registrations(campaign_id: int) -> list[dict]:
         cursor.execute(
             "SELECT dkt.id, dkt.trang_thai, dkt.nguoi_dung_id "
             "FROM dang_ky_tham_gias dkt "
-            "WHERE dkt.chien_dich_id = %s AND dkt.xoa_luc IS NULL",
+            "WHERE dkt.chien_dich_id = %s",
             (campaign_id,)
         )
         return cursor.fetchall()
@@ -172,7 +171,7 @@ def _fetch_creator_competencies(creator_id: int) -> dict:
     with get_db_cursor() as cursor:
         # Skills count
         cursor.execute(
-            "SELECT COUNT(*) as cnt FROM ky_nang_nguoi_dungs "
+            "SELECT COUNT(*) as cnt FROM nguoi_dung_ky_nangs "
             "WHERE nguoi_dung_id = %s",
             (creator_id,)
         )
@@ -180,7 +179,7 @@ def _fetch_creator_competencies(creator_id: int) -> dict:
 
         # Certificates count
         cursor.execute(
-            "SELECT COUNT(*) as cnt FROM chung_chi_nguoi_dungs "
+            "SELECT COUNT(*) as cnt FROM chung_chis "
             "WHERE nguoi_dung_id = %s",
             (creator_id,)
         )
@@ -188,7 +187,7 @@ def _fetch_creator_competencies(creator_id: int) -> dict:
 
         # Experience count
         cursor.execute(
-            "SELECT COUNT(*) as cnt FROM kinh_nghiem_nguoi_dungs "
+            "SELECT COUNT(*) as cnt FROM kinh_nghiems "
             "WHERE nguoi_dung_id = %s",
             (creator_id,)
         )
@@ -530,16 +529,16 @@ def _build_volunteer_features(creator: dict) -> Optional[dict]:
         cursor.execute(
             "SELECT dkt.trang_thai, dkt.huy_luc "
             "FROM dang_ky_tham_gias dkt "
-            "WHERE dkt.nguoi_dung_id = %s AND dkt.xoa_luc IS NULL",
+            "WHERE dkt.nguoi_dung_id = %s",
             (creator["id"],)
         )
         regs = cursor.fetchall()
 
         # Fetch ratings received (as campaign creator, rated by TNV)
         cursor.execute(
-            "SELECT dg.so_sao FROM danh_gia_tnvs dg "
+            "SELECT dg.so_sao FROM danh_gia_tnv dg "
             "JOIN chien_dichs cd ON dg.chien_dich_id = cd.id "
-            "WHERE cd.nguoi_tao_id = %s AND dg.xoa_luc IS NULL",
+            "WHERE cd.nguoi_tao_id = %s",
             (creator["id"],)
         )
         ratings = cursor.fetchall()
@@ -641,4 +640,3 @@ def _generate_shap_explanation(
     except Exception as e:
         logger.warning(f"SHAP explanation failed: {e}")
         return None
-

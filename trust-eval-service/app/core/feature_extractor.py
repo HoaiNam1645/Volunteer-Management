@@ -441,10 +441,10 @@ class CampaignFeatureExtractor:
         """Parse various date formats to date object."""
         if value is None:
             return None
-        if isinstance(value, date):
-            return value
         if isinstance(value, datetime):
             return value.date()
+        if isinstance(value, date):
+            return value
         if isinstance(value, str):
             for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
                 try:
@@ -486,6 +486,8 @@ class VolunteerFeatureExtractor:
                     created_date = datetime.fromisoformat(created_at.replace("Z", "+00:00")).date()
                 except ValueError:
                     created_date = None
+            elif isinstance(created_at, datetime):
+                created_date = created_at.date()
             elif isinstance(created_at, date):
                 created_date = created_at
             else:
@@ -515,6 +517,8 @@ class VolunteerFeatureExtractor:
                     last_date = datetime.fromisoformat(last_activity.replace("Z", "+00:00")).date()
                 except ValueError:
                     last_date = None
+            elif isinstance(last_activity, datetime):
+                last_date = last_activity.date()
             elif isinstance(last_activity, date):
                 last_date = last_activity
             else:

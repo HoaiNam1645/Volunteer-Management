@@ -119,7 +119,7 @@ class LightGBMTrainer:
 
         try:
             import lightgbm as lgb
-            from sklearn.model_selection import cross_val_score, StratifiedKFold
+            from sklearn.model_selection import StratifiedKFold
         except ImportError as e:
             logger.error(f"Required library not available: {e}")
             raise RuntimeError(
@@ -152,7 +152,7 @@ class LightGBMTrainer:
         if X_val is None or y_val is None:
             logger.info("No validation set provided, using 5-fold CV for early stopping")
             cv_results = self._cross_validate(
-                X_train, y_train, train_params, n_folds=5
+                X_train, y_train, train_params, n_folds=5, feature_names=feature_names
             )
             best_iteration = cv_results.get("best_iteration", params.n_estimators)
             logger.info(f"Best iteration from CV: {best_iteration}")
@@ -242,7 +242,13 @@ class LightGBMTrainer:
             )
 
         if X_val is None or y_val is None:
-            cv_results = self._cross_validate(X_train, y_train, train_params, n_folds=5)
+            cv_results = self._cross_validate(
+                X_train,
+                y_train,
+                train_params,
+                n_folds=5,
+                feature_names=feature_names,
+            )
             best_iteration = cv_results.get("best_iteration", params.n_estimators)
             train_params["n_estimators"] = best_iteration
             model = lgb.train(
@@ -263,10 +269,6 @@ class LightGBMTrainer:
                 callbacks=callbacks,
             )
 
-        # Build feature names for importance mapping
-        campaign_names = self.DEFAULT_CAMPAIGN_PARAMS.objective
-        # NOTE: feature_names passed from pipeline via DEFAULT_CAMPAIGN_PARAMS.objective (hacky)
-        # Better: pass feature_names param to trainer. Use index-based names as fallback.
         feature_names = feature_names or [f"feat_{i}" for i in range(X_train.shape[1])]
         importance = self._get_feature_importance(model, feature_names)
         model_path = self._save_model(model, "volunteer_trust")
@@ -293,6 +295,7 @@ class LightGBMTrainer:
         y: np.ndarray,
         params: dict,
         n_folds: int = 5,
+        feature_names: Optional[list[str]] = None,
     ) -> dict:
         """5-fold cross-validation để tìm best iteration và ước lượng performance."""
         import lightgbm as lgb
@@ -302,11 +305,13 @@ class LightGBMTrainer:
         cv_scores = []
         best_iterations = []
 
+        resolved_feature_names = feature_names or [f"feat_{i}" for i in range(X.shape[1])]
+
         for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
             X_tr, X_vl = X[train_idx], X[val_idx]
             y_tr, y_vl = y[train_idx], y[val_idx]
 
-            lgb_train = lgb.Dataset(X_tr, label=y_tr, feature_name=feature_names)
+            lgb_train = lgb.Dataset(X_tr, label=y_tr, feature_name=resolved_feature_names)
             lgb_val = lgb.Dataset(X_vl, label=y_vl, reference=lgb_train)
 
             model = lgb.train(

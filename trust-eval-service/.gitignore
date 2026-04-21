@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment files
+.env
+
+# Test and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Logs
+logs/*.log
+logs/*.txt
+
+# ML artifacts and local runtime outputs
+models/*_latest/
+models/**/*.pkl
+models/**/*.joblib
+models/**/*.json
+models/**/*.txt
+models/**/*.csv
+models/**/*.png
+
+# MLflow local state
+mlruns/
+
+# IDE files
+.idea/
+.vscode/

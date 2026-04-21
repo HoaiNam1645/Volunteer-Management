@@ -23,6 +23,7 @@ class TrustScoreService
     private int $httpTimeout;
     private bool $fallbackEnabled;
     private bool $mlServiceEnabled;
+    private ?string $mlInternalKey;
 
     public function __construct()
     {
@@ -32,6 +33,7 @@ class TrustScoreService
         $this->httpTimeout = (int) config('services.ml_trust.timeout', 10);
         $this->fallbackEnabled = (bool) config('services.ml_trust.fallback_enabled', true);
         $this->mlServiceEnabled = (bool) config('services.ml_trust.enabled', true);
+        $this->mlInternalKey = config('services.ml_trust.internal_key');
     }
 
     public function evaluateCampaign(int $campaignId): array
@@ -250,7 +252,7 @@ class TrustScoreService
 
         if ($this->mlServiceEnabled) {
             try {
-                $response = Http::timeout($this->httpTimeout)
+                $response = $this->mlHttpClient()
                     ->post("{$this->mlServiceUrl}/api/v1/evaluate/campaign/{$campaign->id}");
 
                 if ($response->successful()) {
@@ -299,7 +301,7 @@ class TrustScoreService
     {
         if ($this->mlServiceEnabled) {
             try {
-                $response = Http::timeout($this->httpTimeout)
+                $response = $this->mlHttpClient()
                     ->post("{$this->mlServiceUrl}/api/v1/evaluate/volunteer/{$volunteer->id}");
 
                 if ($response->successful()) {
@@ -332,6 +334,20 @@ class TrustScoreService
         $this->persistVolunteerEvaluation($volunteer->id, $fallbackResult);
 
         return $fallbackResult;
+    }
+
+    private function mlHttpClient()
+    {
+        $client = Http::timeout($this->httpTimeout)
+            ->acceptJson();
+
+        if (!empty($this->mlInternalKey)) {
+            $client = $client->withHeaders([
+                'X-Internal-Key' => $this->mlInternalKey,
+            ]);
+        }
+
+        return $client;
     }
 
     private function fallbackRuleBasedEvaluation(ChienDich $campaign): array

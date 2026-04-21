@@ -53,6 +53,18 @@ export const REVIEWER_PERMISSION_GROUPS = [
 			{ key: 'campaign_review.manage', shortLabel: 'Quan ly' },
 		],
 	},
+	{
+		key: 'ai_management',
+		permissions: [
+			{ key: 'ai_management.view', shortLabel: 'Truy cap' },
+			{ key: 'trust_eval.view', shortLabel: 'Xem' },
+			{ key: 'trust_eval.refresh', shortLabel: 'Lam moi' },
+		],
+	},
+	{
+		key: 'statistics',
+		permissions: [{ key: 'statistics.view', shortLabel: 'Truy cap' }],
+	},
 ];
 
 export const USER_PERMISSION_GROUPS = [
@@ -149,6 +161,10 @@ export const ROLE_DEFAULT_PERMISSIONS = {
 		'dashboard.view',
 		'campaign_review.view',
 		'campaign_review.manage',
+		'ai_management.view',
+		'statistics.view',
+		'trust_eval.view',
+		'trust_eval.refresh',
 	],
 	quan_tri_vien: [
 		'account_center.view',

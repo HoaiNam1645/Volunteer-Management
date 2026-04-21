@@ -1056,6 +1056,8 @@ export default {
             groups: {
                 dashboard: 'Dashboard',
                 campaignReview: 'Campaigns',
+                aiManagement: 'AI Module',
+                statistics: 'Statistics',
             },
             columns: {
                 access: 'Access',
