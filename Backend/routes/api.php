@@ -30,6 +30,7 @@ Route::get('/chien-dich/{id}', [ThamGiaChienDichController::class, 'chiTiet']);
 Route::post('/xac-thuc/dang-ky', [XacThucController::class, 'dangKy']);
 Route::post('/xac-thuc/xac-thuc-email', [XacThucController::class, 'xacThucEmail']);
 Route::post('/xac-thuc/dang-nhap', [XacThucController::class, 'dangNhap']);
+Route::post('/xac-thuc/google', [XacThucController::class, 'dangNhapGoogle']);
 Route::post('/xac-thuc/dang-xuat', [XacThucController::class, 'dangXuat']);
 Route::post('/xac-thuc/quen-mat-khau', [XacThucController::class, 'quenMatKhau']);
 Route::post('/xac-thuc/dat-lai-mat-khau', [XacThucController::class, 'datLaiMatKhau']);

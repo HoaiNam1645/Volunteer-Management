@@ -152,7 +152,7 @@
 							</div>
 
 							<div class="row g-2 mb-3">
-								<div class="col-md-4">
+								<div class="col-md-3">
 									<select v-model="tableFilterArea" class="form-select form-select-sm">
 										<option value="all">Khu vực: Tất cả</option>
 										<option value="same_area">Khu vực: Trùng khu vực chiến dịch</option>
@@ -160,19 +160,30 @@
 										<option value="other_area">Khu vực: Khác khu vực</option>
 									</select>
 								</div>
-								<div class="col-md-4">
+								<div class="col-md-3">
 									<select v-model="tableFilterProfile" class="form-select form-select-sm">
 										<option value="all">Hồ sơ: Tất cả</option>
 										<option value="outstanding">Hồ sơ: Nổi bật</option>
 										<option value="not_outstanding">Hồ sơ: Không nổi bật</option>
 									</select>
 								</div>
-								<div class="col-md-4">
+								<div class="col-md-3">
 									<select v-model="tableFilterDistance" class="form-select form-select-sm">
 										<option value="all">Khoảng cách: Tất cả</option>
-										<option value="near">Khoảng cách: Ở gần (≤ 10km)</option>
-										<option value="far">Khoảng cách: Ở xa (> 20km)</option>
-										<option value="unknown">Khoảng cách: Chưa rõ</option>
+										<option value="lte_5">Khoảng cách: ≤ 5km</option>
+										<option value="lte_10">Khoảng cách: ≤ 10km</option>
+										<option value="lte_20">Khoảng cách: ≤ 20km</option>
+										<option value="gt_25">Khoảng cách: > 25km</option>
+									</select>
+								</div>
+								<div class="col-md-3">
+									<select v-model="tableFilterScore" class="form-select form-select-sm">
+										<option value="all">Điểm: Tất cả</option>
+										<option value="eq_100">Điểm: 100%</option>
+										<option value="gte_80">Điểm: ≥ 80%</option>
+										<option value="gte_60">Điểm: ≥ 60%</option>
+										<option value="lte_50">Điểm: ≤ 50%</option>
+										<option value="lte_20">Điểm: ≤ 20%</option>
 									</select>
 								</div>
 							</div>
@@ -493,6 +504,8 @@ export default {
 				tableFilterArea: 'all',
 				tableFilterProfile: 'all',
 				tableFilterDistance: 'all',
+				tableFilterScore: 'all',
+				isApplyingExclusiveFilter: false,
 			recommendedVolunteers: [],
 			remoteAreaVolunteers: [],
 			excludedVolunteers: [],
@@ -672,21 +685,64 @@ export default {
 			return rows.sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
 		},
 		filteredVolunteerTableRows() {
-			return this.volunteerTableRows.filter((item) => {
+			const filtered = this.volunteerTableRows.filter((item) => {
 				if (this.tableFilterArea === 'same_area' && !this.isSameCampaignArea(item)) return false;
-				if (this.tableFilterArea === 'remote_area' && item.groupCode !== 'remote_area') return false;
-				if (this.tableFilterArea === 'other_area' && this.isSameCampaignArea(item)) return false;
+				if (this.tableFilterArea === 'remote_area' && !this.isRemoteAreaVolunteer(item)) return false;
+				if (this.tableFilterArea === 'other_area' && (this.isSameCampaignArea(item) || this.isRemoteAreaVolunteer(item))) return false;
 
 				const profileStrength = Number(item?.breakdown?.profileStrength || 0);
 				if (this.tableFilterProfile === 'outstanding' && profileStrength < 70) return false;
 				if (this.tableFilterProfile === 'not_outstanding' && profileStrength >= 70) return false;
 
 				const distance = item?.distanceValue;
-				if (this.tableFilterDistance === 'near' && !(distance !== null && distance !== undefined && distance <= 10)) return false;
-				if (this.tableFilterDistance === 'far' && !(distance !== null && distance !== undefined && distance > 20)) return false;
-				if (this.tableFilterDistance === 'unknown' && (distance !== null && distance !== undefined)) return false;
+				if (this.tableFilterDistance === 'lte_5' && !(distance !== null && distance !== undefined && distance <= 5)) return false;
+				if (this.tableFilterDistance === 'lte_10' && !(distance !== null && distance !== undefined && distance <= 10)) return false;
+				if (this.tableFilterDistance === 'lte_20' && !(distance !== null && distance !== undefined && distance <= 20)) return false;
+				if (this.tableFilterDistance === 'gt_25' && !(distance !== null && distance !== undefined && distance > 25)) return false;
+
+				const finalScore = Number(item?.finalScore || 0);
+				if (this.tableFilterScore === 'eq_100' && finalScore !== 100) return false;
+				if (this.tableFilterScore === 'gte_80' && finalScore < 80) return false;
+				if (this.tableFilterScore === 'gte_60' && finalScore < 60) return false;
+				if (this.tableFilterScore === 'lte_50' && finalScore > 50) return false;
+				if (this.tableFilterScore === 'lte_20' && finalScore > 20) return false;
 
 				return true;
+			});
+
+			// Khi đang lọc theo khu vực/khoảng cách thì ưu tiên sắp xếp theo km.
+			// - same_area / near: gần nhất lên đầu
+			// - remote_area / far: xa nhất lên đầu
+			let distanceSortMode = null;
+			if (this.tableFilterDistance === 'lte_5' || this.tableFilterDistance === 'lte_10' || this.tableFilterDistance === 'lte_20') distanceSortMode = 'asc';
+			if (this.tableFilterDistance === 'gt_25') distanceSortMode = 'desc';
+			if (!distanceSortMode && this.tableFilterArea === 'same_area') distanceSortMode = 'asc';
+			if (!distanceSortMode && this.tableFilterArea === 'remote_area') distanceSortMode = 'desc';
+
+			if (!distanceSortMode) {
+				return filtered;
+			}
+
+			return [...filtered].sort((a, b) => {
+				const aDistance = a?.distanceValue;
+				const bDistance = b?.distanceValue;
+				const aHasDistance = aDistance !== null && aDistance !== undefined && !Number.isNaN(Number(aDistance));
+				const bHasDistance = bDistance !== null && bDistance !== undefined && !Number.isNaN(Number(bDistance));
+
+				// Bản ghi có khoảng cách rõ ràng được ưu tiên trước.
+				if (aHasDistance !== bHasDistance) {
+					return aHasDistance ? -1 : 1;
+				}
+
+				if (aHasDistance && bHasDistance) {
+					const diff = Number(aDistance) - Number(bDistance);
+					if (diff !== 0) {
+						return distanceSortMode === 'asc' ? diff : -diff;
+					}
+				}
+
+				// Cùng km thì ưu tiên điểm phù hợp cao hơn.
+				return (Number(b?.finalScore || 0) - Number(a?.finalScore || 0));
 			});
 		},
 		paginatedVolunteerTableRows() {
@@ -797,13 +853,20 @@ export default {
 		totalVolunteerTablePages(total) {
 			this.recommendationPage = this.clampPage(this.recommendationPage, total);
 		},
-		tableFilterArea() {
+		tableFilterArea(newValue) {
+			this.applyExclusiveFilter('tableFilterArea', newValue);
 			this.recommendationPage = 1;
 		},
-		tableFilterProfile() {
+		tableFilterProfile(newValue) {
+			this.applyExclusiveFilter('tableFilterProfile', newValue);
 			this.recommendationPage = 1;
 		},
-		tableFilterDistance() {
+		tableFilterDistance(newValue) {
+			this.applyExclusiveFilter('tableFilterDistance', newValue);
+			this.recommendationPage = 1;
+		},
+		tableFilterScore(newValue) {
+			this.applyExclusiveFilter('tableFilterScore', newValue);
 			this.recommendationPage = 1;
 		},
 		excludedVolunteerSearchQuery() {
@@ -878,13 +941,22 @@ export default {
 					excluded: 'bg-secondary text-white',
 				}[groupCode] || 'bg-light text-dark';
 			},
+			isRemoteAreaVolunteer(volunteer) {
+				return volunteer?.groupCode === 'remote_area';
+			},
 			isSameCampaignArea(volunteer) {
 				const campaignArea = String(this.activeCampaign?.areaText || '').trim().toLowerCase();
 				const volunteerArea = String(volunteer?.areaText || '').trim().toLowerCase();
-				if (!campaignArea || !volunteerArea) {
-					return volunteer?.groupCode === 'remote_area';
+
+				// "Ở xa nhưng đúng khu vực" là một nhóm riêng, không tính vào "Trùng khu vực chiến dịch".
+				if (this.isRemoteAreaVolunteer(volunteer)) {
+					return false;
 				}
-				return volunteerArea.includes(campaignArea) || campaignArea.includes(volunteerArea) || volunteer?.groupCode === 'remote_area';
+
+				if (campaignArea && volunteerArea) {
+					return volunteerArea.includes(campaignArea) || campaignArea.includes(volunteerArea);
+				}
+				return false;
 			},
 			getComparisonBadgeClass(percent) {
 				if (percent >= 80) return 'comparison-badge-good';
@@ -921,6 +993,24 @@ export default {
 				const end = this.formatShortDate(endDate);
 				if (start && end) return `${start} - ${end}`;
 				return start || end || this.$t('coordinationScreen.compare.noSpecificDate');
+			},
+			applyExclusiveFilter(changedKey, newValue) {
+				if (this.isApplyingExclusiveFilter || newValue === 'all') {
+					return;
+				}
+
+				const filterKeys = ['tableFilterArea', 'tableFilterProfile', 'tableFilterDistance', 'tableFilterScore'];
+				this.isApplyingExclusiveFilter = true;
+
+				filterKeys.forEach((key) => {
+					if (key !== changedKey && this[key] !== 'all') {
+						this[key] = 'all';
+					}
+				});
+
+				this.$nextTick(() => {
+					this.isApplyingExclusiveFilter = false;
+				});
 			},
 			buildCampaignWeekdayRangeText(startDate, endDate) {
 				const startWeekday = this.getWeekdayLabel(startDate);

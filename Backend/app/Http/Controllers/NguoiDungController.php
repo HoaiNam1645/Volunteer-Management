@@ -443,6 +443,7 @@ class NguoiDungController extends Controller
                 'kinh_do'         => $user->kinh_do,
                 'vai_tro'         => $user->vai_tro,
                 'trang_thai'      => $user->trang_thai,
+                'co_mat_khau'     => filled((string) $user->getRawOriginal('mat_khau')),
                 'quyen_han'       => $permissions,
                 'permissions'     => $permissions,
                 'su_dung_mac_dinh'=> $user->dangDungQuyenMacDinh(),
@@ -510,18 +511,28 @@ class NguoiDungController extends Controller
     // ======================== ĐỔI MẬT KHẨU ========================
     public function doiMatKhau(Request $request)
     {
+        $user = auth('api')->user();
+        $coMatKhau = filled((string) $user->getRawOriginal('mat_khau'));
+
         $request->validate([
-            'mat_khau_cu'           => 'required|string',
-            'mat_khau_moi'          => 'required|string|min:8|confirmed|different:mat_khau_cu',
+            'mat_khau_cu'           => ($coMatKhau ? 'required' : 'nullable') . '|string',
+            'mat_khau_moi'          => 'required|string|min:8|confirmed',
         ]);
 
-        $user = auth('api')->user();
+        if ($coMatKhau) {
+            if (!Hash::check((string) $request->mat_khau_cu, (string) $user->mat_khau)) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'Mật khẩu hiện tại không chính xác.',
+                ], 422);
+            }
 
-        if (!Hash::check($request->mat_khau_cu, $user->mat_khau)) {
-            return response()->json([
-                'status'  => 0,
-                'message' => 'Mật khẩu hiện tại không chính xác.',
-            ], 422);
+            if (Hash::check((string) $request->mat_khau_moi, (string) $user->mat_khau)) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'Mật khẩu mới phải khác mật khẩu hiện tại.',
+                ], 422);
+            }
         }
 
         $user->update(['mat_khau' => $request->mat_khau_moi]);
