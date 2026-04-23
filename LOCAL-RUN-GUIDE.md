@@ -363,7 +363,7 @@ Mở terminal mới (terminal riêng để chạy nền):
 # Terminal 1: MLflow
 cd trust-eval-service
 .\venv\Scripts\activate
-mlflow ui --host 0.0.0.0 --port 5000
+mlflow ui --host 0.0.0.0 --port 5000 hoặc .\venv\Scripts\python.exe -m mlflow ui --host 0.0.0.0 --port 5000
 ```
 
 Truy cập: http://localhost:5000
@@ -378,7 +378,7 @@ cd trust-eval-service
 .\venv\Scripts\activate
 
 # Development mode (auto-reload khi code thay đổi)
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload hoặc .\venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 ### 7.3 Kiểm tra Health

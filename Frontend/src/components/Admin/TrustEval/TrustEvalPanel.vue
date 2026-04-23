@@ -244,11 +244,18 @@
 
 					<!-- Content Analysis -->
 					<div class="eval-card mb-3" v-if="evaluation.content_analysis">
-						<div class="eval-card-header">
+						<div class="eval-card-header d-flex align-items-center justify-content-between gap-2">
 							<h6 class="fw-bold mb-0">
 								<i class="fa-solid fa-file-lines text-info me-2"></i>
 								{{ $t('trustEval.panel.contentAnalysis') }}
 							</h6>
+							<span
+								class="content-help-icon"
+								:title="contentAnalysisHelpText"
+								aria-label="Giải thích chỉ số phân tích nội dung"
+							>
+								<i class="fa-regular fa-circle-question"></i>
+							</span>
 						</div>
 						<div class="eval-card-body">
 							<div class="row g-2">
@@ -256,7 +263,7 @@
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.riskKeywords') }}</div>
 										<div class="fw-bold text-danger">
-											{{ evaluation.content_analysis.text_risk_keyword_count || 0 }}
+											{{ formatKeywordOutOf10(evaluation.content_analysis.text_risk_keyword_count) }}
 										</div>
 									</div>
 								</div>
@@ -264,7 +271,7 @@
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.vagueness') }}</div>
 										<div class="fw-bold" :class="scoreClass(evaluation.content_analysis.vagueness_score)">
-											{{ formatScore(evaluation.content_analysis.vagueness_score) }}
+											{{ formatScoreOutOf10(evaluation.content_analysis.vagueness_score) }}
 										</div>
 									</div>
 								</div>
@@ -272,7 +279,7 @@
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.safetyDesc') }}</div>
 										<div class="fw-bold text-success">
-											{{ formatScore(evaluation.content_analysis.safety_description_score) }}
+											{{ formatScoreOutOf10(evaluation.content_analysis.safety_description_score) }}
 										</div>
 									</div>
 								</div>
@@ -280,7 +287,7 @@
 									<div class="content-stat-card">
 										<div class="text-muted small">{{ $t('trustEval.content.textRiskScore') }}</div>
 										<div class="fw-bold" :class="scoreClass(evaluation.content_analysis.text_risk_score)">
-											{{ formatScore(evaluation.content_analysis.text_risk_score) }}
+											{{ formatScoreOutOf10(evaluation.content_analysis.text_risk_score) }}
 										</div>
 									</div>
 								</div>
@@ -498,6 +505,14 @@ export default {
 			const labels = { HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' };
 			return labels[this.evaluation?.trust_score?.confidence] || '—';
 		},
+		contentAnalysisHelpText() {
+			return [
+				'Từ khóa rủi ro: số lượng từ/cụm từ nhạy cảm phát hiện trong tiêu đề và mô tả.',
+				'Độ mơ hồ: điểm càng cao thì nội dung càng chung chung, thiếu chi tiết.',
+				'Mức độ mô tả an toàn: điểm càng cao thì mô tả biện pháp an toàn càng rõ.',
+				'Điểm rủi ro văn bản: điểm tổng hợp rủi ro từ nội dung chiến dịch.',
+			].join('\n');
+		},
 		riskLevelBadgeClass() {
 			const map = {
 				LOW: 'bg-success-subtle text-success border border-success',
@@ -583,6 +598,15 @@ export default {
 		formatScore(value) {
 			if (value === null || value === undefined) return '—';
 			return Number(value).toFixed(3);
+		},
+		formatScoreOutOf10(value) {
+			if (value === null || value === undefined) return '—';
+			return `${(Number(value) * 10).toFixed(1)}/10`;
+		},
+		formatKeywordOutOf10(value) {
+			if (value === null || value === undefined) return '—';
+			const normalized = Math.max(0, Math.min(10, Number(value)));
+			return `${normalized.toFixed(1)}/10`;
 		},
 		formatDateTime(value) {
 			if (!value) return '—';
@@ -751,6 +775,17 @@ export default {
 
 .content-detail-item:last-child {
 	margin-bottom: 0;
+}
+
+.content-help-icon {
+	color: #6c757d;
+	font-size: 13px;
+	line-height: 1;
+	cursor: help;
+}
+
+.content-help-icon:hover {
+	color: #0d6efd;
 }
 
 .notification-banner {
