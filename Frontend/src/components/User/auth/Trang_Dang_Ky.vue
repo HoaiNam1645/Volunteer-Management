@@ -65,7 +65,7 @@
 
 							<form @submit.prevent="handleRegister" class="needs-validation">
 								<div v-show="currentStep === 1" class="animation-fade-in">
-									<button class="btn btn-outline-light text-dark w-100 py-2 fw-semibold d-flex align-items-center justify-content-center border rounded-3 mb-4 transition-hover" type="button">
+									<button class="btn btn-outline-light text-dark w-100 py-2 fw-semibold d-flex align-items-center justify-content-center border rounded-3 mb-4 transition-hover" type="button" :disabled="isLoading" @click="handleGoogleRegister">
 										<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" width="20" class="me-2">
 										{{ $t('auth.common.googleRegister') }}
 									</button>
@@ -275,6 +275,7 @@
 
 <script>
 import api from '@/services/api.js';
+import { requestGoogleAuthCode } from '@/services/googleAuth';
 
 const REGISTER_DRAFT_KEY = 'register_draft';
 const REGISTER_PREFILL_KEY = 'register_prefill_login';
@@ -577,6 +578,30 @@ export default {
 		getAreaName(id) {
 			const area = this.availableAreas.find((item) => item.id === id);
 			return area ? area.ten : '';
+		},
+		async handleGoogleRegister() {
+			this.isLoading = true;
+			this.alertMessage = '';
+			this.alertSuccess = false;
+
+			try {
+				const code = await requestGoogleAuthCode();
+				const res = await api.post('/xac-thuc/google', { code });
+
+				if (res.data?.status === 1 && res.data?.token && res.data?.data) {
+					localStorage.setItem('token', res.data.token);
+					localStorage.setItem('user', JSON.stringify(res.data.data));
+					this.clearDraft();
+					this.$router.push('/');
+					return;
+				}
+
+				this.alertMessage = res.data?.message || 'Đăng ký bằng Google thất bại.';
+			} catch (error) {
+				this.alertMessage = error?.response?.data?.message || error?.message || 'Đăng ký bằng Google thất bại.';
+			} finally {
+				this.isLoading = false;
+			}
 		},
 		async handleRegister() {
 			if (!this.validateStepOne() || !this.validateStepTwo() || !this.validateStepThree()) {

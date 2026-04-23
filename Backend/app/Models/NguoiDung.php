@@ -182,4 +182,9 @@ class NguoiDung extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(\App\Models\BaoCaoChienDich::class, 'nguoi_gui_id');
     }
+
+    public function taiKhoanLienKets()
+    {
+        return $this->hasMany(\App\Models\TaiKhoanLienKet::class, 'nguoi_dung_id');
+    }
 }

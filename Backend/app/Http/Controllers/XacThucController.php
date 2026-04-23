@@ -10,6 +10,8 @@ use App\Jobs\SendMailJob;
 use App\Models\KhuVuc;
 use App\Models\KyNang;
 use App\Models\NguoiDung;
+use App\Models\TaiKhoanLienKet;
+use Google\Client as GoogleClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -258,7 +260,165 @@ class XacThucController extends Controller
             ]);
         }
 
-        // Set httpOnly cookie
+        return $this->taoPhanHoiDangNhap($nguoi_dung, $token);
+    }
+
+    public function dangNhapGoogle(Request $request)
+    {
+        $validated = $request->validate([
+            'code' => 'required|string',
+        ], [
+            'code.required' => 'Thiếu mã xác thực Google.',
+            'code.string'   => 'Mã xác thực Google không hợp lệ.',
+        ]);
+
+        $googleClientId = (string) config('services.google.client_id');
+        $googleClientSecret = (string) config('services.google.client_secret');
+        $googleRedirectUri = (string) config('services.google.redirect_uri', 'postmessage');
+
+        if (!$googleClientId || !$googleClientSecret) {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Hệ thống chưa cấu hình đăng nhập Google.',
+            ], 500);
+        }
+
+        try {
+            $googleClient = new GoogleClient([
+                'client_id' => $googleClientId,
+                'client_secret' => $googleClientSecret,
+            ]);
+            $googleClient->setRedirectUri($googleRedirectUri ?: 'postmessage');
+
+            $oauthTokens = $googleClient->fetchAccessTokenWithAuthCode($validated['code']);
+            if (isset($oauthTokens['error'])) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'Không thể xác thực tài khoản Google. Vui lòng thử lại.',
+                ], 422);
+            }
+
+            $idToken = $oauthTokens['id_token'] ?? null;
+            if (!$idToken) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'Google không trả về thông tin định danh hợp lệ.',
+                ], 422);
+            }
+
+            $payload = $googleClient->verifyIdToken($idToken);
+            if (!$payload) {
+                return response()->json([
+                    'status'  => 0,
+                    'message' => 'Phiên đăng nhập Google không hợp lệ.',
+                ], 422);
+            }
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Xác thực Google thất bại. Vui lòng thử lại sau.',
+            ], 422);
+        }
+
+        $googleSub = (string) ($payload['sub'] ?? '');
+        $email = mb_strtolower(trim((string) ($payload['email'] ?? '')));
+        $hoTen = trim((string) ($payload['name'] ?? ''));
+        $anhDaiDien = trim((string) ($payload['picture'] ?? ''));
+        $emailVerified = (bool) ($payload['email_verified'] ?? false);
+
+        if (!$googleSub || !$email || !$emailVerified) {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Thông tin tài khoản Google không hợp lệ hoặc chưa xác thực email.',
+            ], 422);
+        }
+
+        $nguoi_dung = DB::transaction(function () use ($googleSub, $email, $hoTen, $anhDaiDien) {
+            $linkedAccount = TaiKhoanLienKet::query()
+                ->where('nha_cung_cap', 'google')
+                ->where('id_nha_cung_cap', $googleSub)
+                ->first();
+
+            $user = $linkedAccount?->nguoiDung;
+
+            if (!$user) {
+                $user = NguoiDung::where('email', $email)->first();
+            }
+
+            if ($user) {
+                $updates = [];
+
+                if (!$user->xac_thuc_email_luc) {
+                    $updates['xac_thuc_email_luc'] = now();
+                }
+
+                if ($user->trang_thai !== 'bi_khoa' && $user->trang_thai !== 'hoat_dong') {
+                    $updates['trang_thai'] = 'hoat_dong';
+                }
+
+                if ($anhDaiDien && !$user->anh_dai_dien) {
+                    $updates['anh_dai_dien'] = $anhDaiDien;
+                }
+
+                if ($hoTen && (!$user->ho_ten || str_starts_with($user->ho_ten, 'Tình nguyện viên'))) {
+                    $updates['ho_ten'] = $hoTen;
+                }
+
+                if (!empty($updates)) {
+                    $user->update($updates);
+                }
+
+                TaiKhoanLienKet::query()->updateOrCreate(
+                    [
+                        'nha_cung_cap' => 'google',
+                        'id_nha_cung_cap' => $googleSub,
+                    ],
+                    [
+                        'nguoi_dung_id' => $user->id,
+                    ]
+                );
+
+                return $user->fresh();
+            }
+
+            $newUser = NguoiDung::create([
+                'ho_ten' => $hoTen ?: 'Tình nguyện viên #' . strtoupper(Str::random(6)),
+                'email' => $email,
+                'anh_dai_dien' => $anhDaiDien ?: null,
+                'mat_khau' => null,
+                'xac_thuc_email_luc' => now(),
+                'trang_thai' => 'hoat_dong',
+            ]);
+
+            TaiKhoanLienKet::create([
+                'nguoi_dung_id' => $newUser->id,
+                'nha_cung_cap' => 'google',
+                'id_nha_cung_cap' => $googleSub,
+            ]);
+
+            return $newUser;
+        });
+
+        if ($nguoi_dung->trang_thai === 'bi_khoa') {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
+            ], 403);
+        }
+
+        $token = auth('api')->login($nguoi_dung);
+        if (!$token) {
+            return response()->json([
+                'status'  => 0,
+                'message' => 'Không thể tạo phiên đăng nhập. Vui lòng thử lại.',
+            ], 500);
+        }
+
+        return $this->taoPhanHoiDangNhap($nguoi_dung->fresh(), $token);
+    }
+
+    private function taoPhanHoiDangNhap(NguoiDung $nguoi_dung, string $token)
+    {
         $cookie = cookie(
             'token',           // name
             $token,            // value

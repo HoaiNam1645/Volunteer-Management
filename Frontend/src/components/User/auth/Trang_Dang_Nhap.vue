@@ -41,7 +41,7 @@
 						</div>
 
 						<!-- Social Login -->
-						<button class="btn btn-outline-light text-dark w-100 py-2 fw-semibold d-flex align-items-center justify-content-center border rounded-3 mb-4 transition-hover" type="button">
+						<button class="btn btn-outline-light text-dark w-100 py-2 fw-semibold d-flex align-items-center justify-content-center border rounded-3 mb-4 transition-hover" type="button" :disabled="isLoading" @click="handleGoogleLogin">
 							<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" width="20" class="me-2">
 							{{ $t('auth.common.googleLogin') }}
 						</button>
@@ -104,6 +104,7 @@
 
 <script>
 import api from '@/services/api.js';
+import { requestGoogleAuthCode } from '@/services/googleAuth';
 
 const REGISTER_PREFILL_KEY = 'register_prefill_login';
 
@@ -136,6 +137,44 @@ export default {
 		}
 	},
 	methods: {
+		handleAuthSuccess(payload) {
+			localStorage.removeItem(REGISTER_PREFILL_KEY);
+			localStorage.setItem('token', payload.token);
+			localStorage.setItem('user', JSON.stringify(payload.data));
+
+			const role = payload.data?.vai_tro;
+			const redirect = typeof this.$route.query.redirect === 'string' ? this.$route.query.redirect : '';
+			if (role === 'kiem_duyet_vien') {
+				this.$router.push('/kiem-duyet-vien/chien-dich');
+			} else if (role === 'quan_tri_vien') {
+				this.$router.push('/admin');
+			} else if (redirect) {
+				this.$router.push(redirect);
+			} else {
+				this.$router.push('/');
+			}
+		},
+		async handleGoogleLogin() {
+			this.isLoading = true;
+			this.alertMessage = '';
+			try {
+				const code = await requestGoogleAuthCode();
+				const res = await api.post('/xac-thuc/google', { code });
+
+				if (res.data?.status === 1 && res.data?.token && res.data?.data) {
+					this.handleAuthSuccess(res.data);
+					return;
+				}
+
+				this.alertMessage = res.data?.message || 'Đăng nhập Google thất bại.';
+				this.alertSuccess = false;
+			} catch (error) {
+				this.alertMessage = error?.response?.data?.message || error?.message || 'Đăng nhập Google thất bại.';
+				this.alertSuccess = false;
+			} finally {
+				this.isLoading = false;
+			}
+		},
 		async handleLogin() {
 			this.isLoading = true;
 			this.alertMessage = '';
@@ -145,21 +184,7 @@ export default {
 					password: this.password,
 				});
 				if (res.data.status === 1) {
-					localStorage.removeItem(REGISTER_PREFILL_KEY);
-					// Lưu token & user vào localStorage
-					localStorage.setItem('token', res.data.token);
-					localStorage.setItem('user', JSON.stringify(res.data.data));
-					const role = res.data.data?.vai_tro;
-					const redirect = typeof this.$route.query.redirect === 'string' ? this.$route.query.redirect : '';
-					if (role === 'kiem_duyet_vien') {
-						this.$router.push('/kiem-duyet-vien/chien-dich');
-					} else if (role === 'quan_tri_vien') {
-						this.$router.push('/admin');
-					} else if (redirect) {
-						this.$router.push(redirect);
-					} else {
-						this.$router.push('/');
-					}
+					this.handleAuthSuccess(res.data);
 				} else {
 					this.alertMessage = res.data.message;
 					this.alertSuccess = false;

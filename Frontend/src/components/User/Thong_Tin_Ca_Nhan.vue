@@ -251,7 +251,7 @@
 											<p class="text-muted small">{{ $t('settings.passwordHint') }}</p>
 										</div>
 
-										<div class="mb-3">
+										<div class="mb-3" v-if="hasExistingPassword">
 											<label class="form-label small fw-bold">{{ $t('settings.currentPassword') }} <span class="text-danger">*</span></label>
 											<div class="input-group">
 												<span class="input-group-text bg-light"><i class="fa-solid fa-key text-muted small"></i></span>
@@ -272,14 +272,14 @@
 												</button>
 											</div>
 											<!-- Strength -->
-											<div class="mt-2" v-if="passwordForm.newPassword && passwordForm.newPassword !== passwordForm.current">
+											<div class="mt-2" v-if="passwordForm.newPassword && (!hasExistingPassword || passwordForm.newPassword !== passwordForm.current)">
 												<div class="d-flex gap-1 mb-1">
 													<div v-for="i in 4" :key="i" class="flex-grow-1 rounded-pill" style="height:4px"
 														:class="i <= passwordStrength.level ? passwordStrength.colorClass : 'bg-light'"></div>
 												</div>
 												<span class="small" :class="passwordStrength.textClass">{{ passwordStrength.label }}</span>
 											</div>
-											<div class="form-text small text-danger" v-if="passwordForm.newPassword && passwordForm.newPassword === passwordForm.current">
+											<div class="form-text small text-danger" v-if="hasExistingPassword && passwordForm.newPassword && passwordForm.newPassword === passwordForm.current">
 												<i class="fa-solid fa-exclamation-triangle me-1"></i>{{ $t('settings.pwSameAsCurrent') }}
 											</div>
 										</div>
@@ -394,6 +394,7 @@ export default {
 				newPassword: '',
 				confirm: '',
 			},
+			hasExistingPassword: true,
 			provinces: [],
 			wards: [],
 			notificationSettings: [
@@ -475,11 +476,16 @@ export default {
 			};
 		},
 		canChangePassword() {
-			return this.passwordForm.current
+			const hasCurrentPassword = this.hasExistingPassword ? Boolean(this.passwordForm.current) : true;
+			const isDifferentFromCurrent = this.hasExistingPassword
+				? this.passwordForm.newPassword !== this.passwordForm.current
+				: true;
+
+			return hasCurrentPassword
 				&& this.passwordForm.newPassword
 				&& this.passwordForm.newPassword.length >= 8
 				&& this.passwordForm.confirm === this.passwordForm.newPassword
-				&& this.passwordForm.newPassword !== this.passwordForm.current;
+				&& isDifferentFromCurrent;
 		},
 		canManageAccount() {
 			try {
@@ -537,6 +543,7 @@ export default {
 					this.form.latitude = d.vi_do;
 					this.form.longitude = d.kinh_do;
 					this.form.avatarPreview = d.anh_dai_dien || null;
+					this.hasExistingPassword = Boolean(d.co_mat_khau);
 					this.avatarFile = null;
 
 					if (d.tinh_thanh_id) {
@@ -833,11 +840,16 @@ export default {
 			this.localAlertMessage = '';
 
 			try {
-				const res = await api.post('/nguoi-dung/doi-mat-khau', {
-					mat_khau_cu: this.passwordForm.current,
+				const payload = {
 					mat_khau_moi: this.passwordForm.newPassword,
 					mat_khau_moi_confirmation: this.passwordForm.confirm,
-				});
+				};
+
+				if (this.hasExistingPassword) {
+					payload.mat_khau_cu = this.passwordForm.current;
+				}
+
+				const res = await api.post('/nguoi-dung/doi-mat-khau', payload);
 				if (res.data.status === 1) {
 					if (this.toast) {
 						this.toast.showToast('success', 'Thành công!', res.data.message);
@@ -845,6 +857,7 @@ export default {
 						this.localAlertMessage = res.data.message;
 						this.localAlertSuccess = true;
 					}
+					this.hasExistingPassword = true;
 					this.passwordForm = { current: '', newPassword: '', confirm: '' };
 				}
 			} catch (error) {
