@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -243,22 +244,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: RichText(
                               text: TextSpan(
                                 style: TextStyle(color: Colors.grey[700]),
-                                children: const [
-                                  TextSpan(text: 'Tôi đồng ý với '),
+                                children: [
+                                  const TextSpan(text: 'Tôi đồng ý với '),
                                   TextSpan(
                                     text: 'Điều khoản sử dụng',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.blue,
                                       decoration: TextDecoration.underline,
                                     ),
+                                    recognizer: TapGestureRecognizer()..onTap = () => context.push('/terms'),
                                   ),
-                                  TextSpan(text: ' và '),
+                                  const TextSpan(text: ' và '),
                                   TextSpan(
                                     text: 'Chính sách bảo mật',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.blue,
                                       decoration: TextDecoration.underline,
                                     ),
+                                    recognizer: TapGestureRecognizer()..onTap = () => context.push('/privacy'),
                                   ),
                                 ],
                               ),

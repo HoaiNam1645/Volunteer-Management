@@ -16,12 +16,23 @@ class CampaignProvider extends ChangeNotifier {
   // Filter states
   String? _statusFilter;
   String? _categoryFilter;
+  String? _sortOption;
+  String? _locationFilter;
 
   List<Campaign> get campaigns => _campaigns;
   Campaign? get selectedCampaign => _selectedCampaign;
   bool get isLoading => _isLoading;
   bool get hasMore => _hasMore;
   String? get error => _error;
+  String? get searchQuery => _searchQuery;
+  String? get statusFilter => _statusFilter;
+  String? get categoryFilter => _categoryFilter;
+  String? get sortOption => _sortOption;
+  String? get locationFilter => _locationFilter;
+
+  // Recommended campaigns for logged in users
+  List<Campaign> _recommendedCampaigns = [];
+  List<Campaign> get recommendedCampaigns => _recommendedCampaigns;
 
   // ============ GET CAMPAIGNS ============
   Future<void> loadCampaigns({bool refresh = false}) async {
@@ -74,6 +85,14 @@ class CampaignProvider extends ChangeNotifier {
 
   void setCategoryFilter(String? category) {
     _categoryFilter = category;
+  }
+
+  void setSortOption(String? sort) {
+    _sortOption = sort;
+  }
+
+  void setLocationFilter(String? location) {
+    _locationFilter = location;
   }
 
   // ============ GET CAMPAIGN DETAIL ============
@@ -204,6 +223,54 @@ class CampaignProvider extends ChangeNotifier {
     }
     notifyListeners();
     return result.success;
+  }
+
+  // ============ UPDATE CAMPAIGN STATUS ============
+  Future<bool> updateCampaignStatus(int id, String status) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _repository.updateCampaignStatus(id, status);
+
+    _isLoading = false;
+    if (result.success) {
+      final index = _myCampaigns.indexWhere((c) => c.id == id);
+      if (index != -1) {
+        // Update the campaign status locally
+        final campaign = _myCampaigns[index];
+        _myCampaigns[index] = Campaign(
+          id: campaign.id,
+          tenChienDich: campaign.tenChienDich,
+          moTa: campaign.moTa,
+          moTaNgan: campaign.moTaNgan,
+          anhBia: campaign.anhBia,
+          hinhAnh: campaign.hinhAnh,
+          diaDiem: campaign.diaDiem,
+          viDo: campaign.viDo,
+          kinhDo: campaign.kinhDo,
+          ngayBatDau: campaign.ngayBatDau,
+          ngayKetThuc: campaign.ngayKetThuc,
+          hanDangKy: campaign.hanDangKy,
+          soLuongToiThieu: campaign.soLuongToiThieu,
+          soLuongToiDa: campaign.soLuongToiDa,
+          soLuongHienTai: campaign.soLuongHienTai,
+          trangThai: status,
+          loaiChienDich: campaign.loaiChienDich,
+          nguoiTao: campaign.nguoiTao,
+          kyNangs: campaign.kyNangs,
+          moTaAnToan: campaign.moTaAnToan,
+          mucDoKhanCap: campaign.mucDoKhanCap,
+          createdAt: campaign.createdAt,
+        );
+      }
+      notifyListeners();
+      return true;
+    }
+
+    _error = result.message;
+    notifyListeners();
+    return false;
   }
 
   // ============ AI SUGGESTIONS ============

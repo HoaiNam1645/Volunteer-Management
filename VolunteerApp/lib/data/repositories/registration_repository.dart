@@ -5,6 +5,21 @@ import '../models/registration_model.dart';
 class RegistrationRepository {
   final ApiClient _apiClient = ApiClient.instance;
 
+  // ============ GET TRACKING DATA ============
+  Future<TrackingResult> getTrackingData() async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.volunteerTracking,
+      );
+      if (response.data['status'] == 1) {
+        return TrackingResult.success(response.data['data'] ?? {});
+      }
+      return TrackingResult.failure(response.data['message'] ?? 'Lỗi');
+    } catch (e) {
+      return TrackingResult.failure('Không thể tải dữ liệu theo dõi');
+    }
+  }
+
   // ============ REGISTER FOR CAMPAIGN ============
   Future<RegistrationResult> register({
     required int campaignId,
@@ -113,14 +128,18 @@ class RegistrationRepository {
   // ============ SUBMIT REPORT ============
   Future<OperationResult> submitReport({
     required int chienDichId,
-    required String noiDung,
+    String? phanLoai,
+    String? tieuDe,
+    String? noiDung,
   }) async {
     try {
       final response = await _apiClient.post(
         ApiEndpoints.feedbackReport,
         data: {
           'chien_dich_id': chienDichId,
-          'noi_dung': noiDung,
+          if (phanLoai != null) 'phan_loai': phanLoai,
+          if (tieuDe != null) 'tieu_de': tieuDe,
+          if (noiDung != null) 'noi_dung': noiDung,
         },
       );
       if (response.data['status'] == 1) {
@@ -223,5 +242,21 @@ class OperationResult {
 
   factory OperationResult.failure(String message) {
     return OperationResult(success: false, message: message);
+  }
+}
+
+class TrackingResult {
+  final bool success;
+  final Map<String, dynamic> data;
+  final String? message;
+
+  TrackingResult({required this.success, this.data = const {}, this.message});
+
+  factory TrackingResult.success(Map<String, dynamic> data) {
+    return TrackingResult(success: true, data: data);
+  }
+
+  factory TrackingResult.failure(String message) {
+    return TrackingResult(success: false, message: message);
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../data/repositories/admin_repository.dart';
+import 'trust_eval_campaign_detail_screen.dart';
 
 class TrustEvalDashboardScreen extends StatefulWidget {
   const TrustEvalDashboardScreen({super.key});
@@ -446,71 +448,76 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
       _ => Colors.grey,
     };
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: riskColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: riskColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 8, height: 40,
-            decoration: BoxDecoration(
-              color: riskColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  campaign.tieuDe ?? 'Chiến dịch #${campaign.campaignId}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (campaign.evaluatedAt != null)
-                  Text(
-                    'Đánh giá: ${DateFormat('dd/MM HH:mm').format(campaign.evaluatedAt!)}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                  ),
-              ],
-            ),
-          ),
-          if (campaign.isAnomaly)
+    return GestureDetector(
+      onTap: () => context.push('/admin/trust-eval/campaign/${campaign.campaignId}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: riskColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: riskColor.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              width: 8, height: 40,
               decoration: BoxDecoration(
-                color: Colors.purple.withValues(alpha: 0.1),
+                color: riskColor,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.warning, size: 12, color: Colors.purple),
-                  SizedBox(width: 4),
-                  Text('Anomaly', style: TextStyle(fontSize: 11, color: Colors.purple, fontWeight: FontWeight.w600)),
+                  Text(
+                    campaign.tieuDe ?? 'Chiến dịch #${campaign.campaignId}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (campaign.evaluatedAt != null)
+                    Text(
+                      'Đánh giá: ${DateFormat('dd/MM HH:mm').format(campaign.evaluatedAt!)}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
                 ],
               ),
             ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: riskColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
+            if (campaign.isAnomaly)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning, size: 12, color: Colors.purple),
+                    SizedBox(width: 4),
+                    Text('Anomaly', style: TextStyle(fontSize: 11, color: Colors.purple, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: riskColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                campaign.riskLevel.toUpperCase(),
+                style: TextStyle(fontSize: 11, color: riskColor, fontWeight: FontWeight.bold),
+              ),
             ),
-            child: Text(
-              campaign.riskLevel.toUpperCase(),
-              style: TextStyle(fontSize: 11, color: riskColor, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: Colors.grey[400]),
+          ],
+        ),
       ),
     );
   }

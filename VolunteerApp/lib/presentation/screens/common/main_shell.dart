@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/permissions_provider.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -11,8 +12,8 @@ class MainShell extends StatelessWidget {
 
   static const _volunteerNav = [
     _NavItem(path: '/', label: 'Trang chủ', icon: Icons.home_outlined, selectedIcon: Icons.home),
-    _NavItem(path: '/campaigns', label: 'Chiến dịch', icon: Icons.search_outlined, selectedIcon: Icons.search),
-    _NavItem(path: '/my-campaigns', label: 'Của tôi', icon: Icons.folder_outlined, selectedIcon: Icons.folder),
+    _NavItem(path: '/campaigns', label: 'Danh sách', icon: Icons.flag_outlined, selectedIcon: Icons.flag),
+    _NavItem(path: '/my-campaigns', label: 'Quản lý', icon: Icons.folder_outlined, selectedIcon: Icons.folder),
     _NavItem(path: '/feedback', label: 'Đánh giá', icon: Icons.star_outline, selectedIcon: Icons.star),
     _NavItem(path: '/profile', label: 'Tài khoản', icon: Icons.person_outline, selectedIcon: Icons.person),
   ];
@@ -20,8 +21,8 @@ class MainShell extends StatelessWidget {
   static const _reviewerNav = [
     _NavItem(path: '/coordinator', label: 'Dashboard', icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard),
     _NavItem(path: '/campaigns', label: 'Chiến dịch', icon: Icons.search_outlined, selectedIcon: Icons.search),
-    _NavItem(path: '/my-campaigns', label: 'Điều phối', icon: Icons.sync_alt_outlined, selectedIcon: Icons.sync_alt),
-    _NavItem(path: '/report', label: 'Báo cáo', icon: Icons.assessment_outlined, selectedIcon: Icons.assessment),
+    _NavItem(path: '/dieu-phoi-nhan-su', label: 'Điều phối', icon: Icons.sync_alt_outlined, selectedIcon: Icons.sync_alt),
+    _NavItem(path: '/giam-sat-bao-cao', label: 'Giám sát', icon: Icons.assessment_outlined, selectedIcon: Icons.assessment),
     _NavItem(path: '/profile', label: 'Tài khoản', icon: Icons.person_outline, selectedIcon: Icons.person),
   ];
 
@@ -99,7 +100,6 @@ class _BottomNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        bottom: true,
         child: SizedBox(
           height: 60,
           child: Row(

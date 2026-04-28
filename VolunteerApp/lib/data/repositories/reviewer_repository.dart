@@ -29,6 +29,7 @@ class ReviewerRepository {
     String? trangThai,
     String? search,
     String? loaiChienDich,
+    String? mucDoUuTien,
     String? tuNgay,
     String? denNgay,
   }) async {
@@ -38,8 +39,9 @@ class ReviewerRepository {
         queryParameters: {
           'page': page,
           if (trangThai != null) 'trang_thai': trangThai,
-          if (search != null) 'tim_kiem': search,
-          if (loaiChienDich != null) 'loai_chien_dich': loaiChienDich,
+          if (search != null) 'tu_khoa': search,
+          if (loaiChienDich != null) 'loai_chien_dich_id': loaiChienDich,
+          if (mucDoUuTien != null) 'muc_do_uu_tien': mucDoUuTien,
           if (tuNgay != null) 'tu_ngay': tuNgay,
           if (denNgay != null) 'den_ngay': denNgay,
         },
@@ -157,24 +159,208 @@ class ReviewerRepository {
     }
   }
 
-  // ============ REPORTS ============
-  Future<ReviewerResult<void>> processReport(int id, String trangThai) async {
+  // ============ STATISTICS ============
+  Future<ReviewerResult<ReviewerStatistics>> getStatistics(String period) async {
     try {
-      final response = await _apiClient.put(
-        ApiEndpoints.reviewerReportProcess(id),
-        data: {'trang_thai': trangThai},
+      final response = await _apiClient.get(
+        ApiEndpoints.reviewerStats,
+        queryParameters: {'period': period},
       );
 
       if (response.data['status'] == 1) {
-        return ReviewerResult.successVoid(message: response.data['message'] ?? 'Xử lý báo cáo thành công',
+        return ReviewerResult.success(
+          ReviewerStatistics.fromJson(response.data['data']),
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Xử lý thất bại');
+      return ReviewerResult.failure(response.data['message'] ?? 'Không lấy được thống kê');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
       return ReviewerResult.failure('Đã xảy ra lỗi: $e');
     }
+  }
+}
+
+// ============ STATISTICS MODEL ============
+class ReviewerStatistics {
+  final List<KpiItem> kpis;
+  final List<MonthlyData> monthlyData;
+  final PeriodSummary periodSummary;
+  final List<CampaignStatusItem> campaignStatuses;
+  final List<TopRegion> topRegions;
+  final List<TopSkill> topSkills;
+
+  ReviewerStatistics({
+    required this.kpis,
+    required this.monthlyData,
+    required this.periodSummary,
+    required this.campaignStatuses,
+    required this.topRegions,
+    required this.topSkills,
+  });
+
+  factory ReviewerStatistics.fromJson(Map<String, dynamic> json) {
+    return ReviewerStatistics(
+      kpis: (json['kpis'] as Map<String, dynamic>?)
+              ?.values
+              .map((e) => KpiItem.fromJson(e))
+              .toList() ??
+          [],
+      monthlyData: (json['monthly_data'] as List? ?? [])
+          .map((e) => MonthlyData.fromJson(e))
+          .toList(),
+      periodSummary: PeriodSummary.fromJson(json['period_summary'] ?? {}),
+      campaignStatuses: (json['campaign_statuses'] as List? ?? [])
+          .map((e) => CampaignStatusItem.fromJson(e))
+          .toList(),
+      topRegions: (json['top_regions'] as List? ?? [])
+          .map((e) => TopRegion.fromJson(e))
+          .toList(),
+      topSkills: (json['top_skills'] as List? ?? [])
+          .map((e) => TopSkill.fromJson(e))
+          .toList(),
+    );
+  }
+}
+
+class KpiItem {
+  final String label;
+  final String value;
+  final bool trendUp;
+  final String trendText;
+  final String icon;
+  final String bgColor;
+  final String color;
+
+  KpiItem({
+    required this.label,
+    required this.value,
+    required this.trendUp,
+    required this.trendText,
+    required this.icon,
+    required this.bgColor,
+    required this.color,
+  });
+
+  factory KpiItem.fromJson(Map<String, dynamic> json) {
+    return KpiItem(
+      label: json['label'] ?? '',
+      value: json['value']?.toString() ?? '0',
+      trendUp: json['trend']?['positive'] ?? true,
+      trendText: json['trend']?['text'] ?? 'Không đổi',
+      icon: json['icon'] ?? 'fa-solid fa-chart',
+      bgColor: json['bg_color'] ?? '#e3f2fd',
+      color: json['color'] ?? '#2196f3',
+    );
+  }
+}
+
+class MonthlyData {
+  final String label;
+  final int campaigns;
+  final int volunteers;
+
+  MonthlyData({
+    required this.label,
+    required this.campaigns,
+    required this.volunteers,
+  });
+
+  factory MonthlyData.fromJson(Map<String, dynamic> json) {
+    return MonthlyData(
+      label: json['label'] ?? '',
+      campaigns: json['campaigns'] ?? 0,
+      volunteers: json['volunteers'] ?? 0,
+    );
+  }
+}
+
+class PeriodSummary {
+  final int campaigns;
+  final int volunteers;
+
+  PeriodSummary({required this.campaigns, required this.volunteers});
+
+  factory PeriodSummary.fromJson(Map<String, dynamic> json) {
+    return PeriodSummary(
+      campaigns: json['campaigns'] ?? 0,
+      volunteers: json['volunteers'] ?? 0,
+    );
+  }
+}
+
+class CampaignStatusItem {
+  final String label;
+  final int count;
+  final double percent;
+  final String icon;
+  final String color;
+  final String bgColor;
+
+  CampaignStatusItem({
+    required this.label,
+    required this.count,
+    required this.percent,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+  });
+
+  factory CampaignStatusItem.fromJson(Map<String, dynamic> json) {
+    return CampaignStatusItem(
+      label: json['label'] ?? '',
+      count: json['count'] ?? 0,
+      percent: (json['percent'] ?? 0).toDouble(),
+      icon: json['icon'] ?? 'fa-solid fa-circle',
+      color: json['color'] ?? '#6c757d',
+      bgColor: json['bg_color'] ?? '#e9ecef',
+    );
+  }
+}
+
+class TopRegion {
+  final String name;
+  final int volunteers;
+  final double percent;
+
+  TopRegion({
+    required this.name,
+    required this.volunteers,
+    required this.percent,
+  });
+
+  factory TopRegion.fromJson(Map<String, dynamic> json) {
+    return TopRegion(
+      name: json['name'] ?? '',
+      volunteers: json['volunteers'] ?? 0,
+      percent: (json['percent'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class TopSkill {
+  final String name;
+  final int count;
+  final double percent;
+  final String icon;
+  final String color;
+
+  TopSkill({
+    required this.name,
+    required this.count,
+    required this.percent,
+    required this.icon,
+    required this.color,
+  });
+
+  factory TopSkill.fromJson(Map<String, dynamic> json) {
+    return TopSkill(
+      name: json['name'] ?? '',
+      count: json['count'] ?? 0,
+      percent: (json['percent'] ?? 0).toDouble(),
+      icon: json['icon'] ?? 'fa-solid fa-star',
+      color: json['color'] ?? '#6c757d',
+    );
   }
 }
 
@@ -445,28 +631,73 @@ class VolunteerRegistration {
   final int userId;
   final String hoTen;
   final String? anhDaiDien;
+  final String? email;
+  final List<String> kyNangs;
+  final String? khuVuc;
   final String trangThai;
   final DateTime? ngayXacNhan;
   final String? lyDo;
   final double trustScore;
+  final DateTime? dangKyLuc;
 
   VolunteerRegistration({
     required this.registrationId,
     required this.userId,
     required this.hoTen,
     this.anhDaiDien,
+    this.email,
+    this.kyNangs = const [],
+    this.khuVuc,
     required this.trangThai,
     this.ngayXacNhan,
     this.lyDo,
     required this.trustScore,
+    this.dangKyLuc,
   });
 
   factory VolunteerRegistration.fromJson(Map<String, dynamic> json) {
+    // Parse nested nguoi_dung if present
+    final nguoiDung = json['nguoi_dung'] as Map<String, dynamic>?;
+
+    // Parse ky_nangs from nested nguoi_dung
+    List<String> kyNangs = [];
+    if (nguoiDung != null && nguoiDung['ky_nangs'] != null) {
+      kyNangs = (nguoiDung['ky_nangs'] as List)
+          .map((skill) => (skill is Map) ? (skill['ten'] ?? '').toString() : skill.toString())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+
+    // Parse khu_vucs from nested nguoi_dung
+    String? khuVuc;
+    if (nguoiDung != null && nguoiDung['khu_vucs'] != null) {
+      khuVuc = (nguoiDung['khu_vucs'] as List)
+          .map((area) => (area is Map) ? (area['ten'] ?? '').toString() : area.toString())
+          .where((s) => s.isNotEmpty)
+          .join(', ');
+      if (khuVuc.isEmpty) khuVuc = null;
+    }
+
     return VolunteerRegistration(
       registrationId: json['dang_ky_id'] ?? json['id'] ?? 0,
       userId: json['nguoi_dung_id'] ?? json['id'] ?? 0,
-      hoTen: json['ho_ten'] ?? '',
-      anhDaiDien: json['anh_dai_dien'],
+      hoTen: nguoiDung?['ho_ten'] ?? json['ho_ten'] ?? '',
+      anhDaiDien: nguoiDung?['anh_dai_dien'] ?? json['anh_dai_dien'],
+      email: nguoiDung?['email'],
+      kyNangs: kyNangs,
+      khuVuc: khuVuc,
+      trangThai: json['trang_thai'] ?? 'cho_xac_nhan',
+      ngayXacNhan: json['ngay_xac_nhan'] != null
+          ? DateTime.tryParse(json['ngay_xac_nhan'])
+          : null,
+      lyDo: json['ly_do'],
+      trustScore: (json['diem_tin_cay'] ?? 0).toDouble(),
+      dangKyLuc: json['dang_ky_luc'] != null
+          ? DateTime.tryParse(json['dang_ky_luc'])
+          : null,
+    );
+  }
+}
       trangThai: json['trang_thai'] ?? 'cho_xac_nhan',
       ngayXacNhan: json['ngay_xac_nhan'] != null
           ? DateTime.tryParse(json['ngay_xac_nhan'])

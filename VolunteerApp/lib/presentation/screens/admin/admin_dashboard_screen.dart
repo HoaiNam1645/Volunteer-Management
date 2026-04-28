@@ -51,6 +51,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     const SizedBox(height: 16),
                     _buildChartSection(data),
                     const SizedBox(height: 16),
+                    _buildRoleDistribution(data),
+                    const SizedBox(height: 16),
                     _buildRecentActivity(data),
                     const SizedBox(height: 16),
                     _buildQuickActions(),
@@ -467,6 +469,96 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Widget _buildRoleDistribution(data) {
+    final roles = data?.roleDistribution ?? [];
+    if (roles.isEmpty) return const SizedBox.shrink();
+
+    final total = roles.fold<int>(0, (sum, r) => sum + (r.count as int));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Phân bố vai trò',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              SizedBox(
+                width: 100,
+                height: 100,
+                child: CustomPaint(
+                  painter: _DonutPainter(
+                    segments: roles.map((r) {
+                      final colorHex = r.color.replaceAll('#', '');
+                      return _DonutSegment(
+                        percent: total > 0 ? (r.count as int) / total : 0,
+                        color: Color(int.parse('FF$colorHex', radix: 16)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: roles.map((r) {
+                    final colorHex = r.color.replaceAll('#', '');
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Color(int.parse('FF$colorHex', radix: 16)),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              r.label,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          Text(
+                            '${r.count} (${r.percent}%)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecentActivity(data) {
     final recentUsers = data?.recentUsers ?? [];
     final recentCampaigns = data?.recentCampaigns ?? [];
@@ -740,4 +832,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
   }
+}
+
+class _DonutSegment {
+  final double percent;
+  final Color color;
+
+  _DonutSegment({required this.percent, required this.color});
+}
+
+class _DonutPainter extends CustomPainter {
+  final List<_DonutSegment> segments;
+
+  _DonutPainter({required this.segments});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+    const strokeWidth = 16.0;
+    var startAngle = -90 * (3.14159 / 180);
+
+    for (final segment in segments) {
+      if (segment.percent <= 0) continue;
+      final sweepAngle = segment.percent * 2 * 3.14159;
+      final paint = Paint()
+        ..color = segment.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

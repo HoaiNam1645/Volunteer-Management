@@ -120,6 +120,73 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
+  void _showEditDialog(AdminUser user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _UserEditDialog(
+        user: user,
+        onSave: (hoTen, email, vaiTro, soDienThoai) async {
+          final result = await _repository.updateUser(
+            id: user.id,
+            hoTen: hoTen,
+            email: email,
+            vaiTro: vaiTro,
+            soDienThoai: soDienThoai,
+          );
+          if (mounted) {
+            Navigator.pop(ctx);
+            if (result.success) {
+              _loadUsers();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(result.message ?? 'Cập nhật thành công')),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(result.message ?? 'Cập nhật thất bại'), backgroundColor: Colors.red),
+              );
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  void _confirmDelete(AdminUser user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa người dùng "${user.hoTen}"?\n\nHành động này không thể hoàn tác.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final result = await _repository.deleteUser(user.id);
+              if (mounted) {
+                if (result.success) {
+                  _loadUsers();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result.message ?? 'Xóa thành công')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result.message ?? 'Xóa thất bại'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateDialog() {
     showDialog(
       context: context,
@@ -197,12 +264,44 @@ class _UserCard extends StatelessWidget {
                 );
                 onStatusToggle();
               }
+            } else if (action == 'edit') {
+              _showEditDialog(user);
+            } else if (action == 'delete') {
+              _confirmDelete(user);
             }
           },
           itemBuilder: (ctx) => [
             PopupMenuItem(
               value: 'toggle_status',
-              child: Text(user.trangThai == 'hoat_dong' ? 'Khóa tài khoản' : 'Mở khóa'),
+              child: Row(
+                children: [
+                  Icon(user.trangThai == 'hoat_dong' ? Icons.lock : Icons.lock_open,
+                       size: 20, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Text(user.trangThai == 'hoat_dong' ? 'Khóa tài khoản' : 'Mở khóa'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit, size: 20, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Chỉnh sửa'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 20, color: Colors.red),
+                  const SizedBox(width: 8),
+                  const Text('Xóa', style: TextStyle(color: Colors.red)),
+                ],
+              ),
             ),
           ],
         ),
@@ -429,6 +528,103 @@ class _UserFormDialogState extends State<_UserFormDialog> {
             }
           },
           child: const Text('Tạo'),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserEditDialog extends StatefulWidget {
+  final AdminUser user;
+  final void Function(String hoTen, String email, String vaiTro, String? soDienThoai) onSave;
+
+  const _UserEditDialog({required this.user, required this.onSave});
+
+  @override
+  State<_UserEditDialog> createState() => _UserEditDialogState();
+}
+
+class _UserEditDialogState extends State<_UserEditDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _hoTenController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _soDtController;
+  late String _vaiTro;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoTenController = TextEditingController(text: widget.user.hoTen);
+    _emailController = TextEditingController(text: widget.user.email);
+    _soDtController = TextEditingController(text: widget.user.soDienThoai ?? '');
+    _vaiTro = widget.user.vaiTro;
+  }
+
+  @override
+  void dispose() {
+    _hoTenController.dispose();
+    _emailController.dispose();
+    _soDtController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Chỉnh sửa người dùng'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _hoTenController,
+                decoration: const InputDecoration(labelText: 'Họ tên *'),
+                validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email *'),
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _soDtController,
+                decoration: const InputDecoration(labelText: 'Số điện thoại'),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(labelText: 'Vai trò *'),
+                value: _vaiTro,
+                items: const [
+                  DropdownMenuItem(value: 'tinh_nguyen_vien', child: Text('Tình nguyện viên')),
+                  DropdownMenuItem(value: 'kiem_duyet_vien', child: Text('Kiểm duyệt viên')),
+                  DropdownMenuItem(value: 'quan_tri_vien', child: Text('Quản trị viên')),
+                ],
+                onChanged: (v) => setState(() => _vaiTro = v ?? 'tinh_nguyen_vien'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        ElevatedButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              widget.onSave(
+                _hoTenController.text,
+                _emailController.text,
+                _vaiTro,
+                _soDtController.text.isNotEmpty ? _soDtController.text : null,
+              );
+            }
+          },
+          child: const Text('Lưu'),
         ),
       ],
     );

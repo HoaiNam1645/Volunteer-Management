@@ -583,6 +583,23 @@ class AdminRepository {
       return AdminResult.failure('Đã xảy ra lỗi: $e');
     }
   }
+
+  Future<AdminResult<VolunteerTrustEval>> getVolunteerTrustEval(int volunteerId) async {
+    try {
+      final response = await _apiClient.get(ApiEndpoints.trustEvalVolunteer(volunteerId));
+
+      if (response.data['status'] == 1) {
+        return AdminResult.success(
+          VolunteerTrustEval.fromJson(response.data['data']),
+        );
+      }
+      return AdminResult.failure(response.data['message'] ?? 'Không lấy được đánh giá');
+    } on DioException catch (e) {
+      return AdminResult.failure(_apiClient.handleError(e).fullMessage);
+    } catch (e) {
+      return AdminResult.failure('Đã xảy ra lỗi: $e');
+    }
+  }
 }
 
 // ============ DATA MODELS ============
@@ -889,6 +906,9 @@ class ReviewerStats {
   final double avgReviewTime;
   final List<TrendItem> trends;
   final List<ChartDataPoint> chartData;
+  final List<TopRegion> topRegions;
+  final List<TopSkill> topSkills;
+  final Map<String, int> campaignStatusDistribution;
 
   ReviewerStats({
     required this.pendingCampaigns,
@@ -899,6 +919,9 @@ class ReviewerStats {
     required this.avgReviewTime,
     required this.trends,
     required this.chartData,
+    this.topRegions = const [],
+    this.topSkills = const [],
+    this.campaignStatusDistribution = const {},
   });
 
   factory ReviewerStats.fromJson(Map<String, dynamic> json) {
@@ -915,6 +938,45 @@ class ReviewerStats {
       chartData: (json['bieu_do'] as List? ?? [])
           .map((e) => ChartDataPoint.fromJson(e))
           .toList(),
+      topRegions: (json['top_regions'] as List? ?? [])
+          .map((e) => TopRegion.fromJson(e))
+          .toList(),
+      topSkills: (json['top_skills'] as List? ?? [])
+          .map((e) => TopSkill.fromJson(e))
+          .toList(),
+      campaignStatusDistribution: Map<String, int>.from(json['campaign_status_distribution'] ?? {}),
+    );
+  }
+}
+
+class TopRegion {
+  final String name;
+  final int count;
+  final double percent;
+
+  TopRegion({required this.name, required this.count, required this.percent});
+
+  factory TopRegion.fromJson(Map<String, dynamic> json) {
+    return TopRegion(
+      name: json['name'] ?? json['ten'] ?? '',
+      count: json['count'] ?? json['so_luong'] ?? 0,
+      percent: (json['percent'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class TopSkill {
+  final String name;
+  final int count;
+  final double percent;
+
+  TopSkill({required this.name, required this.count, required this.percent});
+
+  factory TopSkill.fromJson(Map<String, dynamic> json) {
+    return TopSkill(
+      name: json['name'] ?? json['ten'] ?? '',
+      count: json['count'] ?? json['so_luong'] ?? 0,
+      percent: (json['percent'] ?? 0).toDouble(),
     );
   }
 }
@@ -1641,5 +1703,103 @@ class AdminResult<T> {
 
   factory AdminResult.failure(String message) {
     return AdminResult(success: false, message: message);
+  }
+}
+
+class VolunteerTrustEval {
+  final int volunteerId;
+  final String hoTen;
+  final String email;
+  final double trustScore;
+  final double riskScore;
+  final String riskLevel;
+  final String trustLabel;
+  final String recommendedAction;
+  final bool isAnomaly;
+  final double? confidence;
+  final int totalCampaigns;
+  final int completedCampaigns;
+  final int cancelledCampaigns;
+  final double avgFeedbackScore;
+  final int totalReports;
+  final List<CampaignEvalSummary> recentCampaignEvals;
+  final Map<String, double>? shapValues;
+  final DateTime? evaluatedAt;
+
+  VolunteerTrustEval({
+    required this.volunteerId,
+    required this.hoTen,
+    required this.email,
+    required this.trustScore,
+    required this.riskScore,
+    required this.riskLevel,
+    required this.trustLabel,
+    required this.recommendedAction,
+    required this.isAnomaly,
+    this.confidence,
+    required this.totalCampaigns,
+    required this.completedCampaigns,
+    required this.cancelledCampaigns,
+    required this.avgFeedbackScore,
+    required this.totalReports,
+    required this.recentCampaignEvals,
+    this.shapValues,
+    this.evaluatedAt,
+  });
+
+  factory VolunteerTrustEval.fromJson(Map<String, dynamic> json) {
+    return VolunteerTrustEval(
+      volunteerId: json['volunteer_id'] ?? json['id'] ?? 0,
+      hoTen: json['ho_ten'] ?? json['name'] ?? '',
+      email: json['email'] ?? '',
+      trustScore: (json['trust_score'] ?? 0.0).toDouble(),
+      riskScore: (json['risk_score'] ?? 0.0).toDouble(),
+      riskLevel: json['risk_level'] ?? 'UNKNOWN',
+      trustLabel: json['trust_label'] ?? 'NEUTRAL',
+      recommendedAction: json['recommended_action'] ?? 'APPROVE',
+      isAnomaly: json['is_anomaly'] == true,
+      confidence: json['confidence']?.toDouble(),
+      totalCampaigns: json['total_campaigns'] ?? 0,
+      completedCampaigns: json['completed_campaigns'] ?? 0,
+      cancelledCampaigns: json['cancelled_campaigns'] ?? 0,
+      avgFeedbackScore: (json['avg_feedback_score'] ?? 0.0).toDouble(),
+      totalReports: json['total_reports'] ?? 0,
+      recentCampaignEvals: (json['recent_campaign_evals'] as List? ?? [])
+          .map((e) => CampaignEvalSummary.fromJson(e))
+          .toList(),
+      shapValues: (json['shap_values'] as Map<String, dynamic>?)
+          ?.map((k, v) => MapEntry(k, (v ?? 0.0).toDouble())),
+      evaluatedAt: json['evaluated_at'] != null
+          ? DateTime.parse(json['evaluated_at'])
+          : null,
+    );
+  }
+}
+
+class CampaignEvalSummary {
+  final int campaignId;
+  final String? tieuDe;
+  final double trustScore;
+  final String riskLevel;
+  final DateTime? evaluatedAt;
+
+  CampaignEvalSummary({
+    required this.campaignId,
+    this.tieuDe,
+    required this.trustScore,
+    required this.riskLevel,
+    this.evaluatedAt,
+  });
+
+  factory CampaignEvalSummary.fromJson(Map<String, dynamic> json) {
+    return CampaignEvalSummary(
+      campaignId: json['campaign_id'] ?? 0,
+      tieuDe: json['tieu_de'] ?? json['title'],
+      trustScore: (json['trust_score'] ?? 0.0).toDouble(),
+      riskLevel: json['risk_level'] ?? 'UNKNOWN',
+      evaluatedAt: json['evaluated_at'] != null
+          ? DateTime.parse(json['evaluated_at'])
+          : null,
+    );
   }
 }

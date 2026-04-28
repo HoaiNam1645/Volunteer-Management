@@ -74,6 +74,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
                     const SizedBox(height: 16),
                     _buildChartSection(),
                     const SizedBox(height: 16),
+                    _buildTopRegionsAndSkills(),
+                    const SizedBox(height: 16),
                     _buildTrendSection(),
                     const SizedBox(height: 16),
                     _buildStatusDistribution(),
@@ -460,6 +462,166 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
           _buildStatusBar('Từ chối tháng này', _stats?.rejectedThisMonth ?? 0, Colors.red),
           const SizedBox(height: 8),
           _buildStatusBar('TNV tổng', _stats?.totalVolunteers ?? 0, Colors.blue),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopRegionsAndSkills() {
+    final stats = _stats;
+    final topRegions = stats?.topRegions ?? [];
+    final topSkills = stats?.topSkills ?? [];
+
+    if (topRegions.isEmpty && topSkills.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (topRegions.isNotEmpty)
+          Expanded(
+            child: _buildTopRegionsSection(topRegions),
+          ),
+        if (topRegions.isNotEmpty && topSkills.isNotEmpty)
+          const SizedBox(width: 12),
+        if (topSkills.isNotEmpty)
+          Expanded(
+            child: _buildTopSkillsSection(topSkills),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTopRegionsSection(List<TopRegion> regions) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 18, color: Colors.blue),
+              const SizedBox(width: 8),
+              const Text('Top khu vực', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...regions.take(5).map((region) => _buildRegionItem(region)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegionItem(TopRegion region) {
+    final colors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal];
+    final index = region.name.hashCode % colors.length;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  region.name,
+                  style: const TextStyle(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '${region.count} (${region.percent.toStringAsFixed(0)}%)',
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: region.percent.clamp(0.0, 1.0),
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation(colors[index.abs()]),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopSkillsSection(List<TopSkill> skills) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology, size: 18, color: Colors.purple),
+              const SizedBox(width: 8),
+              const Text('Top kỹ năng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...skills.take(5).map((skill) => _buildSkillItem(skill)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkillItem(TopSkill skill) {
+    final colors = [Colors.purple, Colors.blue, Colors.green, Colors.orange, Colors.teal];
+    final index = skill.name.hashCode % colors.length;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  skill.name,
+                  style: const TextStyle(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '${skill.count} (${skill.percent.toStringAsFixed(0)}%)',
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: skill.percent.clamp(0.0, 1.0),
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation(colors[index.abs()]),
+              minHeight: 6,
+            ),
+          ),
         ],
       ),
     );

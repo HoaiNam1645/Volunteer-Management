@@ -12,10 +12,44 @@ class RegistrationProvider extends ChangeNotifier {
   String? _error;
   String? _statusFilter;
 
+  // ============ TRACKING DATA ============
+  List<Map<String, dynamic>> _trackingHistory = [];
+  List<Map<String, dynamic>> _trackingRatings = [];
+  List<Map<String, dynamic>> _trackingReports = [];
+  Map<String, dynamic> _trackingStats = {};
+
+  List<Map<String, dynamic>> get trackingHistory => _trackingHistory;
+  List<Map<String, dynamic>> get trackingRatings => _trackingRatings;
+  List<Map<String, dynamic>> get trackingReports => _trackingReports;
+  Map<String, dynamic> get trackingStats => _trackingStats;
+
   List<Registration> get registrations => _registrations;
   bool get isLoading => _isLoading;
   bool get hasMore => _hasMore;
   String? get error => _error;
+
+  // ============ LOAD TRACKING DATA ============
+  Future<void> loadTrackingData() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _repository.getTrackingData();
+
+    if (result.success) {
+      final data = result.data ?? {};
+
+      _trackingStats = data['thong_ke'] ?? {};
+      _trackingHistory = List<Map<String, dynamic>>.from(data['lich_su_hoat_dong'] ?? []);
+      _trackingRatings = List<Map<String, dynamic>>.from(data['diem_danh_gia'] ?? []);
+      _trackingReports = List<Map<String, dynamic>>.from(data['bao_cao_chien_dich'] ?? []);
+    } else {
+      _error = result.message;
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
 
   // ============ LOAD REGISTRATIONS ============
   Future<void> loadRegistrations({bool refresh = false}) async {
@@ -125,7 +159,9 @@ class RegistrationProvider extends ChangeNotifier {
   // ============ SUBMIT REPORT ============
   Future<bool> submitReport({
     required int chienDichId,
-    required String noiDung,
+    String? phanLoai,
+    String? tieuDe,
+    String? noiDung,
   }) async {
     _isLoading = true;
     _error = null;
@@ -133,14 +169,20 @@ class RegistrationProvider extends ChangeNotifier {
 
     final result = await _repository.submitReport(
       chienDichId: chienDichId,
+      phanLoai: phanLoai,
+      tieuDe: tieuDe,
       noiDung: noiDung,
     );
 
-    _isLoading = false;
-    if (!result.success) {
+    if (result.success) {
+      // Reload tracking data
+      await loadTrackingData();
+    } else {
       _error = result.message;
+      _isLoading = false;
+      notifyListeners();
     }
-    notifyListeners();
+
     return result.success;
   }
 

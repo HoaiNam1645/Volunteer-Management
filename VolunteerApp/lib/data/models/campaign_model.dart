@@ -53,7 +53,7 @@ class Campaign extends Equatable {
   factory Campaign.fromJson(Map<String, dynamic> json) {
     return Campaign(
       id: json['id'] ?? 0,
-      tenChienDich: json['ten_chien_dich'] ?? '',
+      tenChienDich: json['ten_chien_dich'] ?? json['tieu_de'] ?? '',
       moTa: json['mo_ta'] ?? '',
       moTaNgan: json['mo_ta_ngan'],
       anhBia: json['anh_bia'],
@@ -70,21 +70,36 @@ class Campaign extends Equatable {
           : null,
       soLuongToiThieu: json['so_luong_toi_thieu'] ?? 1,
       soLuongToiDa: json['so_luong_toi_da'] ?? 10,
-      soLuongHienTai: json['so_luong_hien_tai'] ?? 0,
+      // Support both so_luong_hien_tai and so_dang_ky from FE
+      soLuongHienTai: json['so_luong_hien_tai'] ?? json['so_dang_ky'] ?? 0,
       trangThai: json['trang_thai'] ?? 'nhap',
       loaiChienDich: json['loai_chien_dich'],
       nguoiTao: json['nguoi_tao'] != null
           ? User.fromJson(json['nguoi_tao'])
           : null,
-      kyNangs: json['ky_nangs'] != null
-          ? List<String>.from(json['ky_nangs'])
-          : null,
+      // Support both List<String> and List<{ten: String}> for ky_nangs
+      kyNangs: _parseSkills(json['ky_nangs']),
       moTaAnToan: json['mo_ta_an_toan'],
       mucDoKhanCap: json['muc_do_khan_cap'],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
     );
+  }
+
+  static List<String>? _parseSkills(dynamic kyNangs) {
+    if (kyNangs == null) return null;
+    if (kyNangs is List) {
+      if (kyNangs.isEmpty) return null;
+      // Check if first element is a string or object
+      if (kyNangs.first is String) {
+        return List<String>.from(kyNangs);
+      } else {
+        // Object with 'ten' property
+        return kyNangs.map((s) => s['ten']?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() => {

@@ -1,13 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class AdminShell extends StatelessWidget {
   final Widget child;
 
   const AdminShell({super.key, required this.child});
 
-  static final List<_NavItem> _navItems = [
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        final isReviewer = auth.isReviewer;
+        final navItems = isReviewer ? _reviewerNavItems : _adminNavItems;
+
+        return Scaffold(
+          body: Stack(
+            children: [
+              child,
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _BottomNavBar(
+                  navItems: navItems,
+                  selectedIndex: _getSelectedIndex(
+                    GoRouterState.of(context).matchedLocation,
+                    navItems,
+                  ),
+                  onTap: (index) {
+                    HapticFeedback.lightImpact();
+                    context.go(navItems[index].paths.first);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static int _getSelectedIndex(String location, List<_NavItem> navItems) {
+    for (int i = 0; i < navItems.length; i++) {
+      for (final path in navItems[i].paths) {
+        if (location == path || location.startsWith('$path/')) {
+          return i;
+        }
+      }
+    }
+    return 0;
+  }
+
+  static final List<_NavItem> _adminNavItems = [
     _NavItem(
       icon: Icons.dashboard_outlined,
       selectedIcon: Icons.dashboard,
@@ -41,97 +88,20 @@ class AdminShell extends StatelessWidget {
     ),
   ];
 
-  static int _getSelectedIndex(String location) {
-    for (int i = 0; i < _navItems.length; i++) {
-      for (final path in _navItems[i].paths) {
-        if (location == path || location.startsWith('$path/')) {
-          return i;
-        }
-      }
-    }
-    return 0;
-  }
-
-  void _showMoreMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Khác',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.admin_panel_settings, color: Color(0xFF4F8CF7)),
-              title: const Text('Phân quyền'),
-              subtitle: const Text('Quản lý quyền kiểm duyệt viên'),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go('/admin/permissions');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_pin, color: Color(0xFF4F8CF7)),
-              title: const Text('Phân quyền User'),
-              subtitle: const Text('Quản lý quyền người dùng'),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go('/admin/user-permissions');
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    final selectedIndex = _getSelectedIndex(location);
-
-    return Scaffold(
-      body: Stack(
-        children: [
-          child,
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _BottomNavBar(
-              navItems: _navItems,
-              selectedIndex: selectedIndex,
-              onTap: (index) {
-                HapticFeedback.lightImpact();
-                if (_navItems[index].isMore) {
-                  _showMoreMenu(context);
-                } else {
-                  context.go(_navItems[index].paths.first);
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  static final List<_NavItem> _reviewerNavItems = [
+    _NavItem(
+      icon: Icons.flag_outlined,
+      selectedIcon: Icons.flag,
+      label: 'Chiến dịch',
+      paths: ['/reviewer/campaigns'],
+    ),
+    _NavItem(
+      icon: Icons.bar_chart_outlined,
+      selectedIcon: Icons.bar_chart,
+      label: 'Thống kê',
+      paths: ['/reviewer/statistics'],
+    ),
+  ];
 }
 
 class _BottomNavBar extends StatelessWidget {
@@ -160,7 +130,6 @@ class _BottomNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        bottom: true,
         child: SizedBox(
           height: 60,
           child: Row(

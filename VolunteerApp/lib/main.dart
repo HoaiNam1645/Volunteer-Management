@@ -28,6 +28,9 @@ void main() {
   runApp(const VolunteerApp());
 }
 
+import 'presentation/providers/coordinator_provider.dart';
+import 'presentation/providers/report_monitoring_provider.dart';
+
 class VolunteerApp extends StatelessWidget {
   const VolunteerApp({super.key});
 
@@ -41,6 +44,8 @@ class VolunteerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => ReviewerProvider()),
+        ChangeNotifierProvider(create: (_) => CoordinatorProvider()),
+        ChangeNotifierProvider(create: (_) => ReportMonitoringProvider()),
       ],
       child: const _AppWithRouter(),
     );

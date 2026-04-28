@@ -5,6 +5,46 @@ import '../models/campaign_model.dart';
 class CampaignRepository {
   final ApiClient _apiClient = ApiClient.instance;
 
+  // ============ GET COORDINATION RECOMMENDATIONS ============
+  Future<CoordinationResult> getCoordinationRecommendations({
+    required int campaignId,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.recommendations,
+        queryParameters: {
+          'type': 'tinh_nguyen_vien',
+          'mode': 'allocation',
+          'campaign_id': campaignId,
+          'limit': limit,
+          'only_available': 1,
+        },
+      );
+      if (response.data['status'] == 1) {
+        return CoordinationResult.success(response.data['data'] ?? {});
+      }
+      return CoordinationResult.failure(response.data['message'] ?? 'Lỗi');
+    } catch (e) {
+      return CoordinationResult.failure('Không thể lấy danh sách tình nguyện viên');
+    }
+  }
+
+  // ============ GET CAMPAIGN MONITORING DATA ============
+  Future<MonitoringResult> getCampaignMonitoring(int campaignId) async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.volunteerCampaignMonitor(campaignId),
+      );
+      if (response.data['status'] == 1) {
+        return MonitoringResult.success(response.data['data'] ?? {});
+      }
+      return MonitoringResult.failure(response.data['message'] ?? 'Lỗi');
+    } catch (e) {
+      return MonitoringResult.failure('Không thể lấy dữ liệu giám sát');
+    }
+  }
+
   // ============ GET PUBLIC CAMPAIGNS ============
   Future<CampaignListResult> getCampaigns({
     int page = 1,
@@ -240,19 +280,53 @@ class CampaignRepository {
     }
   }
 
+  // ============ GET CAMPAIGNS FOR COORDINATION ============
+  Future<CampaignListResult> getCampaignsForCoordination() async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.volunteerCampaigns,
+        queryParameters: {
+          'per_page': 100,
+          'trang_thai': 'da_duyet',
+          'for_coordination': 1,
+        },
+      );
+
+      final data = response.data['data'];
+      final campaigns = (data is List)
+          ? (data).map((e) => Campaign.fromJson(e)).toList()
+          : (data['data'] as List)
+              .map((e) => Campaign.fromJson(e))
+              .toList();
+
+      return CampaignListResult.success(
+        campaigns: campaigns,
+        currentPage: data['current_page'] ?? 1,
+        lastPage: data['last_page'] ?? 1,
+        total: data['total'] ?? 0,
+      );
+    } catch (e) {
+      return CampaignListResult.failure('Không thể tải danh sách chiến dịch');
+    }
+  }
+
   // ============ INVITE VOLUNTEERS ============
-  Future<OperationResult> inviteVolunteers(int campaignId, List<int> volunteerIds) async {
+  Future<InviteVolunteerResult> inviteVolunteers(int campaignId, List<int> volunteerIds) async {
     try {
       final response = await _apiClient.post(
         ApiEndpoints.campaignInviteVolunteer(campaignId),
-        data: {'tinh_nguyen_vien_ids': volunteerIds},
+        data: {'volunteer_ids': volunteerIds},
       );
       if (response.data['status'] == 1) {
-        return OperationResult.success(response.data['message'] ?? 'Đã gửi lời mời');
+        final invitedCount = response.data['data']?['invited_count'] ?? volunteerIds.length;
+        return InviteVolunteerResult.success(
+          response.data['message'] ?? 'Đã gửi lời mời',
+          invitedCount: invitedCount,
+        );
       }
-      return OperationResult.failure(response.data['message'] ?? 'Gửi lời mời thất bại');
+      return InviteVolunteerResult.failure(response.data['message'] ?? 'Gửi lời mời thất bại');
     } catch (e) {
-      return OperationResult.failure('Không thể gửi lời mời');
+      return InviteVolunteerResult.failure('Không thể gửi lời mời');
     }
   }
 }
@@ -342,6 +416,30 @@ class OperationResult {
   }
 }
 
+class InviteVolunteerResult {
+  final bool success;
+  final String? message;
+  final int invitedCount;
+
+  InviteVolunteerResult({
+    required this.success,
+    this.message,
+    this.invitedCount = 0,
+  });
+
+  factory InviteVolunteerResult.success(String message, {int invitedCount = 0}) {
+    return InviteVolunteerResult(
+      success: true,
+      message: message,
+      invitedCount: invitedCount,
+    );
+  }
+
+  factory InviteVolunteerResult.failure(String message) {
+    return InviteVolunteerResult(success: false, message: message);
+  }
+}
+
 // ============ AI SUGGESTION MODEL ============
 class AISuggestion {
   final List<VolunteerSuggestion> recommendedVolunteers;
@@ -407,5 +505,45 @@ class AISuggestionResult {
 
   factory AISuggestionResult.failure(String message) {
     return AISuggestionResult(success: false, message: message);
+  }
+}
+
+class CoordinationResult {
+  final bool success;
+  final Map<String, dynamic> data;
+  final String? message;
+
+  CoordinationResult({
+    required this.success,
+    this.data = const {},
+    this.message,
+  });
+
+  factory CoordinationResult.success(Map<String, dynamic> data) {
+    return CoordinationResult(success: true, data: data);
+  }
+
+  factory CoordinationResult.failure(String message) {
+    return CoordinationResult(success: false, message: message);
+  }
+}
+
+class MonitoringResult {
+  final bool success;
+  final Map<String, dynamic> data;
+  final String? message;
+
+  MonitoringResult({
+    required this.success,
+    this.data = const {},
+    this.message,
+  });
+
+  factory MonitoringResult.success(Map<String, dynamic> data) {
+    return MonitoringResult(success: true, data: data);
+  }
+
+  factory MonitoringResult.failure(String message) {
+    return MonitoringResult(success: false, message: message);
   }
 }

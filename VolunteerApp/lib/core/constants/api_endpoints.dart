@@ -56,6 +56,7 @@ class ApiEndpoints {
   static const String feedbackTracking = '/tinh-nguyen-vien/theo-doi-phan-hoi';
   static const String feedbackCampaign = '/tinh-nguyen-vien/theo-doi-phan-hoi/danh-gia-chien-dich';
   static const String feedbackReport = '/tinh-nguyen-vien/theo-doi-phan-hoi/bao-cao';
+  static const String volunteerTracking = '/tinh-nguyen-vien/theo-doi-phan-hoi';
 
   // ============ CATEGORIES (Public) ============
   static const String categories = '/danh-muc';
