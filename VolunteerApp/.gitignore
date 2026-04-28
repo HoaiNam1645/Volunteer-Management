@@ -1,0 +1,43 @@
+*.env
+.env.local
+.env.production
+
+# Flutter/Dart
+*.g.dart
+*.freezed.dart
+.packages
+.pub-cache/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+build/
+
+# Android
+android/.gradle/
+android/app/build/
+android/.gradle/
+*.keystore
+key.properties
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/App.framework
+ios/Flutter/engine.framework
+ios/Flutter/engine.podspec
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Misc
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
