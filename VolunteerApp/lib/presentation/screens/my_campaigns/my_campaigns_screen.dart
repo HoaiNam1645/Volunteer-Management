@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 import '../../providers/campaign_provider.dart';
 import '../../widgets/campaign_card.dart';
 import '../../widgets/common_widgets.dart';
-import '../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../data/models/campaign_model.dart';
 
 class MyCampaignsScreen extends StatefulWidget {
   const MyCampaignsScreen({super.key});
@@ -370,11 +371,8 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
                   icon: Icons.folder_open,
                   title: 'Chưa có chiến dịch',
                   subtitle: 'Tạo chiến dịch mới để bắt đầu',
-                  action: TextButton.icon(
-                    onPressed: () => _showCreateCampaignSheet(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Tạo chiến dịch'),
-                  ),
+                  buttonText: 'Tạo chiến dịch',
+                  onButtonPressed: () => _showCreateCampaignSheet(context),
                 ),
               )
             else ...[
@@ -658,7 +656,7 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
                                   ? campaign.soLuongHienTai / campaign.soLuongToiDa
                                   : 0,
                               backgroundColor: Colors.grey[200],
-                              valueColor: const AlwaysStoppedAnimation(AppTheme.primaryColor),
+                              valueColor: AlwaysStoppedAnimation(AppTheme.primaryColor),
                               minHeight: 4,
                             ),
                           ),
@@ -746,7 +744,7 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
                             ? campaign.soLuongHienTai / campaign.soLuongToiDa
                             : 0,
                         backgroundColor: Colors.grey[200],
-                        valueColor: const AlwaysStoppedAnimation(AppTheme.primaryColor),
+                        valueColor: AlwaysStoppedAnimation(AppTheme.primaryColor),
                         minHeight: 6,
                       ),
                     ),

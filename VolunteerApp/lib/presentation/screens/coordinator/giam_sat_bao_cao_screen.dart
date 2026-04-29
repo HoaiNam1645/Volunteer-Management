@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/report_monitoring_provider.dart';
-import '../../core/theme/app_theme.dart';
-import '../../data/models/campaign_model.dart';
+import '../../../core/theme/app_theme.dart';
 
 class GiamSatBaoCaoScreen extends StatefulWidget {
   const GiamSatBaoCaoScreen({super.key});
@@ -780,7 +779,7 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.chart_line,
+              Icons.query_stats,
               size: 36,
               color: Colors.grey[400],
             ),

@@ -2,20 +2,28 @@ import 'package:dio/dio.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/network/api_client.dart';
 
+double _toDouble(dynamic value, {double fallback = 0}) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 class ReviewerRepository {
   final ApiClient _apiClient = ApiClient.instance;
 
   // ============ CAMPAIGN FILTERS ============
   Future<ReviewerResult<CampaignFilters>> getFilters() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.reviewerCampaignFilter);
+      final response =
+          await _apiClient.get(ApiEndpoints.reviewerCampaignFilter);
 
       if (response.data['status'] == 1) {
         return ReviewerResult.success(
           CampaignFilters.fromJson(response.data['data']),
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Không lấy được bộ lọc');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Không lấy được bộ lọc');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -54,7 +62,8 @@ class ReviewerRepository {
           meta: response.data['meta'],
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Không lấy được danh sách');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Không lấy được danh sách');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -63,7 +72,8 @@ class ReviewerRepository {
   }
 
   // ============ CAMPAIGN DETAIL ============
-  Future<ReviewerResult<ReviewerCampaignDetail>> getCampaignDetail(int id) async {
+  Future<ReviewerResult<ReviewerCampaignDetail>> getCampaignDetail(
+      int id) async {
     try {
       final response = await _apiClient.get(
         ApiEndpoints.reviewerCampaignDetail(id),
@@ -74,7 +84,8 @@ class ReviewerRepository {
           ReviewerCampaignDetail.fromJson(response.data['data']),
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Không lấy được chi tiết');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Không lấy được chi tiết');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -94,7 +105,8 @@ class ReviewerRepository {
           message: response.data['message'] ?? 'Duyệt chiến dịch thành công',
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Duyệt thất bại');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Duyệt thất bại');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -110,10 +122,12 @@ class ReviewerRepository {
       );
 
       if (response.data['status'] == 1) {
-        return ReviewerResult.successVoid(message: response.data['message'] ?? 'Từ chối chiến dịch thành công',
+        return ReviewerResult.successVoid(
+          message: response.data['message'] ?? 'Từ chối chiến dịch thành công',
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Từ chối thất bại');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Từ chối thất bại');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -129,10 +143,12 @@ class ReviewerRepository {
       );
 
       if (response.data['status'] == 1) {
-        return ReviewerResult.successVoid(message: response.data['message'] ?? 'Duyệt yêu cầu hủy thành công',
+        return ReviewerResult.successVoid(
+          message: response.data['message'] ?? 'Duyệt yêu cầu hủy thành công',
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Duyệt thất bại');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Duyệt thất bại');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -148,10 +164,12 @@ class ReviewerRepository {
       );
 
       if (response.data['status'] == 1) {
-        return ReviewerResult.successVoid(message: response.data['message'] ?? 'Từ chối yêu cầu hủy thành công',
+        return ReviewerResult.successVoid(
+          message: response.data['message'] ?? 'Từ chối yêu cầu hủy thành công',
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Từ chối thất bại');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Từ chối thất bại');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -159,8 +177,30 @@ class ReviewerRepository {
     }
   }
 
+  Future<ReviewerResult<void>> processReport(int id, String trangThai) async {
+    try {
+      final response = await _apiClient.put(
+        ApiEndpoints.reviewerReportProcess(id),
+        data: {'trang_thai': trangThai},
+      );
+
+      if (response.data['status'] == 1) {
+        return ReviewerResult.successVoid(
+          message: response.data['message'] ?? 'Xu ly bao cao thanh cong',
+        );
+      }
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Xu ly bao cao that bai');
+    } on DioException catch (e) {
+      return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
+    } catch (e) {
+      return ReviewerResult.failure('Da xay ra loi: $e');
+    }
+  }
+
   // ============ STATISTICS ============
-  Future<ReviewerResult<ReviewerStatistics>> getStatistics(String period) async {
+  Future<ReviewerResult<ReviewerStatistics>> getStatistics(
+      String period) async {
     try {
       final response = await _apiClient.get(
         ApiEndpoints.reviewerStats,
@@ -172,7 +212,8 @@ class ReviewerRepository {
           ReviewerStatistics.fromJson(response.data['data']),
         );
       }
-      return ReviewerResult.failure(response.data['message'] ?? 'Không lấy được thống kê');
+      return ReviewerResult.failure(
+          response.data['message'] ?? 'Không lấy được thống kê');
     } on DioException catch (e) {
       return ReviewerResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -310,7 +351,7 @@ class CampaignStatusItem {
     return CampaignStatusItem(
       label: json['label'] ?? '',
       count: json['count'] ?? 0,
-      percent: (json['percent'] ?? 0).toDouble(),
+      percent: _toDouble(json['percent']),
       icon: json['icon'] ?? 'fa-solid fa-circle',
       color: json['color'] ?? '#6c757d',
       bgColor: json['bg_color'] ?? '#e9ecef',
@@ -333,7 +374,7 @@ class TopRegion {
     return TopRegion(
       name: json['name'] ?? '',
       volunteers: json['volunteers'] ?? 0,
-      percent: (json['percent'] ?? 0).toDouble(),
+      percent: _toDouble(json['percent']),
     );
   }
 }
@@ -357,7 +398,7 @@ class TopSkill {
     return TopSkill(
       name: json['name'] ?? '',
       count: json['count'] ?? 0,
-      percent: (json['percent'] ?? 0).toDouble(),
+      percent: _toDouble(json['percent']),
       icon: json['icon'] ?? 'fa-solid fa-star',
       color: json['color'] ?? '#6c757d',
     );
@@ -375,13 +416,15 @@ class CampaignFilters {
   });
 
   factory CampaignFilters.fromJson(Map<String, dynamic> json) {
+    final tabs = (json['tabs'] as List? ?? []);
+    final statusSource = (json['trang_thai'] as List? ?? tabs);
+    final categories =
+        (json['loai_chien_dich'] as List? ?? json['categories'] as List? ?? []);
     return CampaignFilters(
-      trangThaiOptions: (json['trang_thai'] as List? ?? [])
-          .map((e) => StatusFilter.fromJson(e))
-          .toList(),
-      loaiChienDichOptions: (json['loai_chien_dich'] as List? ?? [])
-          .map((e) => CampaignTypeFilter.fromJson(e))
-          .toList(),
+      trangThaiOptions:
+          statusSource.map((e) => StatusFilter.fromJson(e)).toList(),
+      loaiChienDichOptions:
+          categories.map((e) => CampaignTypeFilter.fromJson(e)).toList(),
     );
   }
 }
@@ -398,10 +441,13 @@ class StatusFilter {
   });
 
   factory StatusFilter.fromJson(Map<String, dynamic> json) {
+    final rawCount = json['so_luong'] ?? json['count'] ?? 0;
     return StatusFilter(
-      value: json['gia_tri'] ?? '',
-      label: json['nhan'] ?? '',
-      count: json['so_luong'] ?? 0,
+      value: (json['gia_tri'] ?? json['api_value'] ?? json['value'] ?? '')
+          .toString(),
+      label: (json['nhan'] ?? json['label'] ?? json['value'] ?? '').toString(),
+      count:
+          rawCount is int ? rawCount : int.tryParse(rawCount.toString()) ?? 0,
     );
   }
 }
@@ -416,9 +462,10 @@ class CampaignTypeFilter {
   });
 
   factory CampaignTypeFilter.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'] ?? json['value'] ?? 0;
     return CampaignTypeFilter(
-      id: json['id'] ?? 0,
-      ten: json['ten'] ?? '',
+      id: rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0,
+      ten: (json['ten'] ?? json['label'] ?? '').toString(),
     );
   }
 }
@@ -461,9 +508,16 @@ class ReviewerCampaign {
   });
 
   factory ReviewerCampaign.fromJson(Map<String, dynamic> json) {
+    final loaiChienDichRaw = json['loai_chien_dich'];
+    final loaiChienDichText = loaiChienDichRaw is Map<String, dynamic>
+        ? (loaiChienDichRaw['ten']?.toString() ??
+            loaiChienDichRaw['name']?.toString())
+        : loaiChienDichRaw?.toString();
+
     return ReviewerCampaign(
       id: json['id'] ?? 0,
-      tenChienDich: json['ten_chien_dich'] ?? '',
+      tenChienDich:
+          (json['ten_chien_dich'] ?? json['tieu_de'] ?? '').toString(),
       anhBia: json['anh_bia'],
       diaDiem: json['dia_diem'] ?? '',
       ngayBatDau: DateTime.parse(json['ngay_bat_dau']),
@@ -472,15 +526,16 @@ class ReviewerCampaign {
           ? DateTime.parse(json['han_dang_ky'])
           : null,
       trangThai: json['trang_thai'] ?? 'nhap',
-      loaiChienDich: json['loai_chien_dich'],
+      loaiChienDich: loaiChienDichText,
       soLuongToiDa: json['so_luong_toi_da'] ?? 0,
-      soLuongHienTai: json['so_luong_hien_tai'] ?? 0,
+      soLuongHienTai: json['so_luong_hien_tai'] ?? json['so_dang_ky'] ?? 0,
       nguoiTaoTen: json['nguoi_tao']?['ho_ten'] ?? json['nguoi_tao_ten'] ?? '',
       lyDoTuChoi: json['ly_do_tu_choi'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+      createdAt: (json['created_at'] ?? json['tao_luc']) != null
+          ? DateTime.parse((json['created_at'] ?? json['tao_luc']).toString())
           : DateTime.now(),
-      coYeuCauHuy: json['co_yeu_cau_huy'] == true || json['co_yeu_cau_huy'] == 1,
+      coYeuCauHuy:
+          json['co_yeu_cau_huy'] == true || json['co_yeu_cau_huy'] == 1,
       coBaoCao: json['co_bao_cao'] == true || json['co_bao_cao'] == 1,
     );
   }
@@ -505,7 +560,10 @@ class ReviewerCampaign {
   }
 
   bool get isPending => trangThai == 'cho_duyet';
-  bool get canReview => trangThai == 'cho_duyet' || trangThai == 'da_duyet' || trangThai == 'dang_dien_ra';
+  bool get canReview =>
+      trangThai == 'cho_duyet' ||
+      trangThai == 'da_duyet' ||
+      trangThai == 'dang_dien_ra';
 }
 
 class ReviewerCampaignDetail extends ReviewerCampaign {
@@ -516,6 +574,7 @@ class ReviewerCampaignDetail extends ReviewerCampaign {
   final List<VolunteerRegistration> volunteers;
   final List<CampaignFeedback> feedbacks;
   final List<CampaignReport> baoCaos;
+  final List<ReviewHistoryItem> lichSu;
   final double viDo;
   final double kinhDo;
   final List<TrustEvalSummary>? trustEval;
@@ -545,6 +604,7 @@ class ReviewerCampaignDetail extends ReviewerCampaign {
     required this.volunteers,
     required this.feedbacks,
     required this.baoCaos,
+    required this.lichSu,
     required this.viDo,
     required this.kinhDo,
     this.trustEval,
@@ -552,9 +612,23 @@ class ReviewerCampaignDetail extends ReviewerCampaign {
   });
 
   factory ReviewerCampaignDetail.fromJson(Map<String, dynamic> json) {
+    final loaiChienDichRaw = json['loai_chien_dich'];
+    final loaiChienDichText = loaiChienDichRaw is Map<String, dynamic>
+        ? (loaiChienDichRaw['ten']?.toString() ??
+            loaiChienDichRaw['name']?.toString())
+        : loaiChienDichRaw?.toString();
+    final kyNangRaw = json['ky_nangs'] as List? ?? const [];
+    final kyNangValues = kyNangRaw
+        .map((e) => e is Map<String, dynamic> ? e['ten'] : e)
+        .where((e) => e != null)
+        .map((e) => e.toString())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
     return ReviewerCampaignDetail(
       id: json['id'] ?? 0,
-      tenChienDich: json['ten_chien_dich'] ?? '',
+      tenChienDich:
+          (json['ten_chien_dich'] ?? json['tieu_de'] ?? '').toString(),
       anhBia: json['anh_bia'],
       diaDiem: json['dia_diem'] ?? '',
       ngayBatDau: DateTime.parse(json['ngay_bat_dau']),
@@ -563,32 +637,38 @@ class ReviewerCampaignDetail extends ReviewerCampaign {
           ? DateTime.parse(json['han_dang_ky'])
           : null,
       trangThai: json['trang_thai'] ?? 'nhap',
-      loaiChienDich: json['loai_chien_dich'],
+      loaiChienDich: loaiChienDichText,
       soLuongToiDa: json['so_luong_toi_da'] ?? 0,
-      soLuongHienTai: json['so_luong_hien_tai'] ?? 0,
+      soLuongHienTai: json['so_luong_hien_tai'] ?? json['so_dang_ky'] ?? 0,
       nguoiTaoTen: json['nguoi_tao']?['ho_ten'] ?? json['nguoi_tao_ten'] ?? '',
-      lyDoTuChoi: json['ly_do_tu_choi'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+      lyDoTuChoi:
+          (json['ly_do_tu_choi'] ?? json['ly_do_huy_yeu_cau'])?.toString(),
+      createdAt: (json['created_at'] ?? json['tao_luc']) != null
+          ? DateTime.parse((json['created_at'] ?? json['tao_luc']).toString())
           : DateTime.now(),
-      coYeuCauHuy: json['co_yeu_cau_huy'] == true || json['co_yeu_cau_huy'] == 1,
+      coYeuCauHuy:
+          json['co_yeu_cau_huy'] == true || json['co_yeu_cau_huy'] == 1,
       coBaoCao: json['co_bao_cao'] == true || json['co_bao_cao'] == 1,
       moTa: json['mo_ta'] ?? '',
       moTaAnToan: json['mo_ta_an_toan'],
       mucDoKhanCap: json['muc_do_khan_cap'] ?? 0,
-      kyNangs: json['ky_nangs'] != null
-          ? List<String>.from(json['ky_nangs'])
-          : null,
-      viDo: (json['vi_do'] ?? 0).toDouble(),
-      kinhDo: (json['kinh_do'] ?? 0).toDouble(),
-      volunteers: (json['tinh_nguyen_viens'] as List? ?? [])
+      kyNangs: kyNangValues,
+      viDo: _toDouble(json['vi_do']),
+      kinhDo: _toDouble(json['kinh_do']),
+      volunteers: (json['tinh_nguyen_viens'] as List? ??
+              json['danh_sach_dang_ky'] as List? ??
+              const [])
           .map((e) => VolunteerRegistration.fromJson(e))
           .toList(),
-      feedbacks: (json['phan_hois'] as List? ?? [])
-          .map((e) => CampaignFeedback.fromJson(e))
-          .toList(),
+      feedbacks:
+          (json['phan_hois'] as List? ?? json['feedbacks'] as List? ?? const [])
+              .map((e) => CampaignFeedback.fromJson(e))
+              .toList(),
       baoCaos: (json['bao_caos'] as List? ?? [])
           .map((e) => CampaignReport.fromJson(e))
+          .toList(),
+      lichSu: (json['lich_su_kiem_duyet'] as List? ?? [])
+          .map((e) => ReviewHistoryItem.fromJson(e))
           .toList(),
       trustEval: (json['trust_eval'] as List? ?? [])
           .map((e) => TrustEvalSummary.fromJson(e))
@@ -621,7 +701,7 @@ class NguoiTaoInfo {
       hoTen: json['ho_ten'] ?? '',
       anhDaiDien: json['anh_dai_dien'],
       soChienDich: json['so_chien_dich'] ?? 0,
-      diemDanhGia: (json['diem_danh_gia'] ?? 0).toDouble(),
+      diemDanhGia: _toDouble(json['diem_danh_gia']),
     );
   }
 }
@@ -663,7 +743,9 @@ class VolunteerRegistration {
     List<String> kyNangs = [];
     if (nguoiDung != null && nguoiDung['ky_nangs'] != null) {
       kyNangs = (nguoiDung['ky_nangs'] as List)
-          .map((skill) => (skill is Map) ? (skill['ten'] ?? '').toString() : skill.toString())
+          .map((skill) => (skill is Map)
+              ? (skill['ten'] ?? '').toString()
+              : skill.toString())
           .where((s) => s.isNotEmpty)
           .toList();
     }
@@ -672,7 +754,8 @@ class VolunteerRegistration {
     String? khuVuc;
     if (nguoiDung != null && nguoiDung['khu_vucs'] != null) {
       khuVuc = (nguoiDung['khu_vucs'] as List)
-          .map((area) => (area is Map) ? (area['ten'] ?? '').toString() : area.toString())
+          .map((area) =>
+              (area is Map) ? (area['ten'] ?? '').toString() : area.toString())
           .where((s) => s.isNotEmpty)
           .join(', ');
       if (khuVuc.isEmpty) khuVuc = null;
@@ -691,19 +774,10 @@ class VolunteerRegistration {
           ? DateTime.tryParse(json['ngay_xac_nhan'])
           : null,
       lyDo: json['ly_do'],
-      trustScore: (json['diem_tin_cay'] ?? 0).toDouble(),
+      trustScore: _toDouble(json['diem_tin_cay']),
       dangKyLuc: json['dang_ky_luc'] != null
           ? DateTime.tryParse(json['dang_ky_luc'])
           : null,
-    );
-  }
-}
-      trangThai: json['trang_thai'] ?? 'cho_xac_nhan',
-      ngayXacNhan: json['ngay_xac_nhan'] != null
-          ? DateTime.tryParse(json['ngay_xac_nhan'])
-          : null,
-      lyDo: json['ly_do'],
-      trustScore: (json['diem_tin_cay'] ?? 0).toDouble(),
     );
   }
 }
@@ -726,14 +800,15 @@ class CampaignFeedback {
   });
 
   factory CampaignFeedback.fromJson(Map<String, dynamic> json) {
+    final nguoiDung = json['nguoi_dung'] as Map<String, dynamic>?;
     return CampaignFeedback(
       id: json['id'] ?? 0,
-      hoTen: json['ho_ten'] ?? '',
-      anhDaiDien: json['anh_dai_dien'],
-      diem: json['diem'] ?? 0,
-      noiDung: json['noi_dung'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+      hoTen: (json['ho_ten'] ?? nguoiDung?['ho_ten'] ?? '').toString(),
+      anhDaiDien: json['anh_dai_dien'] ?? nguoiDung?['anh_dai_dien'],
+      diem: json['diem'] ?? json['so_sao'] ?? 0,
+      noiDung: json['noi_dung'] ?? json['nhan_xet'],
+      createdAt: (json['created_at'] ?? json['tao_luc']) != null
+          ? DateTime.parse((json['created_at'] ?? json['tao_luc']).toString())
           : DateTime.now(),
     );
   }
@@ -757,15 +832,52 @@ class CampaignReport {
   });
 
   factory CampaignReport.fromJson(Map<String, dynamic> json) {
+    final nguoiGui = json['nguoi_gui'] as Map<String, dynamic>?;
+    final title = (json['tieu_de'] ?? '').toString();
+    final body = (json['noi_dung'] ?? '').toString();
     return CampaignReport(
       id: json['id'] ?? 0,
-      nguoiGuiId: json['nguoi_gui_id'] ?? 0,
-      nguoiGuiTen: json['nguoi_gui_ten'] ?? '',
-      noiDung: json['noi_dung'] ?? '',
+      nguoiGuiId: json['nguoi_gui_id'] ?? nguoiGui?['id'] ?? 0,
+      nguoiGuiTen:
+          (json['nguoi_gui_ten'] ?? nguoiGui?['ho_ten'] ?? '').toString(),
+      noiDung: title.isNotEmpty && body.isNotEmpty ? '$title: $body' : body,
       trangThai: json['trang_thai'] ?? 'cho_xu_ly',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+      createdAt: (json['created_at'] ?? json['tao_luc']) != null
+          ? DateTime.parse((json['created_at'] ?? json['tao_luc']).toString())
           : DateTime.now(),
+    );
+  }
+}
+
+class ReviewHistoryItem {
+  final int id;
+  final String hanhDong;
+  final String? tuTrangThai;
+  final String? denTrangThai;
+  final String? ghiChu;
+  final DateTime? taoLuc;
+  final String? nguoiThucHien;
+
+  ReviewHistoryItem({
+    required this.id,
+    required this.hanhDong,
+    this.tuTrangThai,
+    this.denTrangThai,
+    this.ghiChu,
+    this.taoLuc,
+    this.nguoiThucHien,
+  });
+
+  factory ReviewHistoryItem.fromJson(Map<String, dynamic> json) {
+    return ReviewHistoryItem(
+      id: json['id'] ?? 0,
+      hanhDong: json['hanh_dong'] ?? '',
+      tuTrangThai: json['tu_trang_thai'],
+      denTrangThai: json['den_trang_thai'],
+      ghiChu: json['ghi_chu'],
+      taoLuc:
+          json['tao_luc'] != null ? DateTime.tryParse(json['tao_luc']) : null,
+      nguoiThucHien: json['nguoi_thuc_hien']?['ho_ten'],
     );
   }
 }
@@ -791,7 +903,7 @@ class TrustEvalSummary {
     return TrustEvalSummary(
       id: json['id'] ?? 0,
       tieuDe: json['tieu_de'] ?? '',
-      diem: (json['diem'] ?? 0).toDouble(),
+      diem: _toDouble(json['diem']),
       mucDo: json['muc_do'] ?? 'trung_binh',
       ruiRo: List<String>.from(json['rui_ro'] ?? []),
       giaiThich: json['giai_thich'],

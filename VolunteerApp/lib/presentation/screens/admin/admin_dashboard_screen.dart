@@ -33,33 +33,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: RefreshIndicator(
-        onRefresh: () => adminProvider.loadDashboard(period: _selectedPeriod),
-        child: adminProvider.isLoading && data == null
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildWelcomeCard(authProvider),
-                    const SizedBox(height: 16),
-                    _buildPeriodFilter(),
-                    const SizedBox(height: 16),
-                    _buildStatsGrid(data),
-                    const SizedBox(height: 16),
-                    _buildChartSection(data),
-                    const SizedBox(height: 16),
-                    _buildRoleDistribution(data),
-                    const SizedBox(height: 16),
-                    _buildRecentActivity(data),
-                    const SizedBox(height: 16),
-                    _buildQuickActions(),
-                    const SizedBox(height: 24),
-                  ],
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () => adminProvider.loadDashboard(period: _selectedPeriod),
+          child: adminProvider.isLoading && data == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildWelcomeCard(authProvider),
+                      const SizedBox(height: 16),
+                      _buildPeriodFilter(),
+                      const SizedBox(height: 16),
+                      _buildStatsGrid(data),
+                      const SizedBox(height: 16),
+                      _buildChartSection(data),
+                      const SizedBox(height: 16),
+                      _buildRoleDistribution(data),
+                      const SizedBox(height: 16),
+                      _buildRecentActivity(data),
+                      const SizedBox(height: 16),
+                      _buildQuickActions(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -118,7 +121,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.8)],
+          colors: [
+            AppTheme.primaryColor,
+            AppTheme.primaryColor.withValues(alpha: 0.8)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -148,7 +154,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -272,9 +279,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: trendUp ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                    color: trendUp
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -436,7 +446,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               height: regHeight.clamp(4, 160),
                               decoration: BoxDecoration(
                                 color: AppTheme.primaryColor,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4)),
                               ),
                             ),
                           ),
@@ -446,7 +457,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               height: campHeight.clamp(4, 160),
                               decoration: BoxDecoration(
                                 color: AppTheme.successColor,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4)),
                               ),
                             ),
                           ),
@@ -470,10 +482,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildRoleDistribution(data) {
-    final roles = data?.roleDistribution ?? [];
+    final List<RoleDistribution> roles =
+        (data?.roleDistribution as List<RoleDistribution>?) ??
+            const <RoleDistribution>[];
     if (roles.isEmpty) return const SizedBox.shrink();
 
-    final total = roles.fold<int>(0, (sum, r) => sum + (r.count as int));
+    final total = roles.fold<int>(0, (sum, r) => sum + r.count);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -506,7 +520,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     segments: roles.map((r) {
                       final colorHex = r.color.replaceAll('#', '');
                       return _DonutSegment(
-                        percent: total > 0 ? (r.count as int) / total : 0,
+                        percent: total > 0 ? r.count / total : 0,
                         color: Color(int.parse('FF$colorHex', radix: 16)),
                       );
                     }).toList(),
@@ -597,15 +611,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             )
           else ...[
             if (recentUsers.isNotEmpty) ...[
-              const Text('Người dùng mới', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              const Text('Người dùng mới',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               ...recentUsers.take(3).map((u) => _buildRecentUserItem(u)),
               const SizedBox(height: 12),
             ],
             if (recentCampaigns.isNotEmpty) ...[
-              const Text('Chiến dịch mới', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              const Text('Chiến dịch mới',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              ...recentCampaigns.take(3).map((c) => _buildRecentCampaignItem(c)),
+              ...recentCampaigns
+                  .take(3)
+                  .map((c) => _buildRecentCampaignItem(c)),
             ],
           ],
         ],
@@ -630,7 +648,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               children: [
                 Text(
                   user.name,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -670,7 +689,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               children: [
                 Text(
                   campaign.title,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -821,7 +841,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 8),
               Text(
                 label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

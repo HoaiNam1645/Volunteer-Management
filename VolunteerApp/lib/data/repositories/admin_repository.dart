@@ -7,7 +7,8 @@ class AdminRepository {
   final ApiClient _apiClient = ApiClient.instance;
 
   // ============ ADMIN DASHBOARD ============
-  Future<AdminResult<DashboardData>> getDashboard({String period = 'month'}) async {
+  Future<AdminResult<DashboardData>> getDashboard(
+      {String period = 'month'}) async {
     try {
       final response = await _apiClient.get(
         ApiEndpoints.adminDashboard,
@@ -19,7 +20,8 @@ class AdminRepository {
           DashboardData.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được dữ liệu');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được dữ liệu');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -28,7 +30,8 @@ class AdminRepository {
   }
 
   // ============ REVIEWER STATS ============
-  Future<AdminResult<ReviewerStats>> getReviewerStats({String period = 'month'}) async {
+  Future<AdminResult<ReviewerStats>> getReviewerStats(
+      {String period = 'month'}) async {
     try {
       final response = await _apiClient.get(
         ApiEndpoints.reviewerStats,
@@ -40,7 +43,8 @@ class AdminRepository {
           ReviewerStats.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được dữ liệu');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được dữ liệu');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -73,7 +77,8 @@ class AdminRepository {
           meta: response.data['meta'],
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được danh sách');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được danh sách');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -106,7 +111,8 @@ class AdminRepository {
           message: response.data['message'],
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Tạo người dùng thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Tạo người dùng thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -138,7 +144,8 @@ class AdminRepository {
           message: response.data['message'],
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Cập nhật thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Cập nhật thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -158,7 +165,8 @@ class AdminRepository {
           message: response.data['message'] ?? 'Cập nhật trạng thái thành công',
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Cập nhật thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Cập nhật thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -168,7 +176,8 @@ class AdminRepository {
 
   Future<AdminResult<void>> deleteUser(int id) async {
     try {
-      final response = await _apiClient.delete(ApiEndpoints.adminUserDelete(id));
+      final response =
+          await _apiClient.delete(ApiEndpoints.adminUserDelete(id));
 
       if (response.data['status'] == 1) {
         return AdminResult.successVoid(
@@ -189,15 +198,17 @@ class AdminRepository {
     String? search,
     String? vaiTro,
     String? cheDoQuyen, // 'mac_dinh' or 'tuy_chinh'
+    String? phamVi, // 'admin' or 'user'
   }) async {
     try {
       final response = await _apiClient.get(
         ApiEndpoints.adminPermissions,
         queryParameters: {
           'page': page,
-          if (search != null) 'tu_khoa': search,  // Backend expects 'tu_khoa'
+          if (search != null) 'tu_khoa': search, // Backend expects 'tu_khoa'
           if (vaiTro != null) 'vai_tro': vaiTro,
           if (cheDoQuyen != null) 'che_do_quyen': cheDoQuyen,
+          if (phamVi != null) 'pham_vi': phamVi,
         },
       );
 
@@ -205,9 +216,11 @@ class AdminRepository {
         final data = response.data['data'] as List;
         return AdminResult.success(
           data.map((e) => PermissionUser.fromJson(e)).toList(),
+          meta: response.data['meta'],
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được dữ liệu');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được dữ liệu');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -236,7 +249,8 @@ class AdminRepository {
           message: response.data['message'] ?? 'Cập nhật quyền thành công',
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Cập nhật thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Cập nhật thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -273,7 +287,8 @@ class AdminRepository {
         }
         return AdminResult.success(result);
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được dữ liệu');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được dữ liệu');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -286,6 +301,10 @@ class AdminRepository {
     required String ten,
     String? moTa,
     String? bieuTuong,
+    String? mauSac,
+    double? viDo,
+    double? kinhDo,
+    bool? hoatDong,
   }) async {
     try {
       final response = await _apiClient.post(
@@ -294,6 +313,10 @@ class AdminRepository {
           'ten': ten,
           if (moTa != null) 'mo_ta': moTa,
           if (bieuTuong != null) 'bieu_tuong': bieuTuong,
+          if (mauSac != null) 'mau_sac': mauSac,
+          if (viDo != null) 'vi_do': viDo,
+          if (kinhDo != null) 'kinh_do': kinhDo,
+          if (hoatDong != null) 'hoat_dong': hoatDong,
         },
       );
 
@@ -317,6 +340,10 @@ class AdminRepository {
     required String ten,
     String? moTa,
     String? bieuTuong,
+    String? mauSac,
+    double? viDo,
+    double? kinhDo,
+    bool? hoatDong,
   }) async {
     try {
       final response = await _apiClient.put(
@@ -325,6 +352,10 @@ class AdminRepository {
           'ten': ten,
           if (moTa != null) 'mo_ta': moTa,
           if (bieuTuong != null) 'bieu_tuong': bieuTuong,
+          if (mauSac != null) 'mau_sac': mauSac,
+          if (viDo != null) 'vi_do': viDo,
+          if (kinhDo != null) 'kinh_do': kinhDo,
+          if (hoatDong != null) 'hoat_dong': hoatDong,
         },
       );
 
@@ -334,7 +365,8 @@ class AdminRepository {
           message: response.data['message'],
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Cập nhật thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Cập nhật thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -376,8 +408,10 @@ class AdminRepository {
           'page': page,
           if (search != null && search.isNotEmpty) 'tu_khoa': search,
           if (status != null && status.isNotEmpty) 'trang_thai': status,
-          if (categoryId != null && categoryId.isNotEmpty) 'loai_chien_dich_id': categoryId,
-          if (priority != null && priority.isNotEmpty) 'muc_do_uu_tien': priority,
+          if (categoryId != null && categoryId.isNotEmpty)
+            'loai_chien_dich_id': categoryId,
+          if (priority != null && priority.isNotEmpty)
+            'muc_do_uu_tien': priority,
         },
       );
 
@@ -386,7 +420,8 @@ class AdminRepository {
           ReviewerCampaignList.fromJson(response.data),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được dữ liệu');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được dữ liệu');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -394,16 +429,19 @@ class AdminRepository {
     }
   }
 
-  Future<AdminResult<ReviewerCampaignList>> getReviewerCampaignFilterMeta() async {
+  Future<AdminResult<ReviewerCampaignList>>
+      getReviewerCampaignFilterMeta() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.reviewerCampaignFilter);
+      final response =
+          await _apiClient.get(ApiEndpoints.reviewerCampaignFilter);
 
       if (response.data['status'] == 1) {
         return AdminResult.success(
           ReviewerCampaignList.fromJson(response.data),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được bộ lọc');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được bộ lọc');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -411,16 +449,19 @@ class AdminRepository {
     }
   }
 
-  Future<AdminResult<ReviewerCampaign>> getReviewerCampaignDetail(int id) async {
+  Future<AdminResult<ReviewerCampaign>> getReviewerCampaignDetail(
+      int id) async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.reviewerCampaignDetail(id));
+      final response =
+          await _apiClient.get(ApiEndpoints.reviewerCampaignDetail(id));
 
       if (response.data['status'] == 1) {
         return AdminResult.success(
           ReviewerCampaign.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được chi tiết');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được chi tiết');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -453,7 +494,8 @@ class AdminRepository {
       if (response.data['status'] == 1) {
         return AdminResult.successVoid(message: response.data['message']);
       }
-      return AdminResult.failure(response.data['message'] ?? 'Từ chối thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Từ chối thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -463,12 +505,14 @@ class AdminRepository {
 
   Future<AdminResult<void>> approveCancelRequest(int id) async {
     try {
-      final response = await _apiClient.put(ApiEndpoints.reviewerApproveCancel(id));
+      final response =
+          await _apiClient.put(ApiEndpoints.reviewerApproveCancel(id));
 
       if (response.data['status'] == 1) {
         return AdminResult.successVoid(message: response.data['message']);
       }
-      return AdminResult.failure(response.data['message'] ?? 'Duyệt hủy thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Duyệt hủy thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -486,7 +530,8 @@ class AdminRepository {
       if (response.data['status'] == 1) {
         return AdminResult.successVoid(message: response.data['message']);
       }
-      return AdminResult.failure(response.data['message'] ?? 'Từ chối hủy thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Từ chối hủy thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -494,7 +539,8 @@ class AdminRepository {
     }
   }
 
-  Future<AdminResult<void>> processReport(int id, String status, String? response) async {
+  Future<AdminResult<void>> processReport(
+      int id, String status, String? response) async {
     try {
       final responseData = await _apiClient.put(
         ApiEndpoints.reviewerReportProcess(id),
@@ -507,7 +553,8 @@ class AdminRepository {
       if (responseData.data['status'] == 1) {
         return AdminResult.successVoid(message: responseData.data['message']);
       }
-      return AdminResult.failure(responseData.data['message'] ?? 'Xử lý báo cáo thất bại');
+      return AdminResult.failure(
+          responseData.data['message'] ?? 'Xử lý báo cáo thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -525,7 +572,8 @@ class AdminRepository {
           TrustEvalStats.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được thống kê');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được thống kê');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -542,7 +590,8 @@ class AdminRepository {
           TrustEvalHealth.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không kiểm tra được trạng thái ML');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không kiểm tra được trạng thái ML');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -550,16 +599,19 @@ class AdminRepository {
     }
   }
 
-  Future<AdminResult<CampaignTrustEval>> getCampaignTrustEval(int campaignId) async {
+  Future<AdminResult<CampaignTrustEval>> getCampaignTrustEval(
+      int campaignId) async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.trustEvalCampaign(campaignId));
+      final response =
+          await _apiClient.get(ApiEndpoints.trustEvalCampaign(campaignId));
 
       if (response.data['status'] == 1) {
         return AdminResult.success(
           CampaignTrustEval.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được đánh giá');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được đánh giá');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -567,16 +619,19 @@ class AdminRepository {
     }
   }
 
-  Future<AdminResult<CampaignTrustEval>> refreshCampaignTrustEval(int campaignId) async {
+  Future<AdminResult<CampaignTrustEval>> refreshCampaignTrustEval(
+      int campaignId) async {
     try {
-      final response = await _apiClient.post(ApiEndpoints.trustEvalRefresh(campaignId));
+      final response =
+          await _apiClient.post(ApiEndpoints.trustEvalRefresh(campaignId));
 
       if (response.data['status'] == 1) {
         return AdminResult.success(
           CampaignTrustEval.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Làm mới đánh giá thất bại');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Làm mới đánh giá thất bại');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -584,16 +639,19 @@ class AdminRepository {
     }
   }
 
-  Future<AdminResult<VolunteerTrustEval>> getVolunteerTrustEval(int volunteerId) async {
+  Future<AdminResult<VolunteerTrustEval>> getVolunteerTrustEval(
+      int volunteerId) async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.trustEvalVolunteer(volunteerId));
+      final response =
+          await _apiClient.get(ApiEndpoints.trustEvalVolunteer(volunteerId));
 
       if (response.data['status'] == 1) {
         return AdminResult.success(
           VolunteerTrustEval.fromJson(response.data['data']),
         );
       }
-      return AdminResult.failure(response.data['message'] ?? 'Không lấy được đánh giá');
+      return AdminResult.failure(
+          response.data['message'] ?? 'Không lấy được đánh giá');
     } on DioException catch (e) {
       return AdminResult.failure(_apiClient.handleError(e).fullMessage);
     } catch (e) {
@@ -635,7 +693,9 @@ class DashboardData {
       activeCampaigns: summaryData['active_campaigns']?['value'] ?? 0,
       pendingApprovals: summaryData['pending_approvals']?['value'] ?? 0,
       totalFeedback: summaryData['total_feedback']?['value'] ?? 0,
-      summary: (summaryData.entries.map((e) => SummaryItem.fromJson(e.key, e.value)).toList()),
+      summary: (summaryData.entries
+          .map((e) => SummaryItem.fromJson(e.key, e.value))
+          .toList()),
       activityChart: (data['activity_chart'] as List? ?? [])
           .map((e) => ActivityChartItem.fromJson(e))
           .toList(),
@@ -944,7 +1004,8 @@ class ReviewerStats {
       topSkills: (json['top_skills'] as List? ?? [])
           .map((e) => TopSkill.fromJson(e))
           .toList(),
-      campaignStatusDistribution: Map<String, int>.from(json['campaign_status_distribution'] ?? {}),
+      campaignStatusDistribution:
+          Map<String, int>.from(json['campaign_status_distribution'] ?? {}),
     );
   }
 }
@@ -1004,14 +1065,16 @@ class PermissionUser {
 
   factory PermissionUser.fromJson(Map<String, dynamic> json) {
     // Backend uses 'su_dung_mac_dinh_pham_vi' instead of 'su_dung_mac_dinh'
-    final suDungMacDinh = json['su_dung_mac_dinh'] ?? json['su_dung_mac_dinh_pham_vi'];
+    final suDungMacDinh =
+        json['su_dung_mac_dinh'] ?? json['su_dung_mac_dinh_pham_vi'];
     return PermissionUser(
       id: json['id'] ?? 0,
       hoTen: json['ho_ten'] ?? '',
       email: json['email'] ?? '',
       vaiTro: json['vai_tro'] ?? 'tinh_nguyen_vien',
       phamVi: json['pham_vi'] ?? json['scope'],
-      quyenHan: List<String>.from(json['quyen_han'] ?? json['permissions'] ?? []),
+      quyenHan:
+          List<String>.from(json['quyen_han'] ?? json['permissions'] ?? []),
       suDungMacDinh: suDungMacDinh == true || suDungMacDinh == 1,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -1130,7 +1193,10 @@ class ReviewerCampaign {
       nguoiTao: json['nguoi_tao'] != null
           ? CampaignCreator.fromJson(json['nguoi_tao'])
           : null,
-      kyNangs: (json['ky_nangs'] as List? ?? []).map((e) => e is String ? e : e['ten'] ?? '').toList().cast<String>(),
+      kyNangs: (json['ky_nangs'] as List? ?? [])
+          .map((e) => e is String ? e : e['ten'] ?? '')
+          .toList()
+          .cast<String>(),
       danhSachDangKy: (json['danh_sach_dang_ky'] as List? ?? [])
           .map((e) => RegistrationItem.fromJson(e))
           .toList(),
@@ -1277,12 +1343,9 @@ class RegistrationItem {
       xacNhanLuc: json['xac_nhan_luc'] != null
           ? DateTime.parse(json['xac_nhan_luc'])
           : null,
-      duyetLuc: json['duyet_luc'] != null
-          ? DateTime.parse(json['duyet_luc'])
-          : null,
-      huyLuc: json['huy_luc'] != null
-          ? DateTime.parse(json['huy_luc'])
-          : null,
+      duyetLuc:
+          json['duyet_luc'] != null ? DateTime.parse(json['duyet_luc']) : null,
+      huyLuc: json['huy_luc'] != null ? DateTime.parse(json['huy_luc']) : null,
       lyDoHuy: json['ly_do_huy'],
       ghiChu: json['ghi_chu'],
     );
@@ -1388,9 +1451,7 @@ class ReportItem {
       nguoiGui: json['nguoi_gui'] != null
           ? ReportUser.fromJson(json['nguoi_gui'])
           : null,
-      taoLuc: json['tao_luc'] != null
-          ? DateTime.parse(json['tao_luc'])
-          : null,
+      taoLuc: json['tao_luc'] != null ? DateTime.parse(json['tao_luc']) : null,
     );
   }
 }
@@ -1435,9 +1496,7 @@ class HistoryItem {
       tuTrangThai: json['tu_trang_thai'],
       denTrangThai: json['den_trang_thai'],
       ghiChu: json['ghi_chu'],
-      taoLuc: json['tao_luc'] != null
-          ? DateTime.parse(json['tao_luc'])
-          : null,
+      taoLuc: json['tao_luc'] != null ? DateTime.parse(json['tao_luc']) : null,
       nguoiThucHien: json['nguoi_thuc_hien'] != null
           ? HistoryUser.fromJson(json['nguoi_thuc_hien'])
           : null,
@@ -1488,8 +1547,10 @@ class TrustEvalStats {
       avgRiskScore: (json['avg_risk_score'] ?? 0.0).toDouble(),
       byRiskLevel: Map<String, int>.from(json['by_risk_level'] ?? {}),
       byTrustLabel: Map<String, int>.from(json['by_trust_label'] ?? {}),
-      byRecommendedAction: Map<String, int>.from(json['by_recommended_action'] ?? {}),
-      byEvaluationSource: Map<String, int>.from(json['by_evaluation_source'] ?? {}),
+      byRecommendedAction:
+          Map<String, int>.from(json['by_recommended_action'] ?? {}),
+      byEvaluationSource:
+          Map<String, int>.from(json['by_evaluation_source'] ?? {}),
       recentHighRisk: (json['recent_high_risk'] as List? ?? [])
           .map((e) => HighRiskCampaign.fromJson(e))
           .toList(),
@@ -1542,7 +1603,8 @@ class TrustEvalHealth {
   factory TrustEvalHealth.fromJson(Map<String, dynamic> json) {
     // Backend returns data directly, not nested under 'data' key
     final data = json['data'] ?? json;
-    final modelsLoadedData = data['models_loaded'] as Map<String, dynamic>? ?? {};
+    final modelsLoadedData =
+        data['models_loaded'] as Map<String, dynamic>? ?? {};
     return TrustEvalHealth(
       healthy: json['healthy'] == true || data['healthy'] == true,
       modelsLoaded: modelsLoadedData.values.where((v) => v == true).length,

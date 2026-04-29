@@ -271,7 +271,9 @@ class VolunteerRecommendation {
       groupCode: groupCode,
       groupLabel: _getGroupLabel(groupCode),
       skills: (json['ky_nangs'] as List?)
-              ?.map((s) => s['ten'] ?? s.toString())
+              ?.map((s) => (s is Map ? s['ten'] : s)?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .cast<String>()
               .toList() ??
           [],
       areaText: (json['khu_vucs'] as List?)?.map((k) => k['ten']).join(', '),

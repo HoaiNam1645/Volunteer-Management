@@ -6,8 +6,9 @@ import '../../providers/auth_provider.dart';
 
 class AdminShell extends StatelessWidget {
   final Widget child;
+  final String location;
 
-  const AdminShell({super.key, required this.child});
+  const AdminShell({super.key, required this.child, required this.location});
 
   @override
   Widget build(BuildContext context) {
@@ -17,26 +18,22 @@ class AdminShell extends StatelessWidget {
         final navItems = isReviewer ? _reviewerNavItems : _adminNavItems;
 
         return Scaffold(
-          body: Stack(
-            children: [
-              child,
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _BottomNavBar(
-                  navItems: navItems,
-                  selectedIndex: _getSelectedIndex(
-                    GoRouterState.of(context).matchedLocation,
-                    navItems,
-                  ),
-                  onTap: (index) {
-                    HapticFeedback.lightImpact();
-                    context.go(navItems[index].paths.first);
-                  },
-                ),
-              ),
-            ],
+          body: child,
+          bottomNavigationBar: _BottomNavBar(
+            navItems: navItems,
+            selectedIndex: _getSelectedIndex(
+              location,
+              navItems,
+            ),
+            onTap: (index) async {
+              HapticFeedback.lightImpact();
+              final item = navItems[index];
+              if (item.isMore) {
+                await _showMoreMenu(context, auth);
+                return;
+              }
+              context.go(item.paths.first);
+            },
           ),
         );
       },
@@ -46,7 +43,10 @@ class AdminShell extends StatelessWidget {
   static int _getSelectedIndex(String location, List<_NavItem> navItems) {
     for (int i = 0; i < navItems.length; i++) {
       for (final path in navItems[i].paths) {
-        if (location == path || location.startsWith('$path/')) {
+        if (location == path) {
+          return i;
+        }
+        if (path != '/admin' && location.startsWith('$path/')) {
           return i;
         }
       }
@@ -102,6 +102,49 @@ class AdminShell extends StatelessWidget {
       paths: ['/reviewer/statistics'],
     ),
   ];
+
+  static Future<void> _showMoreMenu(
+      BuildContext context, AuthProvider auth) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined),
+              title: const Text('Phan quyen kiem duyet'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/admin/permissions');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_pin_outlined),
+              title: const Text('Phan quyen nguoi dung'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/admin/user-permissions');
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title:
+                  const Text('Dang xuat', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await auth.logout();
+                if (context.mounted) context.go('/login');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _BottomNavBar extends StatelessWidget {
@@ -145,21 +188,51 @@ class _BottomNavBar extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          isSelected ? item.selectedIcon : item.icon,
-                          color: isSelected ? const Color(0xFF4F8CF7) : Colors.grey[500],
-                          size: 24,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            color: isSelected ? const Color(0xFF4F8CF7) : Colors.grey[500],
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF4F8CF7)
+                                    .withValues(alpha: 0.14)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: AnimatedScale(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            scale: isSelected ? 1.08 : 1.0,
+                            child: Icon(
+                              isSelected ? item.selectedIcon : item.icon,
+                              color: isSelected
+                                  ? const Color(0xFF4F8CF7)
+                                  : Colors.grey[500],
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          style: TextStyle(
+                            fontSize: isSelected ? 10.5 : 10,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? const Color(0xFF4F8CF7)
+                                : Colors.grey[500],
+                          ),
+                          child: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

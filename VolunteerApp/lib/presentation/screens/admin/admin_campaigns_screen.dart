@@ -10,7 +10,8 @@ class AdminCampaignsScreen extends StatefulWidget {
   State<AdminCampaignsScreen> createState() => _AdminCampaignsScreenState();
 }
 
-class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with SingleTickerProviderStateMixin {
+class _AdminCampaignsScreenState extends State<AdminCampaignsScreen>
+    with SingleTickerProviderStateMixin {
   final AdminRepository _repo = AdminRepository();
 
   late TabController _tabController;
@@ -24,8 +25,13 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
 
   List<ReviewerCampaign> _campaigns = [];
   ReviewerCampaignStats _stats = ReviewerCampaignStats(
-    total: 0, choDuyet: 0, daDuyet: 0,
-    yeuCauHuy: 0, daHuy: 0, dangDienRa: 0, hoanThanh: 0,
+    total: 0,
+    choDuyet: 0,
+    daDuyet: 0,
+    yeuCauHuy: 0,
+    daHuy: 0,
+    dangDienRa: 0,
+    hoanThanh: 0,
   );
   List<FilterOption> _categories = [];
   List<FilterOption> _priorities = [];
@@ -104,30 +110,33 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-      body: RefreshIndicator(
-        onRefresh: _loadCampaigns,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStatsCards(),
-                    const SizedBox(height: 16),
-                    _buildTabs(),
-                    const SizedBox(height: 12),
-                    _buildFilters(),
-                    const SizedBox(height: 12),
-                    _buildCampaignTable(),
-                  ],
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadCampaigns,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStatsCards(),
+                      const SizedBox(height: 16),
+                      _buildTabs(),
+                      const SizedBox(height: 12),
+                      _buildFilters(),
+                      const SizedBox(height: 12),
+                      _buildCampaignTable(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -153,14 +162,18 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
               const SizedBox(width: 12),
               const Text(
                 'Quản lý chiến dịch',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Kiểm duyệt và quản lý các chiến dịch tình nguyện',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
           ),
         ],
       ),
@@ -172,15 +185,20 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildStatCard('Tổng', _stats.total, Icons.flag, const Color(0xFF0D6EFD)),
+          _buildStatCard(
+              'Tổng', _stats.total, Icons.flag, const Color(0xFF0D6EFD)),
           const SizedBox(width: 12),
-          _buildStatCard('Chờ duyệt', _stats.choDuyet, Icons.hourglass_bottom, Colors.orange),
+          _buildStatCard('Chờ duyệt', _stats.choDuyet, Icons.hourglass_bottom,
+              Colors.orange),
           const SizedBox(width: 12),
-          _buildStatCard('Đã duyệt', _stats.daDuyet, Icons.check_circle, Colors.cyan),
+          _buildStatCard(
+              'Đã duyệt', _stats.daDuyet, Icons.check_circle, Colors.cyan),
           const SizedBox(width: 12),
-          _buildStatCard('Chờ hủy', _stats.yeuCauHuy, Icons.cancel, Colors.redAccent),
+          _buildStatCard(
+              'Chờ hủy', _stats.yeuCauHuy, Icons.cancel, Colors.redAccent),
           const SizedBox(width: 12),
-          _buildStatCard('Đang hoạt động', _stats.dangDienRa, Icons.play_circle, Colors.green),
+          _buildStatCard('Đang hoạt động', _stats.dangDienRa, Icons.play_circle,
+              Colors.green),
         ],
       ),
     );
@@ -194,7 +212,10 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -211,7 +232,9 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              Text('$value', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text('$value',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -227,7 +250,10 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: TabBar(
@@ -238,38 +264,49 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         indicatorColor: AppTheme.primaryColor,
         indicatorWeight: 3,
         onTap: (index) {
-          final tabs = ['pending', 'approved', 'pendingCancel', 'cancelled', 'active'];
+          final tabs = [
+            'pending',
+            'approved',
+            'pendingCancel',
+            'cancelled',
+            'active'
+          ];
           setState(() => _activeTab = tabs[index]);
           _loadCampaigns();
         },
         tabs: [
-          Tab(child: Row(children: [
+          Tab(
+              child: Row(children: [
             const Icon(Icons.hourglass_bottom, size: 18),
             const SizedBox(width: 6),
             const Text('Chờ duyệt'),
             const SizedBox(width: 6),
             _buildBadge(_stats.choDuyet, Colors.orange),
           ])),
-          Tab(child: Row(children: [
+          Tab(
+              child: Row(children: [
             const Icon(Icons.check_circle, size: 18),
             const SizedBox(width: 6),
             const Text('Đã duyệt'),
             const SizedBox(width: 6),
             _buildBadge(_stats.daDuyet, Colors.cyan),
           ])),
-          Tab(child: Row(children: [
+          Tab(
+              child: Row(children: [
             const Icon(Icons.cancel, size: 18),
             const SizedBox(width: 6),
             const Text('Chờ hủy'),
             const SizedBox(width: 6),
             _buildBadge(_stats.yeuCauHuy, Colors.redAccent),
           ])),
-          Tab(child: Row(children: [
+          Tab(
+              child: Row(children: [
             Icon(Icons.block, size: 18),
             SizedBox(width: 6),
             Text('Đã hủy'),
           ])),
-          Tab(child: Row(children: [
+          Tab(
+              child: Row(children: [
             const Icon(Icons.play_circle, size: 18),
             const SizedBox(width: 6),
             const Text('Đang hoạt động'),
@@ -290,7 +327,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
       ),
       child: Text(
         '$count',
-        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
+        style:
+            TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
       ),
     );
   }
@@ -302,7 +340,10 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -315,8 +356,10 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
               decoration: InputDecoration(
                 hintText: 'Tìm kiếm chiến dịch...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
@@ -326,12 +369,15 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
               value: _filterCategory,
               decoration: InputDecoration(
                 labelText: 'Loại',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               items: [
                 const DropdownMenuItem(value: null, child: Text('Tất cả')),
-                ..._categories.map((c) => DropdownMenuItem(value: c.value, child: Text(c.label))),
+                ..._categories.map((c) =>
+                    DropdownMenuItem(value: c.value, child: Text(c.label))),
               ],
               onChanged: (v) {
                 setState(() => _filterCategory = v);
@@ -345,12 +391,15 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
               value: _filterPriority,
               decoration: InputDecoration(
                 labelText: 'Ưu tiên',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               items: [
                 const DropdownMenuItem(value: null, child: Text('Tất cả')),
-                ..._priorities.map((p) => DropdownMenuItem(value: p.value, child: Text(p.label))),
+                ..._priorities.map((p) =>
+                    DropdownMenuItem(value: p.value, child: Text(p.label))),
               ],
               onChanged: (v) {
                 setState(() => _filterPriority = v);
@@ -373,7 +422,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.grey[600],
               side: BorderSide(color: Colors.grey[300]!),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
           ),
         ],
@@ -387,15 +437,21 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: _isLoading
-          ? const Padding(padding: EdgeInsets.all(48), child: Center(child: CircularProgressIndicator()))
+          ? const Padding(
+              padding: EdgeInsets.all(48),
+              child: Center(child: CircularProgressIndicator()))
           : _campaigns.isEmpty
               ? _buildEmptyState()
               : Column(
-                  children: _campaigns.map((c) => _buildCampaignRow(c)).toList(),
+                  children:
+                      _campaigns.map((c) => _buildCampaignRow(c)).toList(),
                 ),
     );
   }
@@ -408,7 +464,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           children: [
             Icon(Icons.inbox, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
-            Text('Không có chiến dịch nào', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+            Text('Không có chiến dịch nào',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16)),
           ],
         ),
       ),
@@ -440,7 +497,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
                     color: _parseColor(category?.mauSac).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.flag, color: _parseColor(category?.mauSac), size: 24),
+                  child: Icon(Icons.flag,
+                      color: _parseColor(category?.mauSac), size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -449,19 +507,22 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
                     children: [
                       Text(
                         campaign.tieuDe,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                          Icon(Icons.location_on,
+                              size: 14, color: Colors.grey[600]),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               campaign.diaDiem,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 13),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -477,9 +538,14 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             const SizedBox(height: 12),
             Row(
               children: [
-                _buildInfoChip(Icons.calendar_today, startDate != null ? DateFormat('dd/MM/yyyy').format(startDate) : '—'),
+                _buildInfoChip(
+                    Icons.calendar_today,
+                    startDate != null
+                        ? DateFormat('dd/MM/yyyy').format(startDate)
+                        : '—'),
                 const SizedBox(width: 8),
-                _buildInfoChip(Icons.group, '${campaign.soDangKy}/${campaign.soLuongToiDa}'),
+                _buildInfoChip(Icons.group,
+                    '${campaign.soDangKy}/${campaign.soLuongToiDa}'),
                 const SizedBox(width: 8),
                 if (category != null)
                   _buildInfoChip(Icons.category, category.ten),
@@ -489,14 +555,22 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        backgroundColor:
+                            AppTheme.primaryColor.withValues(alpha: 0.1),
                         child: Text(
-                          creator.hoTen.isNotEmpty ? creator.hoTen[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                          creator.hoTen.isNotEmpty
+                              ? creator.hoTen[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryColor),
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text(creator.hoTen, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      Text(creator.hoTen,
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600])),
                     ],
                   ),
               ],
@@ -521,7 +595,9 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
       children: [
         if (isPending) ...[
           OutlinedButton(
-            onPressed: _isActionLoading ? null : () => _showRejectDialog(campaign, 'campaign'),
+            onPressed: _isActionLoading
+                ? null
+                : () => _showRejectDialog(campaign, 'campaign'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.red,
               side: const BorderSide(color: Colors.red),
@@ -531,7 +607,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           ),
           const SizedBox(width: 8),
           ElevatedButton(
-            onPressed: _isActionLoading ? null : () => _approveCampaign(campaign),
+            onPressed:
+                _isActionLoading ? null : () => _approveCampaign(campaign),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.successColor,
               foregroundColor: Colors.white,
@@ -541,7 +618,9 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           ),
         ] else if (isPendingCancel) ...[
           OutlinedButton(
-            onPressed: _isActionLoading ? null : () => _showRejectDialog(campaign, 'cancel_request'),
+            onPressed: _isActionLoading
+                ? null
+                : () => _showRejectDialog(campaign, 'cancel_request'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.orange,
               side: const BorderSide(color: Colors.orange),
@@ -551,7 +630,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           ),
           const SizedBox(width: 8),
           ElevatedButton(
-            onPressed: _isActionLoading ? null : () => _approveCancelRequest(campaign),
+            onPressed:
+                _isActionLoading ? null : () => _approveCancelRequest(campaign),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -589,7 +669,10 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
       ),
       child: Text(
         config.$1,
-        style: TextStyle(color: config.$2 as Color, fontWeight: FontWeight.w600, fontSize: 12),
+        style: TextStyle(
+            color: config.$2 as Color,
+            fontWeight: FontWeight.w600,
+            fontSize: 12),
       ),
     );
   }
@@ -638,7 +721,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) => _buildDetailSheet(scrollController),
+        builder: (context, scrollController) =>
+            _buildDetailSheet(scrollController),
       ),
     );
   }
@@ -661,7 +745,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
@@ -672,12 +757,14 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             Row(
               children: [
                 Container(
-                  width: 56, height: 56,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
                     color: _parseColor(category?.mauSac).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.flag, color: _parseColor(category?.mauSac), size: 28),
+                  child: Icon(Icons.flag,
+                      color: _parseColor(category?.mauSac), size: 28),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -686,7 +773,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
                     children: [
                       Text(
                         campaign.tieuDe,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       _buildStatusBadge(campaign.trangThai),
@@ -698,15 +786,20 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             const SizedBox(height: 24),
             _buildDetailItem(Icons.location_on, 'Địa điểm', campaign.diaDiem),
             if (campaign.ngayBatDau != null)
-              _buildDetailItem(Icons.calendar_today, 'Ngày bắt đầu', DateFormat('dd/MM/yyyy').format(campaign.ngayBatDau!)),
+              _buildDetailItem(Icons.calendar_today, 'Ngày bắt đầu',
+                  DateFormat('dd/MM/yyyy').format(campaign.ngayBatDau!)),
             if (campaign.ngayKetThuc != null)
-              _buildDetailItem(Icons.calendar_today, 'Ngày kết thúc', DateFormat('dd/MM/yyyy').format(campaign.ngayKetThuc!)),
-            _buildDetailItem(Icons.group, 'Số lượng TNV', '${campaign.soDangKy}/${campaign.soLuongToiDa} người'),
+              _buildDetailItem(Icons.calendar_today, 'Ngày kết thúc',
+                  DateFormat('dd/MM/yyyy').format(campaign.ngayKetThuc!)),
+            _buildDetailItem(Icons.group, 'Số lượng TNV',
+                '${campaign.soDangKy}/${campaign.soLuongToiDa} người'),
             if (category != null)
               _buildDetailItem(Icons.category, 'Loại chiến dịch', category.ten),
             if (creator != null)
-              _buildDetailItem(Icons.person, 'Người tạo', '${creator.hoTen} (${creator.email})'),
-            if (campaign.lyDoHuyYeuCau != null && campaign.lyDoHuyYeuCau!.isNotEmpty) ...[
+              _buildDetailItem(Icons.person, 'Người tạo',
+                  '${creator.hoTen} (${creator.email})'),
+            if (campaign.lyDoHuyYeuCau != null &&
+                campaign.lyDoHuyYeuCau!.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -722,9 +815,14 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Lý do hủy:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red)),
+                          const Text('Lý do hủy:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.red)),
                           const SizedBox(height: 4),
-                          Text(campaign.lyDoHuyYeuCau!, style: const TextStyle(fontSize: 13)),
+                          Text(campaign.lyDoHuyYeuCau!,
+                              style: const TextStyle(fontSize: 13)),
                         ],
                       ),
                     ),
@@ -734,45 +832,59 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             ],
             const SizedBox(height: 16),
             if (campaign.moTa.isNotEmpty) ...[
-              const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text('Mô tả',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 8),
               Text(campaign.moTa, style: TextStyle(color: Colors.grey[700])),
               const SizedBox(height: 16),
             ],
             if (campaign.kyNangs.isNotEmpty) ...[
-              const Text('Kỹ năng yêu cầu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text('Kỹ năng yêu cầu',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: campaign.kyNangs.map((skill) => Chip(
-                  label: Text(skill, style: const TextStyle(fontSize: 12)),
-                  backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  side: BorderSide.none,
-                )).toList(),
+                children: campaign.kyNangs
+                    .map((skill) => Chip(
+                          label:
+                              Text(skill, style: const TextStyle(fontSize: 12)),
+                          backgroundColor:
+                              AppTheme.primaryColor.withValues(alpha: 0.1),
+                          side: BorderSide.none,
+                        ))
+                    .toList(),
               ),
               const SizedBox(height: 16),
             ],
             if (_isDetailLoading)
-              const Center(child: Padding(
+              const Center(
+                  child: Padding(
                 padding: EdgeInsets.all(24),
                 child: CircularProgressIndicator(),
               ))
             else ...[
               if (campaign.danhSachDangKy.isNotEmpty) ...[
-                const Text('Danh sách đăng ký', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text('Danh sách đăng ký',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 8),
-                ...campaign.danhSachDangKy.map((reg) => _buildRegistrationItem(reg)),
+                ...campaign.danhSachDangKy
+                    .map((reg) => _buildRegistrationItem(reg)),
                 const SizedBox(height: 16),
               ],
               if (campaign.feedbacks.isNotEmpty) ...[
-                const Text('Phản hồi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text('Phản hồi',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 8),
                 ...campaign.feedbacks.map((f) => _buildFeedbackItem(f)),
                 const SizedBox(height: 16),
               ],
               if (campaign.lichSuKiemDuyet.isNotEmpty) ...[
-                const Text('Lịch sử kiểm duyệt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text('Lịch sử kiểm duyệt',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 8),
                 ...campaign.lichSuKiemDuyet.map((h) => _buildHistoryItem(h)),
                 const SizedBox(height: 16),
@@ -859,7 +971,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+              Text(label,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
             ],
           ),
@@ -870,8 +983,14 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
 
   Widget _buildRegistrationItem(RegistrationItem reg) {
     final vol = reg.nguoiDung;
-    final skills = (vol?.kyNangs ?? []).map((s) => s is Map ? s['ten'] ?? '' : s.toString()).where((s) => s.isNotEmpty).toList();
-    final areas = (vol?.khuVucs ?? []).map((s) => s is Map ? s['ten'] ?? '' : s.toString()).where((s) => s.isNotEmpty).toList();
+    final skills = (vol?.kyNangs ?? [])
+        .map((s) => s is Map ? s['ten'] ?? '' : s.toString())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final areas = (vol?.khuVucs ?? [])
+        .map((s) => s is Map ? s['ten'] ?? '' : s.toString())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -888,7 +1007,10 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
             child: Text(
               vol?.hoTen.isNotEmpty == true ? vol!.hoTen[0].toUpperCase() : '?',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: AppTheme.primaryColor),
             ),
           ),
           const SizedBox(width: 12),
@@ -896,19 +1018,28 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(vol?.hoTen ?? '—', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                Text(vol?.email ?? '—', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                Text(vol?.hoTen ?? '—',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(vol?.email ?? '—',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                 if (skills.isNotEmpty)
                   Wrap(
                     spacing: 4,
-                    children: skills.take(3).map((s) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(s, style: const TextStyle(fontSize: 10, color: Colors.blue)),
-                    )).toList(),
+                    children: skills
+                        .take(3)
+                        .map((s) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(s,
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.blue)),
+                            ))
+                        .toList(),
                   ),
               ],
             ),
@@ -936,7 +1067,11 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         color: (config.$2 as Color).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(config.$1, style: TextStyle(color: config.$2 as Color, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(config.$1,
+          style: TextStyle(
+              color: config.$2 as Color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600)),
     );
   }
 
@@ -956,18 +1091,23 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(user?.hoTen ?? '—', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              Text(user?.hoTen ?? '—',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 13)),
               Row(
-                children: List.generate(5, (i) => Icon(
-                  i < f.soSao ? Icons.star : Icons.star_border,
-                  size: 14,
-                  color: Colors.amber,
-                )),
+                children: List.generate(
+                    5,
+                    (i) => Icon(
+                          i < f.soSao ? Icons.star : Icons.star_border,
+                          size: 14,
+                          color: Colors.amber,
+                        )),
               ),
             ],
           ),
           if (f.nhanXet != null && f.nhanXet!.isNotEmpty)
-            Text(f.nhanXet!, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+            Text(f.nhanXet!,
+                style: TextStyle(fontSize: 13, color: Colors.grey[700])),
         ],
       ),
     );
@@ -980,23 +1120,28 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 8, height: 8,
+            width: 8,
+            height: 8,
             margin: const EdgeInsets.only(top: 6),
-            decoration: const BoxDecoration(color: AppTheme.primaryColor, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+                color: AppTheme.primaryColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(h.hanhDong, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                Text(h.hanhDong,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w500, fontSize: 13)),
                 if (h.nguoiThucHien != null)
                   Text(
                     '${h.nguoiThucHien!.hoTen} • ${h.taoLuc != null ? DateFormat('dd/MM HH:mm').format(h.taoLuc!) : '—'}',
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 if (h.ghiChu != null && h.ghiChu!.isNotEmpty)
-                  Text(h.ghiChu!, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                  Text(h.ghiChu!,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700])),
               ],
             ),
           ),
@@ -1044,7 +1189,9 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(mode == 'cancel_request' ? 'Từ chối yêu cầu hủy' : 'Từ chối chiến dịch'),
+        title: Text(mode == 'cancel_request'
+            ? 'Từ chối yêu cầu hủy'
+            : 'Từ chối chiến dịch'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1079,7 +1226,8 @@ class _AdminCampaignsScreenState extends State<AdminCampaignsScreen> with Single
     );
   }
 
-  Future<void> _rejectCampaign(ReviewerCampaign campaign, String mode, String reason) async {
+  Future<void> _rejectCampaign(
+      ReviewerCampaign campaign, String mode, String reason) async {
     if (reason.trim().isEmpty) {
       _showError('Vui lòng nhập lý do từ chối');
       return;

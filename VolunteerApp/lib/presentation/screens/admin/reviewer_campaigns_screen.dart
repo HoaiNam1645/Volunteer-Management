@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import '../../../data/repositories/reviewer_repository.dart';
 
 class ReviewerCampaignsScreen extends StatefulWidget {
   const ReviewerCampaignsScreen({super.key});
 
   @override
-  State<ReviewerCampaignsScreen> createState() => _ReviewerCampaignsScreenState();
+  State<ReviewerCampaignsScreen> createState() =>
+      _ReviewerCampaignsScreenState();
 }
 
 class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
@@ -15,7 +15,6 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
   final ReviewerRepository _repository = ReviewerRepository();
 
   bool _isLoading = true;
-  bool _isLoadingDetail = false;
   String? _error;
 
   // Filters
@@ -28,6 +27,7 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
   List<ReviewerCampaign> _campaigns = [];
   CampaignFilters? _filters;
   ReviewerCampaignDetail? _selectedCampaign;
+  Timer? _searchDebounce;
 
   // Stats
   int _totalCount = 0;
@@ -43,10 +43,13 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
   static const List<_TabConfig> _tabs = [
     _TabConfig(value: 'pending', label: 'Chờ duyệt', backendKey: 'cho_duyet'),
     _TabConfig(value: 'approved', label: 'Đã duyệt', backendKey: 'da_duyet'),
-    _TabConfig(value: 'pending_cancel', label: 'Hủy', backendKey: 'yeu_cau_huy'),
+    _TabConfig(
+        value: 'pending_cancel', label: 'Hủy', backendKey: 'yeu_cau_huy'),
     _TabConfig(value: 'cancelled', label: 'Đã hủy', backendKey: 'da_huy'),
-    _TabConfig(value: 'active', label: 'Đang diễn ra', backendKey: 'dang_dien_ra'),
-    _TabConfig(value: 'completed', label: 'Hoàn thành', backendKey: 'hoan_thanh'),
+    _TabConfig(
+        value: 'active', label: 'Đang diễn ra', backendKey: 'dang_dien_ra'),
+    _TabConfig(
+        value: 'completed', label: 'Hoàn thành', backendKey: 'hoan_thanh'),
   ];
 
   @override
@@ -59,6 +62,7 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
@@ -139,17 +143,36 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
   }
 
   void _updateStats() {
-    _totalCount = _campaigns.length;
-    _pendingCount = _campaigns.where((c) => c.trangThai == 'cho_duyet').length;
-    _approvedCount = _campaigns.where((c) => c.trangThai == 'da_duyet').length;
-    _pendingCancelCount = _campaigns.where((c) => c.trangThai == 'yeu_cau_huy').length;
-    _cancelledCount = _campaigns.where((c) => c.trangThai == 'da_huy').length;
-    _activeCount = _campaigns.where((c) => c.trangThai == 'dang_dien_ra').length;
+    final statusMap = <String, int>{};
+    for (final s in _filters?.trangThaiOptions ?? const <StatusFilter>[]) {
+      statusMap[s.value] = s.count;
+    }
+    _pendingCount = statusMap['cho_duyet'] ?? 0;
+    _approvedCount = statusMap['da_duyet'] ?? 0;
+    _pendingCancelCount = statusMap['yeu_cau_huy'] ?? 0;
+    _cancelledCount = statusMap['da_huy'] ?? 0;
+    _activeCount = statusMap['dang_dien_ra'] ?? 0;
+    _totalCount = _pendingCount +
+        _approvedCount +
+        _pendingCancelCount +
+        _cancelledCount +
+        _activeCount;
+
+    if (_totalCount == 0) {
+      _totalCount = _campaigns.length;
+      _pendingCount =
+          _campaigns.where((c) => c.trangThai == 'cho_duyet').length;
+      _approvedCount =
+          _campaigns.where((c) => c.trangThai == 'da_duyet').length;
+      _pendingCancelCount =
+          _campaigns.where((c) => c.trangThai == 'yeu_cau_huy').length;
+      _cancelledCount = _campaigns.where((c) => c.trangThai == 'da_huy').length;
+      _activeCount =
+          _campaigns.where((c) => c.trangThai == 'dang_dien_ra').length;
+    }
   }
 
   Future<void> _loadCampaignDetail(int id) async {
-    setState(() => _isLoadingDetail = true);
-
     try {
       final result = await _repository.getCampaignDetail(id);
       if (!mounted) return;
@@ -157,16 +180,15 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
       if (result.success) {
         _selectedCampaign = result.data;
       } else {
-        _showSnackBar(result.message ?? 'Không thể tải chi tiết', isError: true);
+        _showSnackBar(result.message ?? 'Không thể tải chi tiết',
+            isError: true);
       }
     } catch (e) {
       if (mounted) {
         _showSnackBar('Lỗi kết nối', isError: true);
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoadingDetail = false);
-      }
+      // no-op
     }
   }
 
@@ -235,7 +257,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
   Future<void> _approveCancel(ReviewerCampaign campaign) async {
     final confirmed = await _showConfirmDialog(
       title: 'Duyệt yêu cầu hủy',
-      message: 'Bạn có chắc muốn duyệt yêu cầu hủy chiến dịch "${campaign.tenChienDich}"?',
+      message:
+          'Bạn có chắc muốn duyệt yêu cầu hủy chiến dịch "${campaign.tenChienDich}"?',
       confirmText: 'Duyệt hủy',
       confirmColor: Colors.red,
     );
@@ -281,6 +304,29 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
       if (mounted) {
         _showSnackBar('Lỗi kết nối', isError: true);
       }
+    }
+  }
+
+  Future<void> _processReport(CampaignReport report, String trangThai) async {
+    final confirmed = await _showConfirmDialog(
+      title: trangThai == 'da_xu_ly' ? 'Danh dau da xu ly' : 'Tu choi bao cao',
+      message: 'Xu ly bao cao #${report.id} voi trang thai "$trangThai"?',
+      confirmText: 'Xac nhan',
+      confirmColor: trangThai == 'da_xu_ly' ? Colors.green : Colors.orange,
+    );
+    if (confirmed != true) return;
+
+    final result = await _repository.processReport(report.id, trangThai);
+    if (!mounted) return;
+
+    if (result.success) {
+      _showSnackBar(result.message ?? 'Xu ly bao cao thanh cong');
+      if (_selectedCampaign != null) {
+        await _loadCampaignDetail(_selectedCampaign!.id);
+      }
+      await _loadCampaigns();
+    } else {
+      _showSnackBar(result.message ?? 'Xu ly bao cao that bai', isError: true);
     }
   }
 
@@ -362,8 +408,10 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
     );
   }
 
-  void _showCampaignDetail(ReviewerCampaign campaign) {
-    _loadCampaignDetail(campaign.id);
+  Future<void> _showCampaignDetail(ReviewerCampaign campaign) async {
+    _selectedCampaign = null;
+    await _loadCampaignDetail(campaign.id);
+    if (!mounted || _selectedCampaign == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -377,26 +425,14 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          child: _isLoadingDetail
-              ? const Center(child: CircularProgressIndicator())
-              : _selectedCampaign != null
-                  ? _buildDetailContent(scrollController, _selectedCampaign!)
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-                          const SizedBox(height: 16),
-                          Text(_error ?? 'Không thể tải chi tiết'),
-                        ],
-                      ),
-                    ),
+          child: _buildDetailContent(scrollController, _selectedCampaign!),
         ),
       ),
     );
   }
 
-  Widget _buildDetailContent(ScrollController scrollController, ReviewerCampaignDetail campaign) {
+  Widget _buildDetailContent(
+      ScrollController scrollController, ReviewerCampaignDetail campaign) {
     return Column(
       children: [
         // Header
@@ -404,7 +440,10 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withValues(alpha: 0.7)],
+              colors: [
+                Theme.of(context).primaryColor,
+                Theme.of(context).primaryColor.withValues(alpha: 0.7)
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -434,7 +473,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               if (campaign.loaiChienDich != null) ...[
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -457,6 +497,45 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               // Info cards
               _buildInfoCards(campaign),
               const SizedBox(height: 20),
+
+              if (campaign.nguoiTao != null || campaign.lyDoTuChoi != null) ...[
+                _buildSectionTitle('Thong tin bo sung'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (campaign.nguoiTao != null) ...[
+                        Text(
+                          'Nguoi tao: ${campaign.nguoiTao!.hoTen}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      if (campaign.hanDangKy != null) ...[
+                        Text(
+                            'Han dang ky: ${_formatDate(campaign.hanDangKy!)}'),
+                        const SizedBox(height: 4),
+                      ],
+                      Text('Muc do khan cap: ${campaign.mucDoKhanCap}'),
+                      if (campaign.lyDoTuChoi != null &&
+                          campaign.lyDoTuChoi!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Ly do xu ly: ${campaign.lyDoTuChoi}',
+                          style: TextStyle(color: Colors.orange.shade800),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               // Description
               if (campaign.moTa.isNotEmpty) ...[
@@ -482,8 +561,11 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                   runSpacing: 8,
                   children: campaign.kyNangs!
                       .map((skill) => Chip(
-                            label: Text(skill, style: const TextStyle(fontSize: 12)),
-                            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                            label: Text(skill,
+                                style: const TextStyle(fontSize: 12)),
+                            backgroundColor: Theme.of(context)
+                                .primaryColor
+                                .withValues(alpha: 0.1),
                           ))
                       .toList(),
                 ),
@@ -492,11 +574,48 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
 
               // Volunteers
               if (campaign.volunteers.isNotEmpty) ...[
-                _buildSectionTitle('Tình nguyện viên (${campaign.volunteers.length})'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSectionTitle(
+                          'Tinh nguyen vien (${campaign.volunteers.length})'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () =>
+                          _showVolunteerListModal(campaign.volunteers),
+                      icon: const Icon(Icons.list, size: 16),
+                      label: const Text('Xem danh sach'),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 ...campaign.volunteers.map((v) => _buildVolunteerItem(v)),
                 const SizedBox(height: 20),
               ],
+
+              _buildSectionTitle('Ban do'),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.map, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Lat: ${campaign.viDo.toStringAsFixed(6)} | Lng: ${campaign.kinhDo.toStringAsFixed(6)}',
+                        style: TextStyle(color: Colors.grey.shade700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
 
               // Feedbacks
               if (campaign.feedbacks.isNotEmpty) ...[
@@ -514,9 +633,19 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                 const SizedBox(height: 20),
               ],
 
+              // Review history
+              if (campaign.lichSu.isNotEmpty) ...[
+                _buildSectionTitle(
+                    'Lich su kiem duyet (${campaign.lichSu.length})'),
+                const SizedBox(height: 8),
+                ...campaign.lichSu.map(_buildHistoryItem),
+                const SizedBox(height: 20),
+              ],
+
               // Trust Eval
-              if (campaign.trustEval != null && campaign.trustEval!.isNotEmpty) ...[
-                _buildSectionTitle('Đánh giá tin cậy (AI)'),
+              if (campaign.trustEval != null &&
+                  campaign.trustEval!.isNotEmpty) ...[
+                _buildSectionTitle('Danh gia tin cay (AI)'),
                 const SizedBox(height: 8),
                 ...campaign.trustEval!.map((t) => _buildTrustEvalItem(t)),
                 const SizedBox(height: 20),
@@ -631,7 +760,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                 ),
                 Text(
                   value,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -667,7 +797,9 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
             radius: 20,
             backgroundColor: Theme.of(context).primaryColor,
             child: Text(
-              volunteer.hoTen.isNotEmpty ? volunteer.hoTen[0].toUpperCase() : '?',
+              volunteer.hoTen.isNotEmpty
+                  ? volunteer.hoTen[0].toUpperCase()
+                  : '?',
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -691,14 +823,21 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: volunteer.kyNangs.take(3).map((skill) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(skill, style: TextStyle(fontSize: 10, color: Colors.blue.shade700)),
-                    )).toList(),
+                    children: volunteer.kyNangs
+                        .take(3)
+                        .map((skill) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(skill,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.blue.shade700)),
+                            ))
+                        .toList(),
                   ),
                 ],
               ],
@@ -710,7 +849,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(volunteer.trangThai).withValues(alpha: 0.1),
+                  color: _getStatusColor(volunteer.trangThai)
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -777,7 +917,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
           ),
           if (feedback.noiDung != null && feedback.noiDung!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(feedback.noiDung!, style: TextStyle(color: Colors.grey.shade700)),
+            Text(feedback.noiDung!,
+                style: TextStyle(color: Colors.grey.shade700)),
           ],
           const SizedBox(height: 4),
           Text(
@@ -811,7 +952,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getReportStatusColor(report.trangThai).withValues(alpha: 0.1),
+                  color: _getReportStatusColor(report.trangThai)
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -829,6 +971,28 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
             '${report.nguoiGuiTen} - ${_formatDateTime(report.createdAt)}',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
+          const SizedBox(height: 8),
+          if (report.trangThai != 'da_xu_ly' && report.trangThai != 'tu_choi')
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _processReport(report, 'tu_choi'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange,
+                    side: const BorderSide(color: Colors.orange),
+                  ),
+                  child: const Text('Tu choi'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () => _processReport(report, 'da_xu_ly'),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  child: const Text('Da xu ly'),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -878,7 +1042,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
           ),
           if (eval.giaiThich != null) ...[
             const SizedBox(height: 8),
-            Text(eval.giaiThich!, style: TextStyle(color: Colors.grey.shade700)),
+            Text(eval.giaiThich!,
+                style: TextStyle(color: Colors.grey.shade700)),
           ],
           if (eval.ruiRo.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -887,14 +1052,16 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               runSpacing: 4,
               children: eval.ruiRo
                   .map((r) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.red.shade100,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           r,
-                          style: const TextStyle(fontSize: 11, color: Colors.red),
+                          style:
+                              const TextStyle(fontSize: 11, color: Colors.red),
                         ),
                       ))
                   .toList(),
@@ -903,6 +1070,129 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
         ],
       ),
     );
+  }
+
+  void _showVolunteerListModal(List<VolunteerRegistration> volunteers) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Danh sach tinh nguyen vien',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: volunteers.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final v = volunteers[index];
+                    return ListTile(
+                      title: Text(v.hoTen),
+                      subtitle: Text('\n'),
+                      isThreeLine: true,
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _getRegistrationStatusLabel(v.trangThai),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _getStatusColor(v.trangThai),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text('%', style: const TextStyle(fontSize: 11)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(ReviewHistoryItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _getHistoryLabel(item.hanhDong),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (item.taoLuc != null)
+                Text(
+                  _formatDateTime(item.taoLuc!),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+            ],
+          ),
+          if (item.nguoiThucHien != null) ...[
+            const SizedBox(height: 4),
+            Text(item.nguoiThucHien!,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+          ],
+          if (item.tuTrangThai != null || item.denTrangThai != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              ' -> ',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ],
+          if (item.ghiChu?.isNotEmpty == true) ...[
+            const SizedBox(height: 4),
+            Text(item.ghiChu!,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getHistoryLabel(String hanhDong) {
+    switch (hanhDong) {
+      case 'duyet':
+        return 'Duyet chien dich';
+      case 'tu_choi':
+        return 'Tu choi chien dich';
+      case 'duyet_huy':
+        return 'Duyet yeu cau huy';
+      case 'tu_choi_huy':
+        return 'Tu choi yeu cau huy';
+      default:
+        return hanhDong;
+    }
   }
 
   Color _getStatusColor(String status) {
@@ -958,6 +1248,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
 
   String _getRegistrationStatusLabel(String status) {
     switch (status) {
+      case 'cho_xac_nhan':
+        return 'Cho xac nhan';
       case 'da_dang_ky':
         return 'Đã đăng ký';
       case 'da_duyet':
@@ -1036,11 +1328,14 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               onChanged: (value) {
                 _searchQuery = value;
-                _loadCampaigns();
+                _searchDebounce?.cancel();
+                _searchDebounce =
+                    Timer(const Duration(milliseconds: 350), _loadCampaigns);
               },
             ),
           ),
@@ -1061,19 +1356,28 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _filterCategoryId?.toString(),
-                        hint: const Text('Loại chiến dịch', style: TextStyle(fontSize: 13)),
+                        hint: const Text('Loại chiến dịch',
+                            style: TextStyle(fontSize: 13)),
                         isExpanded: true,
                         items: [
-                          const DropdownMenuItem<String>(value: '', child: Text('Tất cả loại', style: TextStyle(fontSize: 13))),
+                          const DropdownMenuItem<String>(
+                              value: '',
+                              child: Text('Tất cả loại',
+                                  style: TextStyle(fontSize: 13))),
                           if (_filters != null)
-                            ..._filters!.loaiChienDichOptions.map((c) => DropdownMenuItem(
-                                  value: c.id.toString(),
-                                  child: Text(c.ten, style: const TextStyle(fontSize: 13)),
-                                )),
+                            ..._filters!.loaiChienDichOptions
+                                .map((c) => DropdownMenuItem(
+                                      value: c.id.toString(),
+                                      child: Text(c.ten,
+                                          style: const TextStyle(fontSize: 13)),
+                                    )),
                         ],
                         onChanged: (value) {
                           setState(() {
-                            _filterCategoryId = value != null && value.isNotEmpty ? int.tryParse(value) : null;
+                            _filterCategoryId =
+                                value != null && value.isNotEmpty
+                                    ? int.tryParse(value)
+                                    : null;
                           });
                           _loadCampaigns();
                         },
@@ -1093,18 +1397,36 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _filterPriority,
-                        hint: const Text('Mức độ ưu tiên', style: TextStyle(fontSize: 13)),
+                        hint: const Text('Mức độ ưu tiên',
+                            style: TextStyle(fontSize: 13)),
                         isExpanded: true,
                         items: const [
-                          DropdownMenuItem<String>(value: '', child: Text('Tất cả mức độ', style: TextStyle(fontSize: 13))),
-                          DropdownMenuItem<String>(value: 'khan_cap', child: Text('Khẩn cấp', style: TextStyle(fontSize: 13))),
-                          DropdownMenuItem<String>(value: 'cao', child: Text('Cao', style: TextStyle(fontSize: 13))),
-                          DropdownMenuItem<String>(value: 'trung_binh', child: Text('Trung bình', style: TextStyle(fontSize: 13))),
-                          DropdownMenuItem<String>(value: 'thap', child: Text('Thấp', style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem<String>(
+                              value: '',
+                              child: Text('Tất cả mức độ',
+                                  style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem<String>(
+                              value: 'khan_cap',
+                              child: Text('Khẩn cấp',
+                                  style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem<String>(
+                              value: 'cao',
+                              child:
+                                  Text('Cao', style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem<String>(
+                              value: 'trung_binh',
+                              child: Text('Trung bình',
+                                  style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem<String>(
+                              value: 'thap',
+                              child:
+                                  Text('Thấp', style: TextStyle(fontSize: 13))),
                         ],
                         onChanged: (value) {
                           setState(() {
-                            _filterPriority = value != null && value.isNotEmpty ? value : null;
+                            _filterPriority = value != null && value.isNotEmpty
+                                ? value
+                                : null;
                           });
                           _loadCampaigns();
                         },
@@ -1124,9 +1446,11 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+                            Icon(Icons.error_outline,
+                                size: 48, color: Colors.grey.shade400),
                             const SizedBox(height: 16),
-                            Text(_error!, style: TextStyle(color: Colors.grey.shade600)),
+                            Text(_error!,
+                                style: TextStyle(color: Colors.grey.shade600)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadData,
@@ -1140,11 +1464,14 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.flag_outlined, size: 64, color: Colors.grey.shade300),
+                                Icon(Icons.flag_outlined,
+                                    size: 64, color: Colors.grey.shade300),
                                 const SizedBox(height: 16),
                                 Text(
                                   'Không có chiến dịch nào',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 16),
                                 ),
                               ],
                             ),
@@ -1166,24 +1493,7 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
   }
 
   Widget _buildTabBadge(String tabValue) {
-    int count = 0;
-    switch (tabValue) {
-      case 'pending':
-        count = _pendingCount;
-        break;
-      case 'approved':
-        count = _approvedCount;
-        break;
-      case 'pending_cancel':
-        count = _pendingCancelCount;
-        break;
-      case 'cancelled':
-        count = _cancelledCount;
-        break;
-      case 'active':
-        count = _activeCount;
-        break;
-    }
+    final count = _tabCount(tabValue);
 
     if (count == 0) return const SizedBox.shrink();
 
@@ -1200,6 +1510,28 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
         style: const TextStyle(color: Colors.white, fontSize: 10),
       ),
     );
+  }
+
+  int _tabCount(String tabValue) {
+    switch (tabValue) {
+      case 'pending':
+        return _pendingCount;
+      case 'approved':
+        return _approvedCount;
+      case 'pending_cancel':
+        return _pendingCancelCount;
+      case 'cancelled':
+        return _cancelledCount;
+      case 'active':
+        return _activeCount;
+      case 'completed':
+        for (final s in _filters?.trangThaiOptions ?? const <StatusFilter>[]) {
+          if (s.value == 'hoan_thanh') return s.count;
+        }
+        return 0;
+      default:
+        return 0;
+    }
   }
 
   Widget _buildStatsCards() {
@@ -1297,7 +1629,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _getStatusColor(campaign.trangThai).withValues(alpha: 0.1),
+                      color: _getStatusColor(campaign.trangThai)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -1322,7 +1655,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 14, color: Colors.grey.shade500),
+                            Icon(Icons.location_on,
+                                size: 14, color: Colors.grey.shade500),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -1347,7 +1681,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                 children: [
                   _buildInfoChip(
                     icon: Icons.calendar_today,
-                    text: '${_formatDate(campaign.ngayBatDau)} - ${_formatDate(campaign.ngayKetThuc)}',
+                    text:
+                        '${_formatDate(campaign.ngayBatDau)} - ${_formatDate(campaign.ngayKetThuc)}',
                   ),
                   const SizedBox(width: 8),
                   _buildInfoChip(
@@ -1360,9 +1695,11 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(campaign.trangThai).withValues(alpha: 0.1),
+                      color: _getStatusColor(campaign.trangThai)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -1377,7 +1714,8 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                   const Spacer(),
                   if (campaign.coYeuCauHuy)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.red.shade100,
                         borderRadius: BorderRadius.circular(20),
@@ -1385,11 +1723,13 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.cancel, size: 12, color: Colors.red.shade700),
+                          Icon(Icons.cancel,
+                              size: 12, color: Colors.red.shade700),
                           const SizedBox(width: 4),
                           Text(
                             'Yêu cầu hủy',
-                            style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.red.shade700),
                           ),
                         ],
                       ),

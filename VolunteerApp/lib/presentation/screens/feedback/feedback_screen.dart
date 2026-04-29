@@ -176,8 +176,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
 
   String _formatRating(dynamic value) {
     if (value == null) return '0.0';
-    final num = (value is num) ? value.toDouble() : double.tryParse(value.toString()) ?? 0;
-    return num.toStringAsFixed(1);
+    final numericValue =
+        (value is num) ? value.toDouble() : double.tryParse(value.toString()) ?? 0;
+    return numericValue.toStringAsFixed(1);
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
@@ -851,7 +852,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(5, (i) {
                               return Icon(
-                                i < double.tryParse(avgRating)?.round() ? Icons.star : Icons.star_border,
+                                i < (double.tryParse(avgRating)?.round() ?? 0)
+                                    ? Icons.star
+                                    : Icons.star_border,
                                 size: 18,
                                 color: Colors.amber,
                               );

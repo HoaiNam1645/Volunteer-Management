@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (authProvider.isAdmin) {
         context.go('/admin');
       } else if (authProvider.isReviewer) {
-        context.go('/coordinator');
+        context.go('/reviewer/campaigns');
       } else {
         context.go('/');
       }
@@ -117,7 +117,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
-                        onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                        onFieldSubmitted: (_) =>
+                            FocusScope.of(context).nextFocus(),
                         validator: (value) {
                           final result = Validators.validateEmail(value);
                           if (result is ValidationFailure) {
@@ -144,12 +145,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                   : Icons.visibility_off_outlined,
                             ),
                             onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
+                              setState(
+                                  () => _obscurePassword = !_obscurePassword);
                             },
                           ),
                         ),
                         validator: (value) {
-                          final result = Validators.validateRequired(value, 'Mật khẩu');
+                          final result =
+                              Validators.validateRequired(value, 'Mật khẩu');
                           if (result is ValidationFailure) {
                             return result.message;
                           }
@@ -203,7 +206,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
                           width: 24,
                           height: 24,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.g_mobiledata, size: 24),
                         ),
                         label: const Text('Đăng nhập với Google'),
                         style: OutlinedButton.styleFrom(

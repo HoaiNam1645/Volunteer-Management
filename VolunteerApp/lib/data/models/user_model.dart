@@ -62,11 +62,17 @@ class User extends Equatable {
       tinhThanhId: json['tinh_thanh_id'],
       phuongXaId: json['phuong_xa_id'],
       vaiTro: json['vai_tro'] ?? 'tinh_nguyen_vien',
-      xacThucEmail: json['xac_thuc_email'] == true || json['xac_thuc_email'] == 1,
+      xacThucEmail:
+          json['xac_thuc_email'] == true || json['xac_thuc_email'] == 1,
       coMatKhau: json['co_mat_khau'] == true || json['co_mat_khau'] == 1,
-      quyenHan: List<String>.from(json['quyen_han'] ?? json['permissions'] ?? []),
-      thongKe: json['thong_ke'] != null ? UserStats.fromJson(json['thong_ke']) : null,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      quyenHan:
+          List<String>.from(json['quyen_han'] ?? json['permissions'] ?? []),
+      thongKe: json['thong_ke'] != null
+          ? UserStats.fromJson(json['thong_ke'])
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
     );
   }
 
@@ -81,32 +87,33 @@ class User extends Equatable {
       email: json['email'] ?? '',
       anhDaiDien: json['anh_dai_dien'],
       vaiTro: json['vai_tro'] ?? 'tinh_nguyen_vien',
-      xacThucEmail: json['xac_thuc_email'] == true || json['xac_thuc_email'] == 1,
+      xacThucEmail:
+          json['xac_thuc_email'] == true || json['xac_thuc_email'] == 1,
       coMatKhau: true,
       quyenHan: List<String>.from(json['quyen_han'] ?? []),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'ho_ten': hoTen,
-    'email': email,
-    'so_dien_thoai': soDienThoai,
-    'anh_dai_dien': anhDaiDien,
-    'gioi_tinh': gioiTinh,
-    'ngay_sinh': ngaySinh,
-    'so_cccd': soCccd,
-    'gioi_thieu': gioiThieu,
-    'dia_chi_duong': diaChiDuong,
-    'vi_do': viDo,
-    'kinh_do': kinhDo,
-    'tinh_thanh_id': tinhThanhId,
-    'phuong_xa_id': phuongXaId,
-    'vai_tro': vaiTro,
-    'xac_thuc_email': xacThucEmail,
-    'co_mat_khau': coMatKhau,
-    'quyen_han': quyenHan,
-  };
+        'id': id,
+        'ho_ten': hoTen,
+        'email': email,
+        'so_dien_thoai': soDienThoai,
+        'anh_dai_dien': anhDaiDien,
+        'gioi_tinh': gioiTinh,
+        'ngay_sinh': ngaySinh,
+        'so_cccd': soCccd,
+        'gioi_thieu': gioiThieu,
+        'dia_chi_duong': diaChiDuong,
+        'vi_do': viDo,
+        'kinh_do': kinhDo,
+        'tinh_thanh_id': tinhThanhId,
+        'phuong_xa_id': phuongXaId,
+        'vai_tro': vaiTro,
+        'xac_thuc_email': xacThucEmail,
+        'co_mat_khau': coMatKhau,
+        'quyen_han': quyenHan,
+      };
 
   // Alias getters for compatibility
   String get name => hoTen;
@@ -140,7 +147,8 @@ class User extends Equatable {
   String get initials {
     final parts = hoTen.trim().split(' ');
     if (parts.length >= 2) {
-      return '${parts.last[0]}${parts[parts.length > 1 ? parts.length - 2 : 0][0]}'.toUpperCase();
+      return '${parts.last[0]}${parts[parts.length > 1 ? parts.length - 2 : 0][0]}'
+          .toUpperCase();
     }
     return hoTen.isNotEmpty ? hoTen[0].toUpperCase() : '?';
   }
@@ -226,11 +234,11 @@ class CompetencyProfile extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-    'ky_nang_ids': kyNangIds,
-    'khu_vuc_ids': khuVucIds,
-    'lich_ranh': lichRanh,
-    'khung_gio_uu_tien': khungGioUuTien,
-  };
+        'ky_nang_ids': kyNangIds,
+        'khu_vuc_ids': khuVucIds,
+        'lich_ranh': lichRanh,
+        'khung_gio_uu_tien': khungGioUuTien,
+      };
 
   @override
   List<Object?> get props => [id, email];
@@ -262,12 +270,12 @@ class ExperienceItem extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-    if (id != null) 'id': id,
-    'tieu_de': tieuDe,
-    'to_chuc': toChuc,
-    'thoi_gian': thoiGian,
-    'mo_ta': moTa,
-  };
+        if (id != null) 'id': id,
+        'tieu_de': tieuDe,
+        'to_chuc': toChuc,
+        'thoi_gian': thoiGian,
+        'mo_ta': moTa,
+      };
 
   @override
   List<Object?> get props => [id, tieuDe];
@@ -322,6 +330,11 @@ class CategoryItem extends Equatable {
   final String ten;
   final String? moTa;
   final String? bieuTuong;
+  final String? mauSac;
+  final double? viDo;
+  final double? kinhDo;
+  final int nguoiDungCount;
+  final int chienDichCount;
   final bool hoatDong;
   final DateTime createdAt;
 
@@ -330,6 +343,11 @@ class CategoryItem extends Equatable {
     required this.ten,
     this.moTa,
     this.bieuTuong,
+    this.mauSac,
+    this.viDo,
+    this.kinhDo,
+    this.nguoiDungCount = 0,
+    this.chienDichCount = 0,
     this.hoatDong = true,
     required this.createdAt,
   });
@@ -347,16 +365,25 @@ class CategoryItem extends Equatable {
       ten: json['ten'] ?? '',
       moTa: json['mo_ta'],
       bieuTuong: json['bieu_tuong'],
+      mauSac: json['mau_sac'],
+      viDo: (json['vi_do'] as num?)?.toDouble(),
+      kinhDo: (json['kinh_do'] as num?)?.toDouble(),
+      nguoiDungCount: json['nguoi_dung_count'] ?? 0,
+      chienDichCount: json['chien_dich_count'] ?? 0,
       hoatDong: json['hoat_dong'] == true || json['hoat_dong'] == 1,
       createdAt: parseDate(json['created_at']),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'ten': ten,
-    if (moTa != null) 'mo_ta': moTa,
-    if (bieuTuong != null) 'bieu_tuong': bieuTuong,
-  };
+        'ten': ten,
+        if (moTa != null) 'mo_ta': moTa,
+        if (bieuTuong != null) 'bieu_tuong': bieuTuong,
+        if (mauSac != null) 'mau_sac': mauSac,
+        if (viDo != null) 'vi_do': viDo,
+        if (kinhDo != null) 'kinh_do': kinhDo,
+        'hoat_dong': hoatDong,
+      };
 
   @override
   List<Object?> get props => [id, ten];
@@ -439,10 +466,10 @@ class Skill extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-    'ten': ten,
-    if (moTa != null) 'mo_ta': moTa,
-    if (bieuTuong != null) 'bieu_tuong': bieuTuong,
-  };
+        'ten': ten,
+        if (moTa != null) 'mo_ta': moTa,
+        if (bieuTuong != null) 'bieu_tuong': bieuTuong,
+      };
 
   @override
   List<Object?> get props => [id, ten];

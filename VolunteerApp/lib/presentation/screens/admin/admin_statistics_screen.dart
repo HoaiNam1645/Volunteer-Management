@@ -57,32 +57,35 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-      body: RefreshIndicator(
-        onRefresh: _loadStats,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildKpiCards(),
-                    const SizedBox(height: 16),
-                    _buildChartSection(),
-                    const SizedBox(height: 16),
-                    _buildTopRegionsAndSkills(),
-                    const SizedBox(height: 16),
-                    _buildTrendSection(),
-                    const SizedBox(height: 16),
-                    _buildStatusDistribution(),
-                  ],
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadStats,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildKpiCards(),
+                      const SizedBox(height: 16),
+                      _buildChartSection(),
+                      const SizedBox(height: 16),
+                      _buildTopRegionsAndSkills(),
+                      const SizedBox(height: 16),
+                      _buildTrendSection(),
+                      const SizedBox(height: 16),
+                      _buildStatusDistribution(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -108,7 +111,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
               const SizedBox(width: 12),
               const Text(
                 'Thống kê',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Container(
@@ -143,7 +149,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
           const SizedBox(height: 4),
           Text(
             'Thống kê hoạt động kiểm duyệt',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
           ),
         ],
       ),
@@ -200,7 +207,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -222,7 +232,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
           ),
           Text(
             value,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF212121)),
+            style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF212121)),
           ),
           Text(
             title,
@@ -241,7 +254,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -264,7 +280,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
             SizedBox(
               height: 200,
               child: Center(
-                child: Text('Không có dữ liệu', style: TextStyle(color: Colors.grey[500])),
+                child: Text('Không có dữ liệu',
+                    style: TextStyle(color: Colors.grey[500])),
               ),
             )
           else
@@ -280,7 +297,11 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
   Widget _buildLegendItem(String label, Color color) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+        Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(3))),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
@@ -318,7 +339,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
                               height: regHeight.clamp(4, 160),
                               decoration: BoxDecoration(
                                 color: AppTheme.primaryColor,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4)),
                               ),
                             ),
                           ),
@@ -328,7 +350,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
                               height: campHeight.clamp(4, 160),
                               decoration: BoxDecoration(
                                 color: AppTheme.successColor,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4)),
                               ),
                             ),
                           ),
@@ -360,7 +383,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -388,14 +414,16 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
               color: AppTheme.primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.trending_up, color: AppTheme.primaryColor, size: 20),
+            child:
+                Icon(Icons.trending_up, color: AppTheme.primaryColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(trend.label, style: const TextStyle(fontWeight: FontWeight.w500)),
+                Text(trend.label,
+                    style: const TextStyle(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(
                   'Giá trị: ${trend.value}',
@@ -444,7 +472,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -455,13 +486,17 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          _buildStatusBar('Chờ duyệt', _stats?.pendingCampaigns ?? 0, Colors.orange),
+          _buildStatusBar(
+              'Chờ duyệt', _stats?.pendingCampaigns ?? 0, Colors.orange),
           const SizedBox(height: 8),
-          _buildStatusBar('Đã duyệt tháng này', _stats?.approvedThisMonth ?? 0, Colors.green),
+          _buildStatusBar('Đã duyệt tháng này', _stats?.approvedThisMonth ?? 0,
+              Colors.green),
           const SizedBox(height: 8),
-          _buildStatusBar('Từ chối tháng này', _stats?.rejectedThisMonth ?? 0, Colors.red),
+          _buildStatusBar(
+              'Từ chối tháng này', _stats?.rejectedThisMonth ?? 0, Colors.red),
           const SizedBox(height: 8),
-          _buildStatusBar('TNV tổng', _stats?.totalVolunteers ?? 0, Colors.blue),
+          _buildStatusBar(
+              'TNV tổng', _stats?.totalVolunteers ?? 0, Colors.blue),
         ],
       ),
     );
@@ -498,7 +533,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -508,7 +546,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
             children: [
               const Icon(Icons.location_on, size: 18, color: Colors.blue),
               const SizedBox(width: 8),
-              const Text('Top khu vực', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const Text('Top khu vực',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 12),
@@ -519,7 +558,13 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
   }
 
   Widget _buildRegionItem(TopRegion region) {
-    final colors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal];
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal
+    ];
     final index = region.name.hashCode % colors.length;
 
     return Padding(
@@ -566,7 +611,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -576,7 +624,8 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
             children: [
               const Icon(Icons.psychology, size: 18, color: Colors.purple),
               const SizedBox(width: 8),
-              const Text('Top kỹ năng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const Text('Top kỹ năng',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 12),
@@ -587,7 +636,13 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
   }
 
   Widget _buildSkillItem(TopSkill skill) {
-    final colors = [Colors.purple, Colors.blue, Colors.green, Colors.orange, Colors.teal];
+    final colors = [
+      Colors.purple,
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.teal
+    ];
     final index = skill.name.hashCode % colors.length;
 
     return Padding(
@@ -628,7 +683,10 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
   }
 
   Widget _buildStatusBar(String label, int value, Color color) {
-    final total = (_stats?.approvedThisMonth ?? 1) + (_stats?.rejectedThisMonth ?? 0) + (_stats?.pendingCampaigns ?? 0) + (_stats?.totalVolunteers ?? 1);
+    final total = (_stats?.approvedThisMonth ?? 1) +
+        (_stats?.rejectedThisMonth ?? 0) +
+        (_stats?.pendingCampaigns ?? 0) +
+        (_stats?.totalVolunteers ?? 1);
     final percent = value / total;
 
     return Column(
@@ -637,8 +695,11 @@ class _AdminStatisticsScreenState extends State<AdminStatisticsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
-            Text('$value', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(label,
+                style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+            Text('$value',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
         const SizedBox(height: 4),

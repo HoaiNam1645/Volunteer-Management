@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../data/repositories/admin_repository.dart';
-import 'trust_eval_campaign_detail_screen.dart';
 
 class TrustEvalDashboardScreen extends StatefulWidget {
   const TrustEvalDashboardScreen({super.key});
 
   @override
-  State<TrustEvalDashboardScreen> createState() => _TrustEvalDashboardScreenState();
+  State<TrustEvalDashboardScreen> createState() =>
+      _TrustEvalDashboardScreenState();
 }
 
 class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
@@ -50,7 +50,8 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
             _actionDistribution = data.byRecommendedAction;
           });
         } else {
-          setState(() => _error = statsResult.message ?? 'Không lấy được thống kê');
+          setState(
+              () => _error = statsResult.message ?? 'Không lấy được thống kê');
         }
 
         if (healthResult.success && healthResult.data != null) {
@@ -68,30 +69,35 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_health != null) _buildMlStatusBanner(),
-                    if (_health != null) const SizedBox(height: 16),
-                    _buildKpiCards(),
-                    const SizedBox(height: 16),
-                    _buildChartsRow(),
-                    const SizedBox(height: 16),
-                    _buildHighRiskTable(),
-                  ],
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_health != null) _buildMlStatusBanner(),
+                      if (_health != null) const SizedBox(height: 16),
+                      _buildKpiCards(),
+                      const SizedBox(height: 16),
+                      _buildChartsRow(),
+                      const SizedBox(height: 16),
+                      _buildActionAndSourceRow(),
+                      const SizedBox(height: 16),
+                      _buildHighRiskTable(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -117,14 +123,18 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
               const SizedBox(width: 12),
               const Text(
                 'Trust Evaluation',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Dashboard đánh giá độ tin cậy AI',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
           ),
         ],
       ),
@@ -136,14 +146,20 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: h.healthy ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+        color: h.healthy
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: h.healthy ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: h.healthy
+                ? Colors.green.withValues(alpha: 0.3)
+                : Colors.red.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
-            width: 10, height: 10,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: h.healthy ? Colors.green : Colors.red,
               shape: BoxShape.circle,
@@ -228,7 +244,12 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +265,10 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
           ),
           Text(
             value,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF212121)),
+            style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF212121)),
           ),
           Text(title, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
         ],
@@ -277,12 +301,18 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Phân bố mức rủi ro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const Text('Phân bố mức rủi ro',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 12),
           ...items.map((item) {
             final count = _riskDistribution[item.$1] ?? 0;
@@ -298,7 +328,8 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
                       Row(
                         children: [
                           Container(
-                            width: 10, height: 10,
+                            width: 10,
+                            height: 10,
                             decoration: BoxDecoration(
                               color: item.$3,
                               borderRadius: BorderRadius.circular(2),
@@ -308,7 +339,9 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
                           Text(item.$2, style: const TextStyle(fontSize: 12)),
                         ],
                       ),
-                      Text('$count (${(percent * 100).toStringAsFixed(0)}%)', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      Text('$count (${(percent * 100).toStringAsFixed(0)}%)',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600])),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -345,12 +378,18 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Phân bố mức tin cậy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const Text('Phân bố mức tin cậy',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 12),
           ...items.map((item) {
             final count = _trustDistribution[item.$1] ?? 0;
@@ -366,7 +405,8 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
                       Row(
                         children: [
                           Container(
-                            width: 10, height: 10,
+                            width: 10,
+                            height: 10,
                             decoration: BoxDecoration(
                               color: item.$3,
                               borderRadius: BorderRadius.circular(2),
@@ -376,7 +416,9 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
                           Text(item.$2, style: const TextStyle(fontSize: 12)),
                         ],
                       ),
-                      Text('$count (${(percent * 100).toStringAsFixed(0)}%)', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      Text('$count (${(percent * 100).toStringAsFixed(0)}%)',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600])),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -404,7 +446,12 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,7 +462,8 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
               const SizedBox(width: 8),
               Text(
                 'Chiến dịch cao rủi ro gần đây (${_recentHighRisk.length})',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
@@ -426,9 +474,11 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.check_circle, size: 48, color: Colors.green[300]),
+                    Icon(Icons.check_circle,
+                        size: 48, color: Colors.green[300]),
                     const SizedBox(height: 8),
-                    Text('Không có chiến dịch cao rủi ro', style: TextStyle(color: Colors.grey[600])),
+                    Text('Không có chiến dịch cao rủi ro',
+                        style: TextStyle(color: Colors.grey[600])),
                   ],
                 ),
               ),
@@ -440,6 +490,135 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
     );
   }
 
+  Widget _buildActionAndSourceRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _buildActionDistribution()),
+        const SizedBox(width: 12),
+        Expanded(child: _buildSourceDistribution()),
+      ],
+    );
+  }
+
+  Widget _buildActionDistribution() {
+    final total = _actionDistribution.values.fold(0, (a, b) => a + b);
+    const items = [
+      'APPROVE',
+      'APPROVE_WITH_NOTE',
+      'REQUEST_ADDITIONAL_INFO',
+      'REJECT'
+    ];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Recommended actions',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
+          ...items.map((action) {
+            final count = _actionDistribution[action] ?? 0;
+            if (count == 0) return const SizedBox.shrink();
+            final percent = total > 0 ? (count * 100 / total) : 0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_actionLabel(action),
+                      style: const TextStyle(fontSize: 12)),
+                  Text('$count (${percent.toStringAsFixed(0)}%)',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSourceDistribution() {
+    final source = _stats?.byEvaluationSource ?? const <String, int>{};
+    final total = source.values.fold(0, (a, b) => a + b);
+    final mlCount = source['ml_service'] ?? 0;
+    final fallbackCount = source['fallback'] ?? 0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Evaluation source',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
+          _sourceRow('ML service', mlCount, total, Colors.blue),
+          const SizedBox(height: 8),
+          _sourceRow('Fallback', fallbackCount, total, Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceRow(String label, int count, int total, Color color) {
+    final percent = total > 0 ? count / total : 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12)),
+            Text('$count (${(percent * 100).toStringAsFixed(0)}%)',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          ],
+        ),
+        const SizedBox(height: 4),
+        LinearProgressIndicator(
+          value: percent,
+          minHeight: 6,
+          backgroundColor: Colors.grey[200],
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+      ],
+    );
+  }
+
+  String _actionLabel(String action) {
+    switch (action) {
+      case 'APPROVE':
+        return 'Approve';
+      case 'APPROVE_WITH_NOTE':
+        return 'Approve with note';
+      case 'REQUEST_ADDITIONAL_INFO':
+        return 'Request info';
+      case 'REJECT':
+        return 'Reject';
+      default:
+        return action;
+    }
+  }
+
   Widget _buildHighRiskRow(HighRiskCampaign campaign) {
     final riskColor = switch (campaign.riskLevel.toUpperCase()) {
       'HIGH' => Colors.red,
@@ -449,7 +628,8 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
     };
 
     return GestureDetector(
-      onTap: () => context.push('/admin/trust-eval/campaign/${campaign.campaignId}'),
+      onTap: () =>
+          context.push('/admin/trust-eval/campaign/${campaign.campaignId}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -461,7 +641,8 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
         child: Row(
           children: [
             Container(
-              width: 8, height: 40,
+              width: 8,
+              height: 40,
               decoration: BoxDecoration(
                 color: riskColor,
                 borderRadius: BorderRadius.circular(4),
@@ -498,7 +679,11 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
                   children: [
                     Icon(Icons.warning, size: 12, color: Colors.purple),
                     SizedBox(width: 4),
-                    Text('Anomaly', style: TextStyle(fontSize: 11, color: Colors.purple, fontWeight: FontWeight.w600)),
+                    Text('Anomaly',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.purple,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -511,7 +696,10 @@ class _TrustEvalDashboardScreenState extends State<TrustEvalDashboardScreen> {
               ),
               child: Text(
                 campaign.riskLevel.toUpperCase(),
-                style: TextStyle(fontSize: 11, color: riskColor, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: riskColor,
+                    fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(width: 8),

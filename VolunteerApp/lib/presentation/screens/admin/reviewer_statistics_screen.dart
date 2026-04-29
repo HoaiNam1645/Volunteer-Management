@@ -5,7 +5,8 @@ class ReviewerStatisticsScreen extends StatefulWidget {
   const ReviewerStatisticsScreen({super.key});
 
   @override
-  State<ReviewerStatisticsScreen> createState() => _ReviewerStatisticsScreenState();
+  State<ReviewerStatisticsScreen> createState() =>
+      _ReviewerStatisticsScreenState();
 }
 
 class _ReviewerStatisticsScreenState extends State<ReviewerStatisticsScreen> {
@@ -95,9 +96,11 @@ class _ReviewerStatisticsScreenState extends State<ReviewerStatisticsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+                      Icon(Icons.error_outline,
+                          size: 48, color: Colors.grey.shade400),
                       const SizedBox(height: 16),
-                      Text(_error!, style: TextStyle(color: Colors.grey.shade600)),
+                      Text(_error!,
+                          style: TextStyle(color: Colors.grey.shade600)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadStatistics,
@@ -111,11 +114,13 @@ class _ReviewerStatisticsScreenState extends State<ReviewerStatisticsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.analytics_outlined, size: 64, color: Colors.grey.shade300),
+                          Icon(Icons.analytics_outlined,
+                              size: 64, color: Colors.grey.shade300),
                           const SizedBox(height: 16),
                           Text(
                             'Không có dữ liệu',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 16),
                           ),
                         ],
                       ),
@@ -585,7 +590,8 @@ class _ReviewerStatisticsScreenState extends State<ReviewerStatisticsScreen> {
             _stats!.topRegions.length > 5 ? 5 : _stats!.topRegions.length,
             (index) {
               final region = _stats!.topRegions[index];
-              final percent = maxVolunteers > 0 ? region.volunteers / maxVolunteers : 0.0;
+              final percent =
+                  maxVolunteers > 0 ? region.volunteers / maxVolunteers : 0.0;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -606,7 +612,8 @@ class _ReviewerStatisticsScreenState extends State<ReviewerStatisticsScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: index < 3 ? Colors.white : Colors.grey.shade600,
+                            color:
+                                index < 3 ? Colors.white : Colors.grey.shade600,
                           ),
                         ),
                       ),

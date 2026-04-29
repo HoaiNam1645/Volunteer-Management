@@ -13,6 +13,8 @@ import 'presentation/providers/registration_provider.dart';
 import 'presentation/providers/locale_provider.dart';
 import 'presentation/providers/admin_provider.dart';
 import 'presentation/providers/reviewer_provider.dart';
+import 'presentation/providers/coordinator_provider.dart';
+import 'presentation/providers/report_monitoring_provider.dart';
 import 'core/network/api_client.dart';
 
 void main() {
@@ -27,9 +29,6 @@ void main() {
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(const VolunteerApp());
 }
-
-import 'presentation/providers/coordinator_provider.dart';
-import 'presentation/providers/report_monitoring_provider.dart';
 
 class VolunteerApp extends StatelessWidget {
   const VolunteerApp({super.key});

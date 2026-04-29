@@ -5,7 +5,7 @@ import '../../providers/campaign_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/campaign_card.dart';
 import '../../widgets/common_widgets.dart';
-import '../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class CampaignListScreen extends StatefulWidget {
   const CampaignListScreen({super.key});
@@ -398,13 +398,8 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                   icon: Icons.search_off,
                   title: 'Không tìm thấy chiến dịch',
                   subtitle: 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc',
-                  action: hasActiveFilters
-                      ? TextButton.icon(
-                          onPressed: _clearAllFilters,
-                          icon: const Icon(Icons.clear_all),
-                          label: const Text('Xóa bộ lọc'),
-                        )
-                      : null,
+                  buttonText: hasActiveFilters ? 'Xóa bộ lọc' : null,
+                  onButtonPressed: hasActiveFilters ? _clearAllFilters : null,
                 ),
               )
             else ...[

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/admin_repository.dart';
@@ -13,31 +14,38 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   final AdminRepository _repo = AdminRepository();
 
   bool _isLoading = false;
-  bool _isSaving = false;
   int? _savingUserId;
+  Timer? _searchDebounce;
 
+  List<PermissionUser> _allUsers = [];
   List<PermissionUser> _users = [];
+  static const int _pageSize = 20;
+  int _currentPage = 1;
+  int _lastPage = 1;
+
   String _searchQuery = '';
   String _filterRole = '';
   String _filterMode = '';
 
   final Map<String, List<String>> _permissionGroups = {
     'Dashboard': ['dashboard.view'],
-    'User Management': ['user_management.view', 'user_management.manage'],
-    'Category Management': ['category_management.view', 'category_management.manage'],
-    'Campaign Review': ['campaign_review.view', 'campaign_review.manage'],
-    'AI Management': ['ai_management.view', 'ai_management.manage'],
+    'User': ['user_management.view', 'user_management.manage'],
+    'Category': ['category_management.view', 'category_management.manage'],
+    'Campaign': ['campaign_review.view', 'campaign_review.manage'],
+    'TrustEval': [
+      'ai_management.view',
+      'trust_eval.view',
+      'trust_eval.refresh'
+    ],
     'Statistics': ['statistics.view'],
-    'Permission Management': ['permission_management.view', 'permission_management.manage'],
+    'Permission': [
+      'permission_management.view',
+      'permission_management.manage'
+    ],
   };
 
   final Map<String, List<String>> _draftPermissions = {};
-
-  int get _totalUsers => _users.length;
-  int get _adminCount => _users.where((u) => u.vaiTro == 'quan_tri_vien').length;
-  int get _reviewerCount => _users.where((u) => u.vaiTro == 'kiem_duyet_vien').length;
-  int get _defaultCount => _users.where((u) => u.suDungMacDinh).length;
-  int get _customCount => _users.where((u) => !u.suDungMacDinh).length;
+  final Map<String, List<String>> _originalPermissions = {};
 
   @override
   void initState() {
@@ -45,483 +53,347 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     _loadUsers();
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadUsers({int page = 1}) async {
     setState(() => _isLoading = true);
-    try {
-      final result = await _repo.getPermissionUsers(
-        page: page,
-        search: _searchQuery.isNotEmpty ? _searchQuery : null,
-      );
-      if (mounted) {
-        if (result.success && result.data != null) {
-          setState(() {
-            _users = result.data!;
-            _draftPermissions.clear();
-            for (final user in _users) {
-              _draftPermissions[user.id.toString()] = List.from(user.quyenHan);
-            }
-          });
-        } else {
-          _showError(result.message ?? 'Không tải được dữ liệu');
-        }
+    final result = await _repo.getPermissionUsers(
+      search: _searchQuery.trim().isNotEmpty ? _searchQuery.trim() : null,
+      vaiTro: _filterRole.isNotEmpty ? _filterRole : null,
+      cheDoQuyen: _filterMode.isNotEmpty ? _filterMode : null,
+      phamVi: 'admin',
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      _allUsers = result.data ?? [];
+      _lastPage = (_allUsers.length / _pageSize).ceil();
+      if (_lastPage < 1) _lastPage = 1;
+      _currentPage = page.clamp(1, _lastPage);
+      _users = _sliceCurrentPage();
+      _draftPermissions.clear();
+      _originalPermissions.clear();
+      for (final user in _allUsers) {
+        final cloned = List<String>.from(user.quyenHan);
+        _draftPermissions[user.id.toString()] = cloned;
+        _originalPermissions[user.id.toString()] = List<String>.from(cloned);
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showError(String msg) {
-    if (mounted) {
+    } else {
+      _allUsers = [];
+      _users = [];
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text(result.message ?? 'Khong tai duoc du lieu'),
+            backgroundColor: Colors.red),
       );
     }
+
+    setState(() => _isLoading = false);
   }
 
-  void _showSuccess(String msg) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.green),
-      );
+  List<PermissionUser> _sliceCurrentPage() {
+    final start = (_currentPage - 1) * _pageSize;
+    if (start >= _allUsers.length) return const [];
+    final end = (start + _pageSize).clamp(0, _allUsers.length);
+    return _allUsers.sublist(start, end);
+  }
+
+  bool _isDirty(PermissionUser user) {
+    final key = user.id.toString();
+    final draft = (_draftPermissions[key] ?? const <String>[]).toSet();
+    final original = (_originalPermissions[key] ?? const <String>[]).toSet();
+    return draft.length != original.length || !draft.containsAll(original);
+  }
+
+  void _togglePermission(String userKey, String permission, bool enabled) {
+    final draft =
+        List<String>.from(_draftPermissions[userKey] ?? const <String>[]);
+    if (enabled) {
+      if (!draft.contains(permission)) draft.add(permission);
+    } else {
+      draft.remove(permission);
     }
+    setState(() => _draftPermissions[userKey] = draft);
   }
 
-  List<PermissionUser> get _filteredUsers {
-    return _users.where((u) {
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        if (!u.hoTen.toLowerCase().contains(q) && !u.email.toLowerCase().contains(q)) return false;
+  void _togglePermissionGroup(
+      String userKey, List<String> permissions, bool enabled) {
+    final draft =
+        List<String>.from(_draftPermissions[userKey] ?? const <String>[]);
+    for (final p in permissions) {
+      if (enabled) {
+        if (!draft.contains(p)) draft.add(p);
+      } else {
+        draft.remove(p);
       }
-      if (_filterRole.isNotEmpty && u.vaiTro != _filterRole) return false;
-      if (_filterMode == 'mac_dinh' && !u.suDungMacDinh) return false;
-      if (_filterMode == 'tuy_chinh' && u.suDungMacDinh) return false;
-      return true;
-    }).toList();
+    }
+    setState(() => _draftPermissions[userKey] = draft);
+  }
+
+  void _resetToDefault(PermissionUser user) {
+    setState(() => _draftPermissions[user.id.toString()] = <String>[]);
+  }
+
+  Future<void> _savePermissions(PermissionUser user) async {
+    setState(() => _savingUserId = user.id);
+    final draft = _draftPermissions[user.id.toString()] ?? const <String>[];
+    final result = await _repo.updatePermission(
+      id: user.id,
+      permissions: draft,
+      phamVi: 'admin',
+      suDungMacDinh: draft.isEmpty,
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      _originalPermissions[user.id.toString()] = List<String>.from(draft);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(result.message ?? 'Da luu quyen'),
+            backgroundColor: Colors.green),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(result.message ?? 'Luu that bai'),
+            backgroundColor: Colors.red),
+      );
+    }
+
+    setState(() => _savingUserId = null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWide = screenWidth > 600;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
-      body: RefreshIndicator(
-        onRefresh: () => _loadUsers(),
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStatsGrid(isWide),
-                    const SizedBox(height: 16),
-                    _buildLegend(),
-                    const SizedBox(height: 12),
-                    _buildFilters(isWide),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            ),
-            if (_isLoading)
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_filteredUsers.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
-                      const SizedBox(height: 16),
-                      Text('Không tìm thấy người dùng nào',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                    ],
+      backgroundColor: const Color(0xFFF5F6FA),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadUsers,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeader()),
+              SliverToBoxAdapter(child: _buildFilters()),
+              if (_isLoading)
+                const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()))
+              else if (_users.isEmpty)
+                const SliverFillRemaining(
+                    child: Center(child: Text('Khong co du lieu')))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
+                  sliver: SliverList.builder(
+                    itemCount: _users.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == _users.length) return _buildPagination();
+                      return _buildUserCard(_users[index]);
+                    },
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildUserCard(_filteredUsers[index]),
-                    childCount: _filteredUsers.length,
-                  ),
-                ),
-              ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
+    final total = _allUsers.length;
+    final defaultCount = _allUsers.where((u) => u.suDungMacDinh).length;
+    final customCount = _allUsers.where((u) => !u.suDungMacDinh).length;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.primaryColor, Color(0xFF3B6DE7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.admin_panel_settings, color: Colors.white, size: 28),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Phân quyền Kiểm duyệt',
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Quản lý quyền hạn kiểm duyệt viên',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid(bool isWide) {
-    final stats = [
-      ('Tổng tài khoản', _totalUsers.toString(), Icons.people, Colors.blue),
-      ('Kiểm duyệt viên', _reviewerCount.toString(), Icons.badge, Colors.orange),
-      ('Mặc định', _defaultCount.toString(), Icons.settings, Colors.grey),
-      ('Tùy chỉnh', _customCount.toString(), Icons.tune, Colors.green),
-    ];
-
-    if (isWide) {
-      return Row(
-        children: stats
-            .map((s) => Expanded(child: Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: _buildStatCard(s.$1, s.$2, s.$3, s.$4),
-                )))
-            .toList(),
-      );
-    }
-
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      children: stats.map((s) => _buildStatCard(s.$1, s.$2, s.$3, s.$4)).toList(),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegend() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildLegendItem('Mặc định', Colors.grey[400]!),
-          _buildLegendItem('Tùy chỉnh', AppTheme.primaryColor),
-          _buildLegendItem('Đã lưu', Colors.green),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: color),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-      ],
-    );
-  }
-
-  Widget _buildFilters(bool isWide) {
-    if (isWide) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: _buildSearchField(),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: _buildRoleFilter()),
-            const SizedBox(width: 12),
-            Expanded(child: _buildModeFilter()),
-            const SizedBox(width: 12),
-            _buildResetButton(),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-        ],
+        gradient:
+            LinearGradient(colors: [AppTheme.primaryColor, Color(0xFF3B6DE7)]),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSearchField(),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildRoleFilter()),
-              const SizedBox(width: 12),
-              Expanded(child: _buildModeFilter()),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildResetButton(),
+          const Text('Phan quyen kiem duyet',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(
+              'Tong: $total | Mac dinh: $defaultCount | Tuy chinh: $customCount',
+              style: const TextStyle(color: Colors.white70)),
         ],
       ),
     );
   }
 
-  Widget _buildSearchField() {
-    return TextField(
-      onChanged: (v) => setState(() => _searchQuery = v),
-      decoration: InputDecoration(
-        hintText: 'Tìm kiếm...',
-        prefixIcon: const Icon(Icons.search),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildRoleFilter() {
-    return DropdownButtonFormField<String>(
-      value: _filterRole.isEmpty ? null : _filterRole,
-      decoration: InputDecoration(
-        labelText: 'Vai trò',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      items: const [
-        DropdownMenuItem(value: '', child: Text('Tất cả')),
-        DropdownMenuItem(value: 'quan_tri_vien', child: Text('Quản trị')),
-        DropdownMenuItem(value: 'kiem_duyet_vien', child: Text('Kiểm duyệt')),
-      ],
-      onChanged: (v) => setState(() => _filterRole = v ?? ''),
-    );
-  }
-
-  Widget _buildModeFilter() {
-    return DropdownButtonFormField<String>(
-      value: _filterMode.isEmpty ? null : _filterMode,
-      decoration: InputDecoration(
-        labelText: 'Chế độ',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      items: const [
-        DropdownMenuItem(value: '', child: Text('Tất cả')),
-        DropdownMenuItem(value: 'mac_dinh', child: Text('Mặc định')),
-        DropdownMenuItem(value: 'tuy_chinh', child: Text('Tùy chỉnh')),
-      ],
-      onChanged: (v) => setState(() => _filterMode = v ?? ''),
-    );
-  }
-
-  Widget _buildResetButton() {
-    return OutlinedButton.icon(
-      onPressed: () => setState(() {
-        _searchQuery = '';
-        _filterRole = '';
-        _filterMode = '';
-      }),
-      icon: const Icon(Icons.refresh, size: 18),
-      label: const Text('Đặt lại'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.grey[600],
-        side: BorderSide(color: Colors.grey[300]!),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  Widget _buildFilters() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Tim theo ten/email'),
+                onChanged: (v) {
+                  _searchQuery = v;
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(const Duration(milliseconds: 350),
+                      () => _loadUsers(page: 1));
+                },
+                onSubmitted: (_) => _loadUsers(page: 1),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _filterRole.isEmpty ? null : _filterRole,
+                      decoration: const InputDecoration(labelText: 'Vai tro'),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'kiem_duyet_vien',
+                            child: Text('Kiem duyet vien')),
+                      ],
+                      onChanged: (v) => _filterRole = v ?? '',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _filterMode.isEmpty ? null : _filterMode,
+                      decoration: const InputDecoration(labelText: 'Che do'),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'mac_dinh', child: Text('Mac dinh')),
+                        DropdownMenuItem(
+                            value: 'tuy_chinh', child: Text('Tuy chinh')),
+                      ],
+                      onChanged: (v) => _filterMode = v ?? '',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                      child: OutlinedButton(
+                          onPressed: () => _loadUsers(page: 1),
+                          child: const Text('Ap dung'))),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _filterRole = '';
+                          _filterMode = '';
+                        });
+                        _loadUsers(page: 1);
+                      },
+                      child: const Text('Dat lai'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildUserCard(PermissionUser user) {
     final userKey = user.id.toString();
-    final draft = _draftPermissions[userKey] ?? List.from(user.quyenHan);
-    final isDefault = user.suDungMacDinh;
-    final isDirty = !_isListEqual(List.from(user.quyenHan), draft);
-    final isSavingThis = _savingUserId == user.id;
+    final draft = _draftPermissions[userKey] ?? const <String>[];
+    final dirty = _isDirty(user);
+    final saving = _savingUserId == user.id;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: isDirty ? Border.all(color: Colors.orange.shade300, width: 2) : null,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ExpansionTile(
+        title: Text(user.hoTen),
+        subtitle: Text(
+            '${user.email}\n${user.vaiTro} - ${user.suDungMacDinh ? 'mac dinh' : 'tuy chinh'}'),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        children: [
+          for (final entry in _permissionGroups.entries)
+            _buildPermissionGroup(entry.key, entry.value, user, draft),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed:
+                      user.suDungMacDinh ? null : () => _resetToDefault(user),
+                  child: const Text('Reset mac dinh'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: (!dirty || saving || user.suDungMacDinh)
+                      ? null
+                      : () => _savePermissions(user),
+                  child: saving
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Luu thay doi'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: CircleAvatar(
-            radius: 20,
-            backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-            child: Text(
-              user.hoTen.isNotEmpty ? user.hoTen[0].toUpperCase() : '?',
-              style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
-            ),
-          ),
-          title: Text(
-            user.hoTen,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                user.email,
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  _buildRoleBadge(user.vaiTro),
-                  const SizedBox(width: 8),
-                  _buildModeBadge(isDefault, isDirty),
-                ],
-              ),
-            ],
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isDirty && !isDefault)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${draft.length} quyền',
-                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ),
-              const SizedBox(width: 8),
-              if (isSavingThis)
-                const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-              else
-                const Icon(Icons.keyboard_arrow_down),
-            ],
-          ),
+    );
+  }
+
+  Widget _buildPermissionGroup(String group, List<String> permissions,
+      PermissionUser user, List<String> draft) {
+    final hasAll = permissions.every(draft.contains);
+    return Card(
+      color: Colors.grey[50],
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Divider(),
-            const SizedBox(height: 8),
-            ..._permissionGroups.entries.map((entry) => _buildPermissionGroup(entry.key, entry.value, user, draft)),
-            const SizedBox(height: 16),
-            if (!isDefault)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (isDirty) ...[
-                    OutlinedButton(
-                      onPressed: () => _resetToDefault(user),
-                      child: const Text('Đặt lại'),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  ElevatedButton(
-                    onPressed: isDirty ? () => _savePermissions(user, draft) : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDirty ? AppTheme.primaryColor : Colors.grey[300],
-                    ),
-                    child: Text('Lưu thay đổi', style: TextStyle(color: isDirty ? Colors.white : Colors.grey[600])),
-                  ),
-                ],
+            Row(
+              children: [
+                Expanded(
+                    child: Text(group,
+                        style: const TextStyle(fontWeight: FontWeight.w600))),
+                Checkbox(
+                  value: hasAll,
+                  onChanged: user.suDungMacDinh
+                      ? null
+                      : (v) => _togglePermissionGroup(
+                          user.id.toString(), permissions, v == true),
+                ),
+              ],
+            ),
+            for (final permission in permissions)
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(permission, style: const TextStyle(fontSize: 12)),
+                value: draft.contains(permission),
+                onChanged: user.suDungMacDinh
+                    ? null
+                    : (v) => _togglePermission(
+                        user.id.toString(), permission, v == true),
               ),
           ],
         ),
@@ -529,101 +401,34 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     );
   }
 
-  Widget _buildPermissionGroup(String label, List<String> permissions, PermissionUser user, List<String> draft) {
-    final hasAll = permissions.every((p) => draft.contains(p));
-    final hasAny = permissions.any((p) => draft.contains(p));
-    final color = user.suDungMacDinh ? Colors.grey[400]! : (hasAny ? AppTheme.primaryColor : Colors.grey[300]);
-
+  Widget _buildPagination() {
+    if (_lastPage <= 1) return const SizedBox(height: 12);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
-          Icon(
-            hasAll ? Icons.check_box : (hasAny ? Icons.indeterminate_check_box : Icons.check_box_outline_blank),
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: hasAny ? Colors.black87 : Colors.grey[500],
-                fontWeight: hasAny ? FontWeight.w500 : FontWeight.normal,
-              ),
+            child: OutlinedButton(
+              onPressed: _currentPage > 1
+                  ? () => _loadUsers(page: _currentPage - 1)
+                  : null,
+              child: const Text('Trang truoc'),
             ),
           ),
-          if (user.suDungMacDinh)
-            Text('(mặc định)', style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('$_currentPage/$_lastPage'),
+          ),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _currentPage < _lastPage
+                  ? () => _loadUsers(page: _currentPage + 1)
+                  : null,
+              child: const Text('Trang sau'),
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  Widget _buildRoleBadge(String role) {
-    final config = switch (role) {
-      'quan_tri_vien' => ('Quản trị', Colors.orange),
-      'kiem_duyet_vien' => ('Kiểm duyệt', Colors.green),
-      _ => ('TNV', Colors.blue),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: (config.$2 as Color).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        config.$1,
-        style: TextStyle(color: config.$2 as Color, fontWeight: FontWeight.w600, fontSize: 11),
-      ),
-    );
-  }
-
-  Widget _buildModeBadge(bool isDefault, bool isDirty) {
-    final label = isDefault ? 'Mặc định' : (isDirty ? 'Có thay đổi' : 'Tùy chỉnh');
-    final color = isDefault ? Colors.grey[400]! : (isDirty ? Colors.orange : AppTheme.primaryColor);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color),
-      ),
-      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 11)),
-    );
-  }
-
-  bool _isListEqual(List<String> a, List<String> b) {
-    if (a.length != b.length) return false;
-    final sa = a.toSet();
-    for (final e in b) if (!sa.contains(e)) return false;
-    return true;
-  }
-
-  void _resetToDefault(PermissionUser user) {
-    setState(() {
-      _draftPermissions[user.id.toString()] = [];
-    });
-  }
-
-  Future<void> _savePermissions(PermissionUser user, List<String> draft) async {
-    setState(() => _savingUserId = user.id);
-    try {
-      final result = await _repo.updatePermission(
-        id: user.id,
-        permissions: draft,
-        phamVi: 'admin',
-      );
-      if (mounted) {
-        if (result.success) {
-          _showSuccess(result.message ?? 'Đã lưu quyền');
-          await _loadUsers();
-        } else {
-          _showError(result.message ?? 'Lưu thất bại');
-        }
-      }
-    } finally {
-      if (mounted) setState(() => _savingUserId = null);
-    }
   }
 }

@@ -81,9 +81,10 @@ class AppRouter {
           }
         }
 
-        // Reviewer routes
-        if (path == '/coordinator' && !authProvider.isReviewer) {
-          return _getHomeRoute(authProvider);
+        // Legacy reviewer route: keep access control + canonical redirect.
+        if (path == '/coordinator') {
+          if (!authProvider.isReviewer) return _getHomeRoute(authProvider);
+          return '/reviewer/campaigns';
         }
 
         return null;
@@ -202,7 +203,10 @@ class AppRouter {
         // Admin/Reviewer routes - with AdminShell
         ShellRoute(
           navigatorKey: _adminShellNavigatorKey,
-          builder: (context, state, child) => AdminShell(child: child),
+          builder: (context, state, child) => AdminShell(
+            child: child,
+            location: state.uri.path,
+          ),
           routes: [
             GoRoute(
               path: '/admin',
@@ -296,7 +300,7 @@ class AppRouter {
 
   static String _getHomeRoute(AuthProvider authProvider) {
     if (authProvider.isAdmin) return '/admin';
-    if (authProvider.isReviewer) return '/coordinator';
+    if (authProvider.isReviewer) return '/reviewer/campaigns';
     return '/';
   }
 
