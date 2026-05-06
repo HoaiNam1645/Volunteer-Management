@@ -63,23 +63,44 @@ class RegistrationRepository {
       );
 
       final data = response.data['data'];
-      final campaigns = (data is List)
-          ? data
-          : (data['data'] as List? ?? []);
+      final List campaignsList;
+      int currentPage = page, lastPage = 1, total = 0;
+      if (data is List) {
+        campaignsList = data;
+        total = data.length;
+      } else if (data is Map<String, dynamic>) {
+        campaignsList = (data['data'] is List) ? data['data'] as List : const [];
+        if (data['current_page'] is num) currentPage = (data['current_page'] as num).toInt();
+        if (data['last_page'] is num) lastPage = (data['last_page'] as num).toInt();
+        if (data['total'] is num) total = (data['total'] as num).toInt();
+      } else {
+        campaignsList = const [];
+      }
 
-      // Map campaigns -> registrations (reuse Registration model)
-      final registrations = campaigns
-          .map((e) => Registration.fromJson(e))
-          .toList();
-
+      final registrations = campaignsList.map((e) => Registration.fromJson(e)).toList();
       return RegistrationListResult.success(
         registrations: registrations,
-        currentPage: data['current_page'] ?? page,
-        lastPage: data['last_page'] ?? 1,
-        total: data['total'] ?? 0,
+        currentPage: currentPage,
+        lastPage: lastPage,
+        total: total,
       );
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('[getMyRegistrations] error: $e\n$st');
       return RegistrationListResult.failure('Không thể tải danh sách đăng ký');
+    }
+  }
+
+  // ============ CONFIRM PARTICIPATION ============
+  Future<OperationResult> confirmParticipation(int campaignId) async {
+    try {
+      final response = await _apiClient.put(ApiEndpoints.campaignConfirm(campaignId));
+      if (response.data['status'] == 1) {
+        return OperationResult.success(response.data['message'] ?? 'Đã xác nhận tham gia');
+      }
+      return OperationResult.failure(response.data['message'] ?? 'Xác nhận thất bại');
+    } catch (e) {
+      return OperationResult.failure('Không thể xác nhận tham gia');
     }
   }
 
@@ -101,19 +122,21 @@ class RegistrationRepository {
     }
   }
 
-  // ============ SUBMIT FEEDBACK ============
+  // ============ SUBMIT FEEDBACK (đánh giá chiến dịch) ============
   Future<OperationResult> submitFeedback({
     required int chienDichId,
-    required int diem,
-    String? noiDung,
+    required int soSao,
+    String? nhanXet,
+    List<int> theIds = const [],
   }) async {
     try {
       final response = await _apiClient.post(
         ApiEndpoints.feedbackCampaign,
         data: {
           'chien_dich_id': chienDichId,
-          'diem': diem,
-          if (noiDung != null) 'noi_dung': noiDung,
+          'so_sao': soSao,
+          if (nhanXet != null && nhanXet.isNotEmpty) 'nhan_xet': nhanXet,
+          'the_ids': theIds,
         },
       );
       if (response.data['status'] == 1) {

@@ -38,6 +38,10 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.6
 
+  # Map (cho Profile address + Campaign Detail location)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

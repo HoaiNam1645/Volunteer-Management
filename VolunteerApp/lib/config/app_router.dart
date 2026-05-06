@@ -15,7 +15,6 @@ import '../presentation/screens/profile/profile_screen.dart';
 import '../presentation/screens/profile/competency_profile_screen.dart';
 import '../presentation/screens/my_campaigns/my_campaigns_screen.dart';
 import '../presentation/screens/feedback/feedback_screen.dart';
-import '../presentation/screens/coordinator/coordinator_screen.dart';
 import '../presentation/screens/coordinator/dieu_phoi_nhan_su_screen.dart';
 import '../presentation/screens/coordinator/giam_sat_bao_cao_screen.dart';
 import '../presentation/screens/report/report_screen.dart';
@@ -32,7 +31,7 @@ import '../presentation/screens/admin/trust_eval_volunteer_detail_screen.dart';
 import '../presentation/screens/admin/reviewer_campaigns_screen.dart';
 import '../presentation/screens/admin/reviewer_statistics_screen.dart';
 import '../presentation/screens/admin/admin_shell.dart';
-import '../presentation/screens/common/main_shell.dart';
+import 'package:volunteer_app/presentation/screens/common/main_shell.dart';
 import '../presentation/screens/common/terms_screen.dart';
 import '../presentation/screens/common/privacy_screen.dart';
 
@@ -74,6 +73,14 @@ class AppRouter {
           return '/login';
         }
 
+        // TNV route permission guard (menu/route parity with web)
+        if (path.startsWith('/admin') == false &&
+            path.startsWith('/reviewer') == false &&
+            !authProvider.canAccessRoute(path)) {
+          if (!isLoggedIn) return '/login';
+          return authProvider.firstAccessibleTnvRoute();
+        }
+
         // Admin routes
         if (path.startsWith('/admin')) {
           if (!authProvider.isAdminOrReviewer) {
@@ -81,7 +88,7 @@ class AppRouter {
           }
         }
 
-        // Legacy reviewer route: keep access control + canonical redirect.
+        // Legacy reviewer route: canonical redirect to the maintained flow.
         if (path == '/coordinator') {
           if (!authProvider.isReviewer) return _getHomeRoute(authProvider);
           return '/reviewer/campaigns';
@@ -182,6 +189,12 @@ class AppRouter {
                 child: GiamSatBaoCaoScreen(),
               ),
             ),
+            GoRoute(
+              path: '/competency-profile',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: CompetencyProfileScreen(),
+              ),
+            ),
           ],
         ),
 
@@ -192,12 +205,6 @@ class AppRouter {
             final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
             return CampaignDetailScreen(campaignId: id);
           },
-        ),
-
-        // Other routes - outside shell
-        GoRoute(
-          path: '/competency-profile',
-          builder: (context, state) => const CompetencyProfileScreen(),
         ),
 
         // Admin/Reviewer routes - with AdminShell
@@ -265,11 +272,6 @@ class AppRouter {
           ],
         ),
 
-        // Coordinator (Reviewer) - standalone
-        GoRoute(
-          path: '/coordinator',
-          builder: (context, state) => const CoordinatorScreen(),
-        ),
         GoRoute(
           path: '/report',
           builder: (context, state) => const ReportScreen(),
@@ -328,7 +330,6 @@ class AppRouter {
         path == '/feedback' ||
         path == '/profile' ||
         path == '/competency-profile' ||
-        path == '/coordinator' ||
         path == '/dieu-phoi-nhan-su' ||
         path == '/giam-sat-bao-cao' ||
         path == '/report' ||

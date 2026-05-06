@@ -636,7 +636,7 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
               // Review history
               if (campaign.lichSu.isNotEmpty) ...[
                 _buildSectionTitle(
-                    'Lich su kiem duyet (${campaign.lichSu.length})'),
+                    'L?ch s? ki?m duy?t (${campaign.lichSu.length})'),
                 const SizedBox(height: 8),
                 ...campaign.lichSu.map(_buildHistoryItem),
                 const SizedBox(height: 20),

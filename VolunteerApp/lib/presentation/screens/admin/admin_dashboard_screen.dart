@@ -755,7 +755,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 icon: Icons.fact_check,
                 label: 'Duyệt chiến dịch',
                 color: Colors.orange,
-                onTap: () => context.push('/coordinator'),
+                onTap: () => context.push('/reviewer/campaigns'),
               ),
             ),
             const SizedBox(width: 12),
@@ -897,3 +897,4 @@ class _DonutPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+

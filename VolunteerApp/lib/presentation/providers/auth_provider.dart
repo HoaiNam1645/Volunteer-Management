@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/network/auth_service.dart';
+import '../../config/tnv_menu_spec.dart';
 import '../../data/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -19,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isReviewer => _currentUser?.isReviewer ?? false;
   bool get isAdminOrReviewer => isAdmin || isReviewer;
   bool get canManageCampaigns => _currentUser?.canManageCampaigns ?? false;
+  bool get isVolunteer => _currentUser?.isVolunteer ?? false;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -195,6 +197,102 @@ class AuthProvider extends ChangeNotifier {
     if (result.success) {
       _currentUser = result.user;
     }
+  }
+
+  Future<void> refreshCurrentUser() async {
+    final result = await _authService.getCurrentUser();
+    if (result.success && result.user != null) {
+      _currentUser = result.user;
+      await UserStorage.saveUser(result.user!);
+      notifyListeners();
+    }
+  }
+
+  bool canAccessRoute(String path) {
+    if (TnvMenuSpec.publicGuestRoutes.contains(path) ||
+        path.startsWith('/campaign/')) {
+      return true;
+    }
+
+    if (!isLoggedIn) return false;
+    if (!isVolunteer) return true;
+
+    if (!TnvMenuSpec.protectedRoutes.contains(path)) return true;
+
+    final user = _currentUser;
+    if (user == null) return false;
+    final required = _requiredPermissionsForRoute(path);
+    if (required.isEmpty) return true;
+    return required.any(user.hasPermission);
+  }
+
+  String firstAccessibleTnvRoute() {
+    if (!isVolunteer || _currentUser == null) return '/';
+    for (final item in visibleTnvMenuTree()) {
+      if (item.path != '/') return item.path;
+    }
+    return '/';
+  }
+
+  List<TnvMenuItem> visibleTnvMenuTree() {
+    final user = _currentUser;
+    return TnvMenuSpec.topLevel
+        .map((item) => _filterVisibleNode(item, user))
+        .whereType<TnvMenuItem>()
+        .toList();
+  }
+
+  List<String> _requiredPermissionsForRoute(String path) {
+    for (final item in TnvMenuSpec.topLevel) {
+      final match = _findRoute(item, path);
+      if (match != null) return match.requiredPermissions;
+    }
+    return const [];
+  }
+
+  TnvMenuItem? _findRoute(TnvMenuItem item, String path) {
+    if (item.path == path) return item;
+    for (final child in item.children) {
+      final found = _findRoute(child, path);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  TnvMenuItem? _filterVisibleNode(TnvMenuItem item, User? user) {
+    final visibleChildren = item.children
+        .map((c) => _filterVisibleNode(c, user))
+        .whereType<TnvMenuItem>()
+        .toList();
+
+    final selfVisible = _isMenuItemVisible(item, user);
+    if (visibleChildren.isEmpty) {
+      return selfVisible
+          ? TnvMenuItem(
+              key: item.key,
+              path: item.path,
+              label: item.label,
+              requiredPermissions: item.requiredPermissions,
+              isGuestAllowed: item.isGuestAllowed,
+            )
+          : null;
+    }
+
+    return TnvMenuItem(
+      key: item.key,
+      path: visibleChildren.first.path,
+      label: item.label,
+      requiredPermissions: item.requiredPermissions,
+      isGuestAllowed: item.isGuestAllowed,
+      children: visibleChildren,
+    );
+  }
+
+  bool _isMenuItemVisible(TnvMenuItem item, User? user) {
+    if (item.isGuestAllowed) return true;
+    if (user == null) return false;
+    if (item.requiredPermissions.isEmpty) return true;
+    return item.requiredPermissions.any(user.hasPermission);
   }
 
   void clearError() {

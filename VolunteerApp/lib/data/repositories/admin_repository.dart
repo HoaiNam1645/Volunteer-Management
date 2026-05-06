@@ -3,8 +3,45 @@ import '../../core/constants/api_endpoints.dart';
 import '../../core/network/api_client.dart';
 import '../models/user_model.dart';
 
+/// Backend đôi khi trả số dạng String (vd "10.5", "0.95"). Parse an toàn để
+/// tránh `NoSuchMethodError: Class 'String' has no instance method 'toDouble'`.
+double _safeDouble(dynamic v, {double fallback = 0.0}) {
+  if (v == null) return fallback;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+double? _safeDoubleNullable(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
+int _safeInt(dynamic v, {int fallback = 0}) {
+  if (v == null) return fallback;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? fallback;
+  return fallback;
+}
+
 class AdminRepository {
   final ApiClient _apiClient = ApiClient.instance;
+
+  String _normalizeCategoryType(String type) {
+    switch (type) {
+      case 'ky_nang':
+        return 'ky-nang';
+      case 'khu_vuc':
+        return 'khu-vuc';
+      case 'loai_chien_dich':
+        return 'loai-chien-dich';
+      default:
+        return type;
+    }
+  }
 
   // ============ ADMIN DASHBOARD ============
   Future<AdminResult<DashboardData>> getDashboard(
@@ -125,6 +162,7 @@ class AdminRepository {
     required String hoTen,
     required String email,
     required String vaiTro,
+    required String trangThai,
     String? soDienThoai,
   }) async {
     try {
@@ -134,6 +172,7 @@ class AdminRepository {
           'ho_ten': hoTen,
           'email': email,
           'vai_tro': vaiTro,
+          'trang_thai': trangThai,
           if (soDienThoai != null) 'so_dien_thoai': soDienThoai,
         },
       );
@@ -307,8 +346,9 @@ class AdminRepository {
     bool? hoatDong,
   }) async {
     try {
+      final normalizedType = _normalizeCategoryType(type);
       final response = await _apiClient.post(
-        ApiEndpoints.adminCategoryCreate(type),
+        ApiEndpoints.adminCategoryCreate(normalizedType),
         data: {
           'ten': ten,
           if (moTa != null) 'mo_ta': moTa,
@@ -346,8 +386,9 @@ class AdminRepository {
     bool? hoatDong,
   }) async {
     try {
+      final normalizedType = _normalizeCategoryType(type);
       final response = await _apiClient.put(
-        ApiEndpoints.adminCategoryUpdate(type, id),
+        ApiEndpoints.adminCategoryUpdate(normalizedType, id),
         data: {
           'ten': ten,
           if (moTa != null) 'mo_ta': moTa,
@@ -376,8 +417,9 @@ class AdminRepository {
 
   Future<AdminResult<void>> deleteCategory(String type, int id) async {
     try {
+      final normalizedType = _normalizeCategoryType(type);
       final response = await _apiClient.delete(
-        ApiEndpoints.adminCategoryDelete(type, id),
+        ApiEndpoints.adminCategoryDelete(normalizedType, id),
       );
 
       if (response.data['status'] == 1) {
@@ -759,7 +801,7 @@ class TrendData {
     return TrendData(
       text: json['text'] ?? '',
       positive: json['positive'] ?? false,
-      percentChange: json['percent_change']?.toDouble(),
+      percentChange: _safeDoubleNullable(json['percent_change']),
     );
   }
 }
@@ -902,7 +944,7 @@ class TrendItem {
     return TrendItem(
       label: json['label'] ?? '',
       value: json['value'] ?? 0,
-      change: (json['change'] ?? 0).toDouble(),
+      change: _safeDouble(json['change']),
       icon: json['icon'] ?? 'fa-solid fa-chart-line',
       bgClass: json['bg_class'] ?? 'bg-primary',
     );
@@ -991,7 +1033,7 @@ class ReviewerStats {
       rejectedThisMonth: json['tu_choi_thang_nay'] ?? 0,
       totalVolunteers: json['tong_tinh_nguyen_vien'] ?? 0,
       activeCampaigns: json['chien_dich_dang_hoat_dong'] ?? 0,
-      avgReviewTime: (json['thoi_gian_duyet_trung_binh'] ?? 0).toDouble(),
+      avgReviewTime: _safeDouble(json['thoi_gian_duyet_trung_binh']),
       trends: (json['xu_huong'] as List? ?? [])
           .map((e) => TrendItem.fromJson(e))
           .toList(),
@@ -1021,7 +1063,7 @@ class TopRegion {
     return TopRegion(
       name: json['name'] ?? json['ten'] ?? '',
       count: json['count'] ?? json['so_luong'] ?? 0,
-      percent: (json['percent'] ?? 0).toDouble(),
+      percent: _safeDouble(json['percent']),
     );
   }
 }
@@ -1037,7 +1079,7 @@ class TopSkill {
     return TopSkill(
       name: json['name'] ?? json['ten'] ?? '',
       count: json['count'] ?? json['so_luong'] ?? 0,
-      percent: (json['percent'] ?? 0).toDouble(),
+      percent: _safeDouble(json['percent']),
     );
   }
 }
@@ -1173,8 +1215,8 @@ class ReviewerCampaign {
       tieuDe: json['tieu_de'] ?? '',
       moTa: json['mo_ta'] ?? '',
       diaDiem: json['dia_diem'] ?? '',
-      viDo: json['vi_do']?.toDouble(),
-      kinhDo: json['kinh_do']?.toDouble(),
+      viDo: _safeDoubleNullable(json['vi_do']),
+      kinhDo: _safeDoubleNullable(json['kinh_do']),
       ngayBatDau: json['ngay_bat_dau'] != null
           ? DateTime.parse(json['ngay_bat_dau'])
           : null,
@@ -1543,8 +1585,8 @@ class TrustEvalStats {
   factory TrustEvalStats.fromJson(Map<String, dynamic> json) {
     return TrustEvalStats(
       totalEvaluations: json['total_evaluations'] ?? 0,
-      avgTrustScore: (json['avg_trust_score'] ?? 0.0).toDouble(),
-      avgRiskScore: (json['avg_risk_score'] ?? 0.0).toDouble(),
+      avgTrustScore: _safeDouble(json['avg_trust_score']),
+      avgRiskScore: _safeDouble(json['avg_risk_score']),
       byRiskLevel: Map<String, int>.from(json['by_risk_level'] ?? {}),
       byTrustLabel: Map<String, int>.from(json['by_trust_label'] ?? {}),
       byRecommendedAction:
@@ -1580,7 +1622,7 @@ class HighRiskCampaign {
       campaignId: json['campaign_id'] ?? 0,
       tieuDe: json['tieu_de'],
       riskLevel: json['risk_level'] ?? 'UNKNOWN',
-      trustScore: json['trust_score']?.toDouble(),
+      trustScore: _safeDoubleNullable(json['trust_score']),
       isAnomaly: json['is_anomaly'] == true,
       evaluatedAt: json['evaluated_at'] != null
           ? DateTime.parse(json['evaluated_at'])
@@ -1648,13 +1690,13 @@ class CampaignTrustEval {
     return CampaignTrustEval(
       campaignId: json['campaign_id'] ?? 0,
       tieuDe: json['tieu_de'] ?? '',
-      trustScore: (json['trust_score'] ?? 0.0).toDouble(),
-      riskScore: (json['risk_score'] ?? 0.0).toDouble(),
+      trustScore: _safeDouble(json['trust_score']),
+      riskScore: _safeDouble(json['risk_score']),
       riskLevel: json['risk_level'] ?? 'UNKNOWN',
       trustLabel: json['trust_label'] ?? 'NEUTRAL',
       recommendedAction: json['recommended_action'] ?? 'APPROVE',
       isAnomaly: json['is_anomaly'] == true,
-      confidence: json['confidence']?.toDouble(),
+      confidence: _safeDoubleNullable(json['confidence']),
       validation: json['validation'] != null
           ? ValidationResult.fromJson(json['validation'])
           : null,
@@ -1662,7 +1704,7 @@ class CampaignTrustEval {
           ? ContentAnalysis.fromJson(json['content_analysis'])
           : null,
       shapValues: (json['shap_values'] as Map<String, dynamic>?)
-          ?.map((k, v) => MapEntry(k, (v ?? 0.0).toDouble())),
+          ?.map((k, v) => MapEntry(k, _safeDouble(v))),
       evaluatedAt: json['evaluated_at'] != null
           ? DateTime.parse(json['evaluated_at'])
           : null,
@@ -1722,7 +1764,7 @@ class RiskKeyword {
   factory RiskKeyword.fromJson(Map<String, dynamic> json) {
     return RiskKeyword(
       keyword: json['keyword'] ?? '',
-      score: json['score']?.toDouble(),
+      score: _safeDoubleNullable(json['score']),
       context: json['context'],
     );
   }
@@ -1814,23 +1856,23 @@ class VolunteerTrustEval {
       volunteerId: json['volunteer_id'] ?? json['id'] ?? 0,
       hoTen: json['ho_ten'] ?? json['name'] ?? '',
       email: json['email'] ?? '',
-      trustScore: (json['trust_score'] ?? 0.0).toDouble(),
-      riskScore: (json['risk_score'] ?? 0.0).toDouble(),
+      trustScore: _safeDouble(json['trust_score']),
+      riskScore: _safeDouble(json['risk_score']),
       riskLevel: json['risk_level'] ?? 'UNKNOWN',
       trustLabel: json['trust_label'] ?? 'NEUTRAL',
       recommendedAction: json['recommended_action'] ?? 'APPROVE',
       isAnomaly: json['is_anomaly'] == true,
-      confidence: json['confidence']?.toDouble(),
+      confidence: _safeDoubleNullable(json['confidence']),
       totalCampaigns: json['total_campaigns'] ?? 0,
       completedCampaigns: json['completed_campaigns'] ?? 0,
       cancelledCampaigns: json['cancelled_campaigns'] ?? 0,
-      avgFeedbackScore: (json['avg_feedback_score'] ?? 0.0).toDouble(),
+      avgFeedbackScore: _safeDouble(json['avg_feedback_score']),
       totalReports: json['total_reports'] ?? 0,
       recentCampaignEvals: (json['recent_campaign_evals'] as List? ?? [])
           .map((e) => CampaignEvalSummary.fromJson(e))
           .toList(),
       shapValues: (json['shap_values'] as Map<String, dynamic>?)
-          ?.map((k, v) => MapEntry(k, (v ?? 0.0).toDouble())),
+          ?.map((k, v) => MapEntry(k, _safeDouble(v))),
       evaluatedAt: json['evaluated_at'] != null
           ? DateTime.parse(json['evaluated_at'])
           : null,
@@ -1857,7 +1899,7 @@ class CampaignEvalSummary {
     return CampaignEvalSummary(
       campaignId: json['campaign_id'] ?? 0,
       tieuDe: json['tieu_de'] ?? json['title'],
-      trustScore: (json['trust_score'] ?? 0.0).toDouble(),
+      trustScore: _safeDouble(json['trust_score']),
       riskLevel: json['risk_level'] ?? 'UNKNOWN',
       evaluatedAt: json['evaluated_at'] != null
           ? DateTime.parse(json['evaluated_at'])

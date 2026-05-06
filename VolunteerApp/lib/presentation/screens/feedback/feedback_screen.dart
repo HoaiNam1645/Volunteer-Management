@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/helpers.dart';
-import '../../../data/models/registration_model.dart';
 import '../../providers/registration_provider.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -41,14 +40,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Theo dõi phản hồi'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryColor,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabAlignment: TabAlignment.start,
           tabs: [
             Tab(
@@ -272,13 +272,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                         ],
                       ),
                     ),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: '', child: Text('Tất cả')),
-                      const PopupMenuItem(value: 'da_dang_ky', child: Text('Đã đăng ký')),
-                      const PopupMenuItem(value: 'da_xac_nhan', child: Text('Đã xác nhận')),
-                      const PopupMenuItem(value: 'dang_tham_gia', child: Text('Đang tham gia')),
-                      const PopupMenuItem(value: 'hoan_thanh', child: Text('Hoàn thành')),
-                      const PopupMenuItem(value: 'da_huy', child: Text('Đã hủy')),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: '', child: Text('Tất cả')),
+                      PopupMenuItem(value: 'da_dang_ky', child: Text('Đã đăng ký')),
+                      PopupMenuItem(value: 'da_xac_nhan', child: Text('Đã xác nhận')),
+                      PopupMenuItem(value: 'da_duyet', child: Text('Đã duyệt')),
+                      PopupMenuItem(value: 'dang_tham_gia', child: Text('Đang tham gia')),
+                      PopupMenuItem(value: 'hoan_thanh', child: Text('Hoàn thành')),
+                      PopupMenuItem(value: 'da_huy', child: Text('Đã hủy')),
+                      PopupMenuItem(value: 'tu_choi', child: Text('Từ chối')),
                     ],
                   ),
                 ],
@@ -353,7 +355,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          campaign['nguoi_tao']?['ho_ten'] ?? '—',
+                          campaign['nguoi_tao']?['ho_ten'] ?? '-',
                           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                         ),
                       ],
@@ -369,7 +371,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      campaign['dia_diem'] ?? '—',
+                      campaign['dia_diem'] ?? '-',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -418,6 +420,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
         color = AppTheme.primaryColor;
         label = 'Đã xác nhận';
         icon = Icons.verified;
+        break;
+      case 'da_duyet':
+        color = Colors.green;
+        label = 'Đã duyệt';
+        icon = Icons.task_alt;
         break;
       case 'dang_tham_gia':
         color = Colors.orange;
@@ -488,7 +495,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
               title: const Text('Xem chi tiết'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to campaign detail
+                final cid = item['chien_dich_id'] ?? campaign['id'];
+                if (cid != null) {
+                  context.push('/campaign/$cid');
+                }
               },
             ),
             if (canFeedback)
@@ -518,9 +528,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
 
   void _showFeedbackDialog(Map<String, dynamic> item) {
     final campaign = item['chien_dich'] ?? {};
-    int selectedRating = 0;
-    final commentController = TextEditingController();
-    final selectedTags = <int>{};
+    final existing = item['phan_hoi_chien_dich'];
+    int selectedRating = (existing?['so_sao'] is num) ? (existing['so_sao'] as num).toInt() : 0;
+    final commentController = TextEditingController(
+      text: (existing?['nhan_xet'] ?? '').toString(),
+    );
+    final selectedTags = <int>{
+      ...((existing?['the_ids'] as List?) ?? const []).map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0).where((e) => e != 0),
+    };
+    final regProvider = context.read<RegistrationProvider>();
+    final tags = regProvider.feedbackTags;
 
     showModalBottomSheet(
       context: context,
@@ -533,110 +550,143 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
             right: 16,
             top: 16,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Gửi đánh giá',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      campaign['tieu_de'] ?? 'Chiến dịch',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    const Text(
+                      'Gửi đánh giá',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    Text(
-                      'Ngày: ${_formatDateRange(campaign)}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Center(child: Text('Đánh giá trải nghiệm của bạn', style: TextStyle(fontWeight: FontWeight.w600))),
-              const SizedBox(height: 8),
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (i) {
-                    return IconButton(
-                      icon: Icon(
-                        i < selectedRating ? Icons.star : Icons.star_border,
-                        size: 36,
-                        color: Colors.amber,
-                      ),
-                      onPressed: () => setModalState(() => selectedRating = i + 1),
-                    );
-                  }),
-                ),
-              ),
-              Center(
-                child: Text(
-                  _getRatingLabel(selectedRating),
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: commentController,
-                decoration: const InputDecoration(
-                  labelText: 'Nhận xét của bạn',
-                  hintText: 'Chia sẻ trải nghiệm của bạn...',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: selectedRating > 0
-                      ? () async {
-                          final provider = context.read<RegistrationProvider>();
-                          final success = await provider.submitFeedback(
-                            chienDichId: campaign['id'] ?? 0,
-                            diem: selectedRating,
-                            noiDung: commentController.text.isNotEmpty ? commentController.text : null,
-                          );
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(success ? 'Cảm ơn bạn đã đánh giá!' : 'Gửi đánh giá thất bại'),
-                                backgroundColor: success ? Colors.green : Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: AppTheme.primaryColor,
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text('Gửi đánh giá'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        campaign['tieu_de'] ?? 'Chiến dịch',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Ngày: ${_formatDateRange(campaign)}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 16),
+                const Center(child: Text('Đánh giá trải nghiệm của bạn', style: TextStyle(fontWeight: FontWeight.w600))),
+                const SizedBox(height: 8),
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) {
+                      return IconButton(
+                        icon: Icon(
+                          i < selectedRating ? Icons.star : Icons.star_border,
+                          size: 36,
+                          color: Colors.amber,
+                        ),
+                        onPressed: () => setModalState(() => selectedRating = i + 1),
+                      );
+                    }),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    _getRatingLabel(selectedRating),
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nhận xét của bạn',
+                    hintText: 'Chia sẻ trải nghiệm của bạn...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                if (tags.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Bạn muốn cải thiện điều gì?',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: tags.map((tag) {
+                      final id = tag['id'] is int ? tag['id'] as int : int.tryParse('${tag['id']}') ?? 0;
+                      final selected = selectedTags.contains(id);
+                      return FilterChip(
+                        label: Text(tag['ten']?.toString() ?? '-'),
+                        selected: selected,
+                        onSelected: (_) => setModalState(() {
+                          if (selected) {
+                            selectedTags.remove(id);
+                          } else {
+                            selectedTags.add(id);
+                          }
+                        }),
+                        selectedColor: AppTheme.primaryColor.withValues(alpha: 0.15),
+                        checkmarkColor: AppTheme.primaryColor,
+                      );
+                    }).toList(),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: selectedRating > 0
+                        ? () async {
+                            final cid = item['chien_dich_id'] ?? campaign['id'] ?? 0;
+                            final provider = context.read<RegistrationProvider>();
+                            final success = await provider.submitFeedback(
+                              chienDichId: cid is int ? cid : int.tryParse(cid.toString()) ?? 0,
+                              soSao: selectedRating,
+                              nhanXet: commentController.text.isNotEmpty ? commentController.text : null,
+                              theIds: selectedTags.toList(),
+                            );
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(success ? 'Cảm ơn bạn đã đánh giá!' : (provider.error ?? 'Gửi đánh giá thất bại')),
+                                  backgroundColor: success ? Colors.green : Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: AppTheme.primaryColor,
+                    ),
+                    child: const Text('Gửi đánh giá'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
@@ -691,7 +741,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    campaign['dia_diem'] ?? '—',
+                    campaign['dia_diem'] ?? '-',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -739,9 +789,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                     return;
                   }
 
+                  final cid = item['chien_dich_id'] ?? campaign['id'] ?? 0;
                   final provider = context.read<RegistrationProvider>();
                   final success = await provider.submitReport(
-                    chienDichId: campaign['id'] ?? 0,
+                    chienDichId: cid is int ? cid : int.tryParse(cid.toString()) ?? 0,
                     phanLoai: categoryController.text,
                     tieuDe: titleController.text,
                     noiDung: contentController.text,
@@ -750,10 +801,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(success ? 'Báo cáo đã được gửi!' : 'Gửi báo cáo thất bại'),
+                        content: Text(success ? 'Báo cáo đã được gửi!' : (provider.error ?? 'Gửi báo cáo thất bại')),
                         backgroundColor: success ? Colors.green : Colors.red,
                       ),
                     );
+                    // Switch to reports tab after successful submission
+                    if (success) {
+                      _tabController.animateTo(2);
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -790,7 +845,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
   String _formatDateRange(Map<String, dynamic> campaign) {
     final start = campaign['ngay_bat_dau'] ?? '';
     final end = campaign['ngay_ket_thuc'] ?? '';
-    if (start.isEmpty && end.isEmpty) return '—';
+    if (start.isEmpty && end.isEmpty) return '-';
     return '$start - $end';
   }
 
@@ -976,7 +1031,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
   }
 
   String _formatDateTime(String? dateTime) {
-    if (dateTime == null || dateTime.isEmpty) return '—';
+    if (dateTime == null || dateTime.isEmpty) return '-';
     return dateTime.split('T').first;
   }
 
@@ -1032,7 +1087,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${report['ten_chien_dich'] ?? '—'} - ${_formatDateTime(report['tao_luc'])}',
+                        '${report['ten_chien_dich'] ?? '-'} - ${_formatDateTime(report['tao_luc'])}',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
@@ -1047,7 +1102,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> with SingleTickerProvid
                 const Icon(Icons.category_outlined, size: 14, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(
-                  'Phân loại: ${report['phan_loai'] ?? '—'}',
+                  'Phân loại: ${report['phan_loai'] ?? '-'}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],

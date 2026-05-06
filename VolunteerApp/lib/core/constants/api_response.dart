@@ -88,10 +88,12 @@ class PaginationMeta {
 class ApiError {
   final String message;
   final Map<String, List<String>>? errors;
+  final int? statusCode;
 
   ApiError({
     required this.message,
     this.errors,
+    this.statusCode,
   });
 
   factory ApiError.fromJson(Map<String, dynamic> json) {
@@ -104,6 +106,8 @@ class ApiError {
           : null,
     );
   }
+
+  bool get isForbidden => statusCode == 403;
 
   String get fullMessage {
     if (errors == null) return message;

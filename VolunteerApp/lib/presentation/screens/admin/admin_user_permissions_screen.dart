@@ -31,29 +31,59 @@ class _AdminUserPermissionsScreenState
   String _filterMode = '';
 
   final Map<String, List<String>> _permissionGroups = {
-    'Account Center': ['account_center.view', 'account_center.manage'],
-    'Competency Profile': [
+    'account_center': ['account_center.view', 'account_center.manage'],
+    'competency_profile': [
       'competency_profile.view',
       'competency_profile.manage',
     ],
-    'Volunteer Campaigns': [
+    'volunteer_campaigns': [
       'volunteer_campaigns.view',
       'volunteer_campaigns.manage',
     ],
-    'Campaign Coordination': [
+    'campaign_coordination': [
       'campaign_coordination.view',
       'campaign_coordination.manage',
     ],
-    'Campaign Report Monitoring': [
+    'campaign_report_monitoring': [
       'campaign_report_monitoring.view',
       'campaign_report_monitoring.manage',
     ],
-    'Feedback Tracking': ['feedback_tracking.view', 'feedback_tracking.manage'],
-    'Campaign Participation': [
+    'feedback_tracking': ['feedback_tracking.view', 'feedback_tracking.manage'],
+    'campaign_participation': [
       'campaign_participation.view',
       'campaign_participation.manage',
     ],
-    'AI Recommendation': ['ai_recommendation.view', 'ai_recommendation.manage'],
+    'ai_recommendation': ['ai_recommendation.view', 'ai_recommendation.manage'],
+  };
+
+  final Map<String, String> _groupTitles = {
+    'account_center': 'Trung tâm tài khoản',
+    'competency_profile': 'Hồ sơ năng lực',
+    'volunteer_campaigns': 'Chiến dịch TNV',
+    'campaign_coordination': 'Điều phối chiến dịch',
+    'campaign_report_monitoring': 'Giám sát báo cáo',
+    'feedback_tracking': 'Theo dõi phản hồi',
+    'campaign_participation': 'Tham gia chiến dịch',
+    'ai_recommendation': 'Gợi ý AI',
+  };
+
+  final Map<String, String> _permissionLabels = {
+    'account_center.view': 'Xem',
+    'account_center.manage': 'Quản lý',
+    'competency_profile.view': 'Xem',
+    'competency_profile.manage': 'Quản lý',
+    'volunteer_campaigns.view': 'Xem',
+    'volunteer_campaigns.manage': 'Quản lý',
+    'campaign_coordination.view': 'Xem',
+    'campaign_coordination.manage': 'Quản lý',
+    'campaign_report_monitoring.view': 'Xem',
+    'campaign_report_monitoring.manage': 'Quản lý',
+    'feedback_tracking.view': 'Xem',
+    'feedback_tracking.manage': 'Quản lý',
+    'campaign_participation.view': 'Xem',
+    'campaign_participation.manage': 'Quản lý',
+    'ai_recommendation.view': 'Xem',
+    'ai_recommendation.manage': 'Quản lý',
   };
 
   final Map<String, List<String>> _draftPermissions = {};
@@ -101,7 +131,7 @@ class _AdminUserPermissionsScreenState
       _users = [];
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message ?? 'Khong tai duoc du lieu'),
+          content: Text(result.message ?? 'Không tải được dữ liệu'),
           backgroundColor: Colors.red,
         ),
       );
@@ -179,7 +209,7 @@ class _AdminUserPermissionsScreenState
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message ?? 'Luu that bai'),
+          content: Text(result.message ?? 'Lưu thất bại'),
           backgroundColor: Colors.red,
         ),
       );
@@ -206,7 +236,7 @@ class _AdminUserPermissionsScreenState
                 )
               else if (_users.isEmpty)
                 const SliverFillRemaining(
-                  child: Center(child: Text('Khong co du lieu')),
+                  child: Center(child: Text('Không có dữ liệu')),
                 )
               else
                 SliverPadding(
@@ -241,7 +271,7 @@ class _AdminUserPermissionsScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Phan quyen tinh nguyen vien',
+            'Phân quyền tình nguyện viên',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -250,7 +280,7 @@ class _AdminUserPermissionsScreenState
           ),
           const SizedBox(height: 4),
           Text(
-            'Tong: $total | Mac dinh: $defaultCount | Tuy chinh: $customCount',
+            'Tổng: $total | Mặc định: $defaultCount | Tùy chỉnh: $customCount',
             style: const TextStyle(color: Colors.white70),
           ),
         ],
@@ -269,7 +299,7 @@ class _AdminUserPermissionsScreenState
               TextField(
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: 'Tim theo ten/email',
+                  hintText: 'Tìm theo tên/email',
                 ),
                 onChanged: (v) {
                   _searchQuery = v;
@@ -284,11 +314,11 @@ class _AdminUserPermissionsScreenState
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 initialValue: _filterMode.isEmpty ? null : _filterMode,
-                decoration: const InputDecoration(labelText: 'Che do'),
+                decoration: const InputDecoration(labelText: 'Chế độ'),
                 items: const [
-                  DropdownMenuItem(value: 'mac_dinh', child: Text('Mac dinh')),
+                  DropdownMenuItem(value: 'mac_dinh', child: Text('Mặc định')),
                   DropdownMenuItem(
-                      value: 'tuy_chinh', child: Text('Tuy chinh')),
+                      value: 'tuy_chinh', child: Text('Tùy chỉnh')),
                 ],
                 onChanged: (v) => _filterMode = v ?? '',
               ),
@@ -298,7 +328,7 @@ class _AdminUserPermissionsScreenState
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => _loadUsers(page: 1),
-                      child: const Text('Ap dung'),
+                      child: const Text('Áp dụng'),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -311,7 +341,7 @@ class _AdminUserPermissionsScreenState
                         });
                         _loadUsers(page: 1);
                       },
-                      child: const Text('Dat lai'),
+                      child: const Text('Đặt lại'),
                     ),
                   ),
                 ],
@@ -334,7 +364,7 @@ class _AdminUserPermissionsScreenState
       child: ExpansionTile(
         title: Text(user.hoTen),
         subtitle: Text(
-          '${user.email}\n${user.suDungMacDinh ? 'mac dinh' : 'tuy chinh'}',
+          '${user.email}\n${user.suDungMacDinh ? 'mặc định' : 'tùy chỉnh'}',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: [
@@ -347,7 +377,7 @@ class _AdminUserPermissionsScreenState
                 child: OutlinedButton(
                   onPressed:
                       user.suDungMacDinh ? null : () => _resetToDefault(user),
-                  child: const Text('Reset mac dinh'),
+                  child: const Text('Reset mặc định'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -362,7 +392,7 @@ class _AdminUserPermissionsScreenState
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Luu thay doi'),
+                      : const Text('Lưu thay đổi'),
                 ),
               ),
             ],
@@ -379,6 +409,7 @@ class _AdminUserPermissionsScreenState
     List<String> draft,
   ) {
     final hasAll = permissions.every(draft.contains);
+    final groupTitle = _groupTitles[group] ?? group;
     return Card(
       color: Colors.grey[50],
       child: Padding(
@@ -390,7 +421,7 @@ class _AdminUserPermissionsScreenState
               children: [
                 Expanded(
                   child: Text(
-                    group,
+                    groupTitle,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -410,7 +441,10 @@ class _AdminUserPermissionsScreenState
               CheckboxListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(permission, style: const TextStyle(fontSize: 12)),
+                title: Text(
+                  _permissionLabels[permission] ?? permission,
+                  style: const TextStyle(fontSize: 12),
+                ),
                 value: draft.contains(permission),
                 onChanged: user.suDungMacDinh
                     ? null
@@ -434,7 +468,7 @@ class _AdminUserPermissionsScreenState
               onPressed: _currentPage > 1
                   ? () => _loadUsers(page: _currentPage - 1)
                   : null,
-              child: const Text('Trang truoc'),
+              child: const Text('Trang trước'),
             ),
           ),
           Padding(

@@ -23,8 +23,15 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CoordinatorProvider>().loadCampaignsForCoordination();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<CoordinatorProvider>();
+      await provider.loadCampaignsForCoordination();
+      // Auto-load coordination data for the first auto-selected campaign
+      if (provider.activeCampaign != null && _selectedCampaignId == null && mounted) {
+        final id = provider.activeCampaign!.id.toString();
+        setState(() => _selectedCampaignId = id);
+        await provider.loadCoordinationData(id);
+      }
     });
   }
 
@@ -33,11 +40,26 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
     final coordinatorProvider = context.watch<CoordinatorProvider>();
     final campaigns = coordinatorProvider.campaigns;
 
+    // Auto-sync local _selectedCampaignId với provider.activeCampaign sau frame đầu
+    // Đảm bảo dropdown + body tab hiển thị đúng campaign vừa được auto-select
+    if (_selectedCampaignId == null && coordinatorProvider.activeCampaign != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            _selectedCampaignId == null &&
+            coordinatorProvider.activeCampaign != null) {
+          final id = coordinatorProvider.activeCampaign!.id.toString();
+          setState(() => _selectedCampaignId = id);
+          coordinatorProvider.loadCoordinationData(id);
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Điều phối nhân sự'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -57,6 +79,39 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: _selectedInviteIds.isNotEmpty
+          ? SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -2))],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('Đã chọn ${_selectedInviteIds.length} TNV', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => setState(() => _selectedInviteIds.clear()),
+                      child: const Text('Xoá chọn'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: coordinatorProvider.isInviting
+                          ? null
+                          : () => _inviteVolunteers(_selectedInviteIds.toList(), coordinatorProvider),
+                      icon: coordinatorProvider.isInviting
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.send, size: 16),
+                      label: const Text('Mời tham gia'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () async {
           if (_selectedCampaignId != null) {
@@ -107,6 +162,8 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
               )
             else if (_activeTab == 'allocation')
               _buildAllocationTab(coordinatorProvider)
+            else if (_activeTab == 'risks')
+              _buildRisksTab(coordinatorProvider)
             else if (_activeTab == 'detail')
               _buildDetailTab(coordinatorProvider),
 
@@ -148,29 +205,36 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
           Row(
             children: [
               Expanded(
+                // Dùng `value:` (controlled) thay vì `initialValue:` để dropdown
+                // tự cập nhật khi state đổi (vd auto-select sau khi load xong).
+                // ignore: deprecated_member_use
                 child: DropdownButtonFormField<String>(
-                  value: _selectedCampaignId,
+                  // ignore: deprecated_member_use
+                  value: _selectedCampaignId != null &&
+                          campaigns.any((c) => c.id.toString() == _selectedCampaignId)
+                      ? _selectedCampaignId
+                      : null,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  hint: const Text('Chọn chiến dịch'),
+                  hint: Text(
+                    provider.isLoadingCampaigns
+                        ? 'Đang tải...'
+                        : (campaigns.isEmpty ? 'Chưa có chiến dịch để điều phối' : 'Chọn chiến dịch'),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   items: campaigns.map((campaign) {
                     return DropdownMenuItem(
                       value: campaign.id.toString(),
-                      child: Text(
-                        campaign.tenChienDich,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(campaign.tenChienDich, overflow: TextOverflow.ellipsis),
                     );
                   }).toList(),
                   onChanged: (value) {
+                    if (value == null) return;
                     setState(() => _selectedCampaignId = value);
-                    if (value != null) {
-                      provider.loadCoordinationData(value);
-                    }
+                    provider.loadCoordinationData(value);
                   },
                 ),
               ),
@@ -479,17 +543,11 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _buildTabButton(
-            'allocation',
-            'Danh sách',
-            Icons.list_alt,
-          ),
-          const SizedBox(width: 8),
-          _buildTabButton(
-            'detail',
-            'Chi tiết',
-            Icons.analytics,
-          ),
+          _buildTabButton('allocation', 'Danh sách', Icons.list_alt),
+          const SizedBox(width: 6),
+          _buildTabButton('risks', 'Cảnh báo', Icons.warning_amber),
+          const SizedBox(width: 6),
+          _buildTabButton('detail', 'Chi tiết', Icons.analytics),
         ],
       ),
     );
@@ -732,6 +790,55 @@ class _DieuPhoiNhanSuScreenState extends State<DieuPhoiNhanSuScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRisksTab(CoordinatorProvider provider) {
+    final risks = provider.allocationRisks;
+    if (risks.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(
+          icon: Icons.check_circle_outline,
+          title: 'Không có cảnh báo',
+          subtitle: 'Phân bổ nhân sự đang ở trạng thái tốt',
+        ),
+      );
+    }
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final risk = risks[index];
+          final code = (risk['code'] ?? risk['risk_code'] ?? '').toString();
+          final message = (risk['message'] ?? risk['ly_do'] ?? code).toString();
+          final severity = (risk['severity'] ?? risk['muc_do'] ?? 'medium').toString();
+          final color = severity == 'high'
+              ? Colors.red
+              : severity == 'low'
+                  ? Colors.amber
+                  : Colors.orange;
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: Icon(Icons.warning_amber, color: color, size: 20),
+              ),
+              title: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              subtitle: code.isEmpty ? null : Text('Mã: $code', style: const TextStyle(fontSize: 11)),
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                child: Text(
+                  severity.toUpperCase(),
+                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          );
+        },
+        childCount: risks.length,
       ),
     );
   }

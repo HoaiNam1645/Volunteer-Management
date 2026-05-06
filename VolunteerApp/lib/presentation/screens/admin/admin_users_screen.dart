@@ -99,7 +99,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'Tim kiem nguoi dung...',
+                        hintText: 'Tìm kiếm người dùng...',
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -136,9 +136,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         spacing: 8,
         runSpacing: 8,
         children: [
-          _tabChip('all', 'Tat ca (${_users.length})'),
-          _tabChip('pending', 'Cho duyet ($_pendingCount)'),
-          _tabChip('locked', 'Bi khoa ($_lockedCount)'),
+          _tabChip('all', 'Tất cả (${_users.length})'),
+          _tabChip('pending', 'Chờ duyệt ($_pendingCount)'),
+          _tabChip('locked', 'Bị khóa ($_lockedCount)'),
         ],
       ),
     );
@@ -165,13 +165,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(_error!, style: const TextStyle(color: Colors.red)),
-            TextButton(onPressed: _loadUsers, child: const Text('Thu lai')),
+            TextButton(onPressed: _loadUsers, child: const Text('Thử lại')),
           ],
         ),
       );
     }
     if (_users.isEmpty)
-      return const Center(child: Text('Khong co nguoi dung nao'));
+      return const Center(child: Text('Không có người dùng nào'));
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -214,27 +214,27 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Thong tin nguoi dung'),
+        title: const Text('Thông tin người dùng'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ho ten: ${user.hoTen}'),
+            Text('Họ tên: ${user.hoTen}'),
             Text('Email: ${user.email}'),
-            Text('Vai tro: ${user.vaiTro}'),
-            Text('Trang thai: ${user.trangThai}'),
-            Text('So dien thoai: ${user.soDienThoai ?? '-'}'),
+            Text('Vai trò: ${user.vaiTro}'),
+            Text('Trạng thái: ${user.trangThai}'),
+            Text('Số điện thoại: ${user.soDienThoai ?? '-'}'),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Dong')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _showEditDialog(user);
             },
-            child: const Text('Chinh sua'),
+            child: const Text('Chỉnh sửa'),
           ),
         ],
       ),
@@ -252,6 +252,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             hoTen: hoTen,
             email: email,
             vaiTro: vaiTro,
+            trangThai: trangThai,
             soDienThoai: soDienThoai,
           );
 
@@ -265,8 +266,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             SnackBar(
               content: Text(result.message ??
                   (result.success
-                      ? 'Cap nhat thanh cong'
-                      : 'Cap nhat that bai')),
+                      ? 'Cập nhật thành công'
+                      : 'Cập nhật thất bại')),
               backgroundColor: result.success ? null : Colors.red,
             ),
           );
@@ -280,11 +281,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xac nhan xoa'),
-        content: Text('Ban co chac muon xoa nguoi dung "${user.hoTen}"?'),
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa người dùng "${user.hoTen}"?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Huy')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -294,13 +295,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(result.message ??
-                      (result.success ? 'Xoa thanh cong' : 'Xoa that bai')),
+                      (result.success ? 'Xóa thành công' : 'Xóa thất bại')),
                   backgroundColor: result.success ? null : Colors.red,
                 ),
               );
               if (result.success) _loadUsers();
             },
-            child: const Text('Xoa'),
+            child: const Text('Xóa'),
           ),
         ],
       ),
@@ -329,7 +330,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result.message ??
-                  (result.success ? 'Tao thanh cong' : 'Tao that bai')),
+                  (result.success ? 'Tạo thành công' : 'Tạo thất bại')),
               backgroundColor: result.success ? null : Colors.red,
             ),
           );
@@ -411,21 +412,21 @@ class _UserCard extends StatelessWidget {
             }
           },
           itemBuilder: (ctx) => [
-            const PopupMenuItem(value: 'view', child: Text('Xem chi tiet')),
+            const PopupMenuItem(value: 'view', child: Text('Xem chi tiết')),
             PopupMenuItem(
               value: 'toggle_status',
               enabled: !isSelf,
               child: Text(
                 user.trangThai == 'cho_duyet'
-                    ? 'Duyet tai khoan'
+                    ? 'Duyệt tài khoản'
                     : (user.trangThai == 'hoat_dong'
-                        ? 'Khoa tai khoan'
-                        : 'Mo khoa'),
+                        ? 'Khóa tài khoản'
+                        : 'Mở khóa'),
               ),
             ),
-            const PopupMenuItem(value: 'edit', child: Text('Chinh sua')),
+            const PopupMenuItem(value: 'edit', child: Text('Chỉnh sửa')),
             PopupMenuItem(
-                value: 'delete', enabled: !isSelf, child: const Text('Xoa')),
+                value: 'delete', enabled: !isSelf, child: const Text('Xóa')),
           ],
         ),
       ),
@@ -449,7 +450,7 @@ class _RoleChip extends StatelessWidget {
         break;
       case 'kiem_duyet_vien':
         color = Colors.orange;
-        label = 'Kiem duyet';
+        label = 'Kiểm duyệt';
         break;
       default:
         color = Colors.green;
@@ -480,9 +481,9 @@ class _StatusChip extends StatelessWidget {
     };
 
     final label = switch (trangThai) {
-      'hoat_dong' => 'Hoat dong',
-      'cho_duyet' => 'Cho duyet',
-      'bi_khoa' => 'Bi khoa',
+      'hoat_dong' => 'Hoạt động',
+      'cho_duyet' => 'Chờ duyệt',
+      'bi_khoa' => 'Bị khóa',
       _ => trangThai,
     };
 
@@ -527,32 +528,32 @@ class _FilterSheetState extends State<_FilterSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Loc nguoi dung',
+          const Text('Lọc người dùng',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Vai tro'),
+            decoration: const InputDecoration(labelText: 'Vai trò'),
             value: _role,
             items: const [
-              DropdownMenuItem(value: null, child: Text('Tat ca')),
+              DropdownMenuItem(value: null, child: Text('Tất cả')),
               DropdownMenuItem(
-                  value: 'tinh_nguyen_vien', child: Text('Tinh nguyen vien')),
+                  value: 'tinh_nguyen_vien', child: Text('Tình nguyện viên')),
               DropdownMenuItem(
-                  value: 'kiem_duyet_vien', child: Text('Kiem duyet vien')),
+                  value: 'kiem_duyet_vien', child: Text('Kiểm duyệt viên')),
               DropdownMenuItem(
-                  value: 'quan_tri_vien', child: Text('Quan tri vien')),
+                  value: 'quan_tri_vien', child: Text('Quản trị viên')),
             ],
             onChanged: (v) => setState(() => _role = v),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Trang thai'),
+            decoration: const InputDecoration(labelText: 'Trạng thái'),
             value: _status,
             items: const [
-              DropdownMenuItem(value: null, child: Text('Tat ca')),
-              DropdownMenuItem(value: 'hoat_dong', child: Text('Hoat dong')),
-              DropdownMenuItem(value: 'cho_duyet', child: Text('Cho duyet')),
-              DropdownMenuItem(value: 'bi_khoa', child: Text('Bi khoa')),
+              DropdownMenuItem(value: null, child: Text('Tất cả')),
+              DropdownMenuItem(value: 'hoat_dong', child: Text('Hoạt động')),
+              DropdownMenuItem(value: 'cho_duyet', child: Text('Chờ duyệt')),
+              DropdownMenuItem(value: 'bi_khoa', child: Text('Bị khóa')),
             ],
             onChanged: (v) => setState(() => _status = v),
           ),
@@ -562,7 +563,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               widget.onApply(_role, _status);
               Navigator.pop(context);
             },
-            child: const Text('Ap dung'),
+            child: const Text('Áp dụng'),
           ),
         ],
       ),
@@ -601,7 +602,7 @@ class _UserFormDialogState extends State<_UserFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Tao nguoi dung'),
+      title: const Text('Tạo người dùng'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -610,51 +611,51 @@ class _UserFormDialogState extends State<_UserFormDialog> {
             children: [
               TextFormField(
                   controller: _hoTenController,
-                  decoration: const InputDecoration(labelText: 'Ho ten *'),
-                  validator: (v) => v?.isEmpty == true ? 'Bat buoc' : null),
+                  decoration: const InputDecoration(labelText: 'Họ tên *'),
+                  validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email *'),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) => v?.isEmpty == true ? 'Bat buoc' : null),
+                  validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _matKhauController,
-                  decoration: const InputDecoration(labelText: 'Mat khau *'),
+                  decoration: const InputDecoration(labelText: 'Mật khẩu *'),
                   obscureText: true,
-                  validator: (v) => v?.isEmpty == true ? 'Bat buoc' : null),
+                  validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _soDtController,
-                  decoration: const InputDecoration(labelText: 'So dien thoai'),
+                  decoration: const InputDecoration(labelText: 'Số điện thoại'),
                   keyboardType: TextInputType.phone),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Vai tro *'),
+                decoration: const InputDecoration(labelText: 'Vai trò *'),
                 value: _vaiTro,
                 items: const [
                   DropdownMenuItem(
                       value: 'tinh_nguyen_vien',
-                      child: Text('Tinh nguyen vien')),
+                      child: Text('Tình nguyện viên')),
                   DropdownMenuItem(
-                      value: 'kiem_duyet_vien', child: Text('Kiem duyet vien')),
+                      value: 'kiem_duyet_vien', child: Text('Kiểm duyệt viên')),
                   DropdownMenuItem(
-                      value: 'quan_tri_vien', child: Text('Quan tri vien')),
+                      value: 'quan_tri_vien', child: Text('Quản trị viên')),
                 ],
                 onChanged: (v) =>
                     setState(() => _vaiTro = v ?? 'tinh_nguyen_vien'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Trang thai *'),
+                decoration: const InputDecoration(labelText: 'Trạng thái *'),
                 value: _trangThai,
                 items: const [
                   DropdownMenuItem(
-                      value: 'hoat_dong', child: Text('Hoat dong')),
+                      value: 'hoat_dong', child: Text('Hoạt động')),
                   DropdownMenuItem(
-                      value: 'cho_duyet', child: Text('Cho duyet')),
-                  DropdownMenuItem(value: 'bi_khoa', child: Text('Bi khoa')),
+                      value: 'cho_duyet', child: Text('Chờ duyệt')),
+                  DropdownMenuItem(value: 'bi_khoa', child: Text('Bị khóa')),
                 ],
                 onChanged: (v) => setState(() => _trangThai = v ?? 'hoat_dong'),
               ),
@@ -664,7 +665,7 @@ class _UserFormDialogState extends State<_UserFormDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context), child: const Text('Huy')),
+            onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
@@ -678,7 +679,7 @@ class _UserFormDialogState extends State<_UserFormDialog> {
               );
             }
           },
-          child: const Text('Tao'),
+          child: const Text('Tạo'),
         ),
       ],
     );
@@ -726,7 +727,7 @@ class _UserEditDialogState extends State<_UserEditDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Chinh sua nguoi dung'),
+      title: const Text('Chỉnh sửa người dùng'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -735,44 +736,44 @@ class _UserEditDialogState extends State<_UserEditDialog> {
             children: [
               TextFormField(
                   controller: _hoTenController,
-                  decoration: const InputDecoration(labelText: 'Ho ten *'),
-                  validator: (v) => v?.isEmpty == true ? 'Bat buoc' : null),
+                  decoration: const InputDecoration(labelText: 'Họ tên *'),
+                  validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email *'),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) => v?.isEmpty == true ? 'Bat buoc' : null),
+                  validator: (v) => v?.isEmpty == true ? 'Bắt buộc' : null),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _soDtController,
-                  decoration: const InputDecoration(labelText: 'So dien thoai'),
+                  decoration: const InputDecoration(labelText: 'Số điện thoại'),
                   keyboardType: TextInputType.phone),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Vai tro *'),
+                decoration: const InputDecoration(labelText: 'Vai trò *'),
                 value: _vaiTro,
                 items: const [
                   DropdownMenuItem(
                       value: 'tinh_nguyen_vien',
-                      child: Text('Tinh nguyen vien')),
+                      child: Text('Tình nguyện viên')),
                   DropdownMenuItem(
-                      value: 'kiem_duyet_vien', child: Text('Kiem duyet vien')),
+                      value: 'kiem_duyet_vien', child: Text('Kiểm duyệt viên')),
                   DropdownMenuItem(
-                      value: 'quan_tri_vien', child: Text('Quan tri vien')),
+                      value: 'quan_tri_vien', child: Text('Quản trị viên')),
                 ],
                 onChanged: (v) => setState(() => _vaiTro = v ?? _vaiTro),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Trang thai *'),
+                decoration: const InputDecoration(labelText: 'Trạng thái *'),
                 value: _trangThai,
                 items: const [
                   DropdownMenuItem(
-                      value: 'hoat_dong', child: Text('Hoat dong')),
+                      value: 'hoat_dong', child: Text('Hoạt động')),
                   DropdownMenuItem(
-                      value: 'cho_duyet', child: Text('Cho duyet')),
-                  DropdownMenuItem(value: 'bi_khoa', child: Text('Bi khoa')),
+                      value: 'cho_duyet', child: Text('Chờ duyệt')),
+                  DropdownMenuItem(value: 'bi_khoa', child: Text('Bị khóa')),
                 ],
                 onChanged: (v) => setState(() => _trangThai = v ?? _trangThai),
               ),
@@ -782,7 +783,7 @@ class _UserEditDialogState extends State<_UserEditDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context), child: const Text('Huy')),
+            onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
@@ -795,7 +796,7 @@ class _UserEditDialogState extends State<_UserEditDialog> {
               );
             }
           },
-          child: const Text('Luu'),
+          child: const Text('Lưu'),
         ),
       ],
     );

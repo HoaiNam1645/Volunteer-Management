@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/campaign_provider.dart';
 import '../../widgets/campaign_card.dart';
 import '../../widgets/common_widgets.dart';
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/campaign_model.dart';
+import '../../../data/repositories/campaign_repository.dart';
 
 class MyCampaignsScreen extends StatefulWidget {
   const MyCampaignsScreen({super.key});
@@ -106,7 +111,8 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Chiến dịch của tôi'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -816,6 +822,19 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
       ));
     }
 
+    if (campaign.trangThai == 'da_duyet' || campaign.trangThai == 'dang_dien_ra') {
+      items.add(const PopupMenuItem(
+        value: 'cancel',
+        child: Row(
+          children: [
+            Icon(Icons.cancel_outlined, size: 20, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Hủy chiến dịch', style: TextStyle(color: Colors.orange)),
+          ],
+        ),
+      ));
+    }
+
     if (campaign.trangThai == 'cho_duyet' || campaign.trangThai == 'da_duyet') {
       items.add(const PopupMenuItem(
         value: 'delete',
@@ -887,9 +906,57 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
       case 'complete':
         await _confirmCompleteCampaign(campaign);
         break;
+      case 'cancel':
+        await _confirmCancelCampaign(campaign);
+        break;
       case 'delete':
         await _confirmDeleteCampaign(campaign);
         break;
+    }
+  }
+
+  Future<void> _confirmCancelCampaign(dynamic campaign) async {
+    final reasonCtl = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hủy chiến dịch'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Bạn sắp hủy chiến dịch "${campaign.tenChienDich}". Vui lòng cho biết lý do:', style: const TextStyle(fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtl,
+              maxLines: 3,
+              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Lý do hủy...'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonCtl.text.trim().isEmpty) return;
+              Navigator.pop(ctx, reasonCtl.text.trim());
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Hủy chiến dịch', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (reason == null || !mounted) return;
+    final provider = context.read<CampaignProvider>();
+    final success = await provider.cancelCampaign(campaign.id, reason);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Đã hủy chiến dịch' : (provider.error ?? 'Hủy thất bại')),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+      if (success) provider.loadMyCampaigns(refresh: true);
     }
   }
 
@@ -1145,13 +1212,16 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
   DateTime? _endDate;
   bool _isLoading = false;
 
-  final List<Map<String, dynamic>> _categories = [
-    {'value': 'giao-duc', 'label': 'Giáo dục'},
-    {'value': 'y-te', 'label': 'Y tế'},
-    {'value': 'moi-truong', 'label': 'Môi trường'},
-    {'value': 'xa-hoi', 'label': 'Xã hội'},
-    {'value': 'van-hoa', 'label': 'Văn hóa'},
-  ];
+  // Loại chiến dịch sẽ load từ /danh-muc/loai-chien-dich
+  List<Map<String, dynamic>> _categories = const [];
+
+  // Image upload state — match FE: cover bắt buộc + ≥3 ảnh detail
+  File? _coverImageFile;
+  String? _existingCoverImageUrl;
+  final List<File> _detailImageFiles = [];
+  final List<String> _existingDetailImageUrls = [];
+  String? _imageError;
+  final ImagePicker _picker = ImagePicker();
 
   final List<Map<String, dynamic>> _priorities = [
     {'value': '1', 'label': 'Khẩn cấp', 'color': Colors.red},
@@ -1171,7 +1241,260 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
       _maxController.text = widget.editCampaign.soLuongToiDa.toString();
       _startDate = widget.editCampaign.ngayBatDau;
       _endDate = widget.editCampaign.ngayKetThuc;
+      _selectedCategory = widget.editCampaign.loaiChienDich;
+      _selectedPriority = widget.editCampaign.mucDoKhanCap?.toString();
+      // Load existing images: ảnh đầu là cover, còn lại là detail
+      final imgs = (widget.editCampaign.images as List?) ?? const [];
+      if (imgs.isNotEmpty) {
+        _existingCoverImageUrl = imgs.first.toString();
+        _existingDetailImageUrls.addAll(imgs.skip(1).map((e) => e.toString()));
+      }
     }
+    _loadCategories();
+  }
+
+  Widget _buildImageSection() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _imageError != null ? Colors.red : Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.image, color: AppTheme.primaryColor, size: 18),
+              SizedBox(width: 8),
+              Text('Hình ảnh chiến dịch *', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Cần 1 ảnh bìa và tối thiểu 3 ảnh mô tả',
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 12),
+          // Cover image
+          const Text('Ảnh bìa *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          _buildCoverPreview(),
+          const SizedBox(height: 16),
+          // Detail images
+          Row(
+            children: [
+              const Text('Ảnh mô tả *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _totalDetailCount >= 3 ? Colors.green[50] : Colors.orange[50],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$_totalDetailCount/≥3',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _totalDetailCount >= 3 ? Colors.green[700] : Colors.orange[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _buildDetailImagesGrid(),
+          if (_imageError != null) ...[
+            const SizedBox(height: 8),
+            Text(_imageError!, style: const TextStyle(color: Colors.red, fontSize: 11)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoverPreview() {
+    if (_coverImageFile != null) {
+      return _imageTile(
+        image: Image.file(_coverImageFile!, fit: BoxFit.cover),
+        onRemove: _removeCoverImage,
+      );
+    }
+    if (_existingCoverImageUrl != null && _existingCoverImageUrl!.isNotEmpty) {
+      return _imageTile(
+        image: Image.network(_existingCoverImageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+        onRemove: _removeCoverImage,
+      );
+    }
+    return InkWell(
+      onTap: _pickCoverImage,
+      child: Container(
+        height: 120,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey, style: BorderStyle.solid, width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_photo_alternate, size: 32, color: Colors.grey),
+            SizedBox(height: 4),
+            Text('Bấm để chọn ảnh bìa', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _imageTile({required Widget image, required VoidCallback onRemove}) {
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.grey[200]),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(width: double.infinity, height: double.infinity, child: image),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: InkWell(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.close, color: Colors.white, size: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailImagesGrid() {
+    final tiles = <Widget>[];
+    for (var i = 0; i < _existingDetailImageUrls.length; i++) {
+      final url = _existingDetailImageUrls[i];
+      tiles.add(_smallTile(
+        image: Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+        onRemove: () => _removeDetailImage(urlIndex: i),
+      ));
+    }
+    for (var i = 0; i < _detailImageFiles.length; i++) {
+      tiles.add(_smallTile(
+        image: Image.file(_detailImageFiles[i], fit: BoxFit.cover),
+        onRemove: () => _removeDetailImage(fileIndex: i),
+      ));
+    }
+    tiles.add(InkWell(
+      onTap: _pickDetailImages,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add, color: Colors.grey),
+            SizedBox(height: 2),
+            Text('Thêm', style: TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
+      ),
+    ));
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
+      children: tiles,
+    );
+  }
+
+  Widget _smallTile({required Widget image, required VoidCallback onRemove}) {
+    return Container(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: Colors.grey[200]),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(width: double.infinity, height: double.infinity, child: image),
+          ),
+          Positioned(
+            top: 2,
+            right: 2,
+            child: InkWell(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.close, color: Colors.white, size: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickCoverImage() async {
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+      if (picked != null) {
+        setState(() {
+          _coverImageFile = File(picked.path);
+          _existingCoverImageUrl = null;
+          _imageError = null;
+        });
+      }
+    } catch (_) {/* ignore */}
+  }
+
+  Future<void> _pickDetailImages() async {
+    try {
+      final picked = await _picker.pickMultiImage(maxWidth: 1600, imageQuality: 85);
+      if (picked.isNotEmpty) {
+        setState(() {
+          _detailImageFiles.addAll(picked.map((x) => File(x.path)));
+          _imageError = null;
+        });
+      }
+    } catch (_) {/* ignore */}
+  }
+
+  void _removeCoverImage() {
+    setState(() {
+      _coverImageFile = null;
+      _existingCoverImageUrl = null;
+    });
+  }
+
+  void _removeDetailImage({int? fileIndex, int? urlIndex}) {
+    setState(() {
+      if (fileIndex != null) _detailImageFiles.removeAt(fileIndex);
+      if (urlIndex != null) _existingDetailImageUrls.removeAt(urlIndex);
+    });
+  }
+
+  int get _totalDetailCount => _detailImageFiles.length + _existingDetailImageUrls.length;
+
+  Future<void> _loadCategories() async {
+    try {
+      final res = await ApiClient.instance.get(ApiEndpoints.categoryCampaignTypes);
+      final list = (res.data['data'] as List? ?? [])
+          .map((e) => {
+                'value': e['id'].toString(),
+                'label': (e['ten'] ?? '').toString(),
+              })
+          .toList();
+      if (mounted) setState(() => _categories = list);
+    } catch (_) {/* silent */}
   }
 
   @override
@@ -1205,30 +1528,72 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    // Validate images giống FE: cover bắt buộc + ≥3 ảnh detail
+    final hasCover = _coverImageFile != null || (_existingCoverImageUrl?.isNotEmpty ?? false);
+    if (!hasCover) {
+      setState(() => _imageError = 'Vui lòng chọn ảnh bìa cho chiến dịch.');
+      return;
+    }
+    if (_totalDetailCount < 3) {
+      setState(() => _imageError = 'Vui lòng chọn tối thiểu 3 ảnh mô tả chiến dịch.');
+      return;
+    }
+    if (_startDate == null || _endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chọn ngày bắt đầu và kết thúc')),
+      );
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _imageError = null;
+    });
 
     try {
-      final provider = context.read<CampaignProvider>();
-      bool success;
+      final repo = CampaignRepository();
+      // Tổng existing images (giữ lại khi update): cover URL + detail URLs
+      final existingUrls = <String>[
+        if (_coverImageFile == null && (_existingCoverImageUrl?.isNotEmpty ?? false))
+          _existingCoverImageUrl!,
+        ..._existingDetailImageUrls,
+      ];
+      final priorityCode = const {
+        '1': 'khan_cap',
+        '2': 'cao',
+        '3': 'trung_binh',
+        '4': 'thap',
+      }[_selectedPriority ?? '3'] ?? 'trung_binh';
 
-      if (widget.editCampaign != null) {
-        success = await provider.updateCampaign(
-          widget.editCampaign.id,
-          _buildCampaign(),
-        );
-      } else {
-        final result = await provider.createCampaign(_buildCampaign());
-        success = result != null;
-      }
+      final result = await repo.saveCampaignMultipart(
+        id: widget.editCampaign?.id,
+        tieuDe: _titleController.text.trim(),
+        moTa: _descriptionController.text.trim(),
+        loaiChienDichId: int.tryParse(_selectedCategory ?? ''),
+        diaDiem: _locationController.text.trim(),
+        ngayBatDau: _startDate!,
+        ngayKetThuc: _endDate!,
+        soLuongToiThieu: int.tryParse(_minController.text) ?? 1,
+        soLuongToiDa: int.tryParse(_maxController.text) ?? 50,
+        mucDoUuTien: priorityCode,
+        coverImageFile: _coverImageFile,
+        detailImageFiles: _detailImageFiles,
+        existingImageUrls: existingUrls,
+      );
 
-      if (success && mounted) {
+      if (result.success && mounted) {
+        // Reload my campaigns list
+        await context.read<CampaignProvider>().loadMyCampaigns(refresh: true);
+        if (!mounted) return;
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(widget.editCampaign != null ? 'Cập nhật thành công!' : 'Tạo chiến dịch thành công!')),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.editCampaign != null
-                ? 'Cập nhật chiến dịch thành công!'
-                : 'Tạo chiến dịch thành công!'),
+            content: Text(result.message ?? 'Lưu thất bại'),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -1240,15 +1605,17 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
   Campaign _buildCampaign() {
     return Campaign(
       id: widget.editCampaign?.id ?? 0,
-      tenChienDich: _titleController.text,
-      moTa: _descriptionController.text,
-      diaDiem: _locationController.text,
+      tenChienDich: _titleController.text.trim(),
+      moTa: _descriptionController.text.trim(),
+      diaDiem: _locationController.text.trim(),
       ngayBatDau: _startDate ?? DateTime.now(),
       ngayKetThuc: _endDate ?? DateTime.now().add(const Duration(days: 7)),
       soLuongToiThieu: int.tryParse(_minController.text) ?? 10,
       soLuongToiDa: int.tryParse(_maxController.text) ?? 100,
       soLuongHienTai: widget.editCampaign?.soLuongHienTai ?? 0,
       trangThai: 'cho_duyet',
+      loaiChienDich: _selectedCategory, // Sẽ được serialize thành loai_chien_dich_id
+      mucDoKhanCap: int.tryParse(_selectedPriority ?? '3') ?? 3,
       createdAt: DateTime.now(),
     );
   }
@@ -1450,7 +1817,11 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+
+                    // Image upload section
+                    _buildImageSection(),
+                    const SizedBox(height: 24),
 
                     // Submit button
                     SizedBox(

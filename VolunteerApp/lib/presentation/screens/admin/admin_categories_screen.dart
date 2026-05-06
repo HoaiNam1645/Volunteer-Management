@@ -58,11 +58,11 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen>
   String _typeLabel(String type) {
     switch (type) {
       case 'ky_nang':
-        return 'Ky nang';
+        return 'K? n?ng';
       case 'khu_vuc':
-        return 'Khu vuc';
+        return 'Khu v?c';
       case 'loai_chien_dich':
-        return 'Loai chien dich';
+        return 'Lo?i chi?n d?ch';
       default:
         return type;
     }
@@ -72,7 +72,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quan ly danh muc'),
+        title: const Text('Qu?n l? danh m?c'),
         bottom: TabBar(
           controller: _tabController,
           tabs: _categoryTypes.map((t) => Tab(text: _typeLabel(t))).toList(),
@@ -92,7 +92,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen>
                       Text(_error!, style: const TextStyle(color: Colors.red)),
                       TextButton(
                           onPressed: _loadCategories,
-                          child: const Text('Thu lai')),
+                          child: const Text('Th? l?i')),
                     ],
                   ),
                 )
@@ -142,7 +142,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result.message ??
-                  (result.success ? 'Tao thanh cong' : 'Tao that bai')),
+                  (result.success ? 'T?o th?nh c?ng' : 'T?o th?t b?i')),
               backgroundColor: result.success ? null : Colors.red,
             ),
           );
@@ -184,8 +184,8 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen>
             SnackBar(
               content: Text(result.message ??
                   (result.success
-                      ? 'Cap nhat thanh cong'
-                      : 'Cap nhat that bai')),
+                      ? 'C?p nh?t th?nh c?ng'
+                      : 'C?p nh?t th?t b?i')),
               backgroundColor: result.success ? null : Colors.red,
             ),
           );
@@ -199,16 +199,16 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xoa danh muc'),
-        content: const Text('Ban co chac muon xoa danh muc nay?'),
+        title: const Text('X?a danh m?c'),
+        content: const Text('B?n c? ch?c mu?n x?a danh m?c n?y?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huy')),
+              child: const Text('H?y')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xoa'),
+            child: const Text('X?a'),
           ),
         ],
       ),
@@ -257,7 +257,7 @@ class _CategoryList extends StatelessWidget {
           child: TextField(
             onChanged: onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Tim theo ten...',
+              hintText: 'Tìm theo tên...',
               prefixIcon: const Icon(Icons.search),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -266,7 +266,7 @@ class _CategoryList extends StatelessWidget {
         ),
         Expanded(
           child: filtered.isEmpty
-              ? const Center(child: Text('Chua co danh muc nao'))
+              ? const Center(child: Text('Ch?a c? danh m?c n?o'))
               : RefreshIndicator(
                   onRefresh: () async => onRefresh(),
                   child: ListView.builder(
@@ -404,8 +404,8 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.initialData == null
-          ? 'Them ${_typeLabel(widget.type)}'
-          : 'Sua ${_typeLabel(widget.type)}'),
+          ? 'Th?m ${_typeLabel(widget.type)}'
+          : 'S?a ${_typeLabel(widget.type)}'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -414,13 +414,13 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
             children: [
               TextFormField(
                 controller: _tenController,
-                decoration: const InputDecoration(labelText: 'Ten *'),
-                validator: (v) => v?.isEmpty == true ? 'Bat buoc' : null,
+                decoration: const InputDecoration(labelText: 'T?n *'),
+                validator: (v) => v?.isEmpty == true ? 'B?t bu?c' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _moTaController,
-                decoration: const InputDecoration(labelText: 'Mo ta'),
+                decoration: const InputDecoration(labelText: 'M? t?'),
                 maxLines: 2,
               ),
               if (widget.type == 'ky_nang' ||
@@ -428,7 +428,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _iconController,
-                  decoration: const InputDecoration(labelText: 'Bieu tuong'),
+                  decoration: const InputDecoration(labelText: 'Bi?u t??ng'),
                 ),
               ],
               if (widget.type == 'khu_vuc') ...[
@@ -438,7 +438,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _viDoController,
-                        decoration: const InputDecoration(labelText: 'Vi do'),
+                        decoration: const InputDecoration(labelText: 'V? ??'),
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                       ),
@@ -447,7 +447,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _kinhDoController,
-                        decoration: const InputDecoration(labelText: 'Kinh do'),
+                        decoration: const InputDecoration(labelText: 'Kinh ??'),
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                       ),
@@ -459,13 +459,13 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _mauSacController,
-                  decoration: const InputDecoration(labelText: 'Mau sac HEX'),
+                  decoration: const InputDecoration(labelText: 'M?u s?c HEX'),
                 ),
               ],
               const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Hoat dong'),
+                title: const Text('Ho?t ??ng'),
                 value: _hoatDong,
                 onChanged: (v) => setState(() => _hoatDong = v),
               ),
@@ -475,7 +475,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context), child: const Text('Huy')),
+            onPressed: () => Navigator.pop(context), child: const Text('H?y')),
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
@@ -502,7 +502,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
               );
             }
           },
-          child: Text(widget.initialData == null ? 'Tao' : 'Luu'),
+          child: Text(widget.initialData == null ? 'T?o' : 'L?u'),
         ),
       ],
     );
@@ -511,11 +511,11 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
   String _typeLabel(String type) {
     switch (type) {
       case 'ky_nang':
-        return 'ky nang';
+        return 'k? n?ng';
       case 'khu_vuc':
-        return 'khu vuc';
+        return 'khu v?c';
       case 'loai_chien_dich':
-        return 'loai chien dich';
+        return 'lo?i chi?n d?ch';
       default:
         return type;
     }

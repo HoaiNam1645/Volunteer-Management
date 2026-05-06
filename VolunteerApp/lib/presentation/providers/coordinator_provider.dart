@@ -64,11 +64,9 @@ class CoordinatorProvider extends ChangeNotifier {
     final result = await _repository.getCampaignsForCoordination();
 
     if (result.success) {
-      // Filter only approved campaigns
-      _campaigns = result.campaigns
-          .where((c) => c.trangThai == 'da_duyet')
-          .toList();
-
+      // BE đã filter theo trang_thai=da_duyet rồi, không double-filter ở đây
+      // (trừ trường hợp BE trả thừa các trạng thái khác)
+      _campaigns = result.campaigns;
       // Auto-select first campaign
       if (_campaigns.isNotEmpty && _activeCampaign == null) {
         _activeCampaign = _campaigns.first;

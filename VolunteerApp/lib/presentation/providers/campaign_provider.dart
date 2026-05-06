@@ -11,6 +11,7 @@ class CampaignProvider extends ChangeNotifier {
   bool _hasMore = true;
   int _currentPage = 1;
   String? _error;
+  bool _lastOperationForbidden = false;
   String? _searchQuery;
 
   // Filter states
@@ -24,6 +25,7 @@ class CampaignProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasMore => _hasMore;
   String? get error => _error;
+  bool get lastOperationForbidden => _lastOperationForbidden;
   String? get searchQuery => _searchQuery;
   String? get statusFilter => _statusFilter;
   String? get categoryFilter => _categoryFilter;
@@ -33,6 +35,49 @@ class CampaignProvider extends ChangeNotifier {
   // Recommended campaigns for logged in users
   List<Campaign> _recommendedCampaigns = [];
   List<Campaign> get recommendedCampaigns => _recommendedCampaigns;
+
+  // Volunteer recommendation panel (from /goi-y with score breakdown)
+  List<RecommendedCampaign> _volunteerRecommendations = [];
+  bool _loadingRecommendations = false;
+  bool _recNearbyOnly = false;
+  String? _recPriority;
+  List<RecommendedCampaign> get volunteerRecommendations => _volunteerRecommendations;
+  bool get loadingRecommendations => _loadingRecommendations;
+  bool get recNearbyOnly => _recNearbyOnly;
+  String? get recPriority => _recPriority;
+
+  void setRecNearbyOnly(bool v) {
+    _recNearbyOnly = v;
+    notifyListeners();
+  }
+
+  void setRecPriority(String? v) {
+    _recPriority = v;
+    notifyListeners();
+  }
+
+  Future<void> loadVolunteerRecommendations() async {
+    _loadingRecommendations = true;
+    notifyListeners();
+    _volunteerRecommendations = await _repository.getRecommendedCampaigns(
+      nearbyOnly: _recNearbyOnly,
+      priority: _recPriority,
+    );
+    _loadingRecommendations = false;
+    notifyListeners();
+  }
+
+  // Filter metadata from /chien-dich/bo-loc
+  Map<String, dynamic>? _filterMeta;
+  Map<String, dynamic>? get filterMeta => _filterMeta;
+
+  Future<void> loadFilterMeta() async {
+    final res = await _repository.getFilters();
+    if (res.success) {
+      _filterMeta = res.data;
+      notifyListeners();
+    }
+  }
 
   // ============ GET CAMPAIGNS ============
   Future<void> loadCampaigns({bool refresh = false}) async {
@@ -211,6 +256,7 @@ class CampaignProvider extends ChangeNotifier {
   // ============ DELETE CAMPAIGN ============
   Future<bool> deleteCampaign(int id) async {
     _isLoading = true;
+    _lastOperationForbidden = false;
     notifyListeners();
 
     final result = await _repository.deleteCampaign(id);
@@ -220,7 +266,20 @@ class CampaignProvider extends ChangeNotifier {
       _myCampaigns.removeWhere((c) => c.id == id);
     } else {
       _error = result.message;
+      _lastOperationForbidden = result.forbidden;
     }
+    notifyListeners();
+    return result.success;
+  }
+
+  // ============ CANCEL CAMPAIGN (with reason) ============
+  Future<bool> cancelCampaign(int id, String lyDo) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    final result = await _repository.cancelCampaign(id, lyDo);
+    _isLoading = false;
+    if (!result.success) _error = result.message;
     notifyListeners();
     return result.success;
   }
@@ -229,6 +288,7 @@ class CampaignProvider extends ChangeNotifier {
   Future<bool> updateCampaignStatus(int id, String status) async {
     _isLoading = true;
     _error = null;
+    _lastOperationForbidden = false;
     notifyListeners();
 
     final result = await _repository.updateCampaignStatus(id, status);
@@ -269,6 +329,7 @@ class CampaignProvider extends ChangeNotifier {
     }
 
     _error = result.message;
+    _lastOperationForbidden = result.forbidden;
     notifyListeners();
     return false;
   }
@@ -300,6 +361,7 @@ class CampaignProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
+    _lastOperationForbidden = false;
     notifyListeners();
   }
 }

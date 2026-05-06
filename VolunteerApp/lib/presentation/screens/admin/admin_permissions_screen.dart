@@ -28,20 +28,27 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   String _filterMode = '';
 
   final Map<String, List<String>> _permissionGroups = {
-    'Dashboard': ['dashboard.view'],
-    'User': ['user_management.view', 'user_management.manage'],
-    'Category': ['category_management.view', 'category_management.manage'],
-    'Campaign': ['campaign_review.view', 'campaign_review.manage'],
-    'TrustEval': [
-      'ai_management.view',
-      'trust_eval.view',
-      'trust_eval.refresh'
-    ],
-    'Statistics': ['statistics.view'],
-    'Permission': [
-      'permission_management.view',
-      'permission_management.manage'
-    ],
+    'dashboard': ['dashboard.view'],
+    'campaign': ['campaign_review.view', 'campaign_review.manage'],
+    'ai_module': ['ai_management.view', 'trust_eval.view', 'trust_eval.refresh'],
+    'statistics': ['statistics.view'],
+  };
+
+  final Map<String, String> _groupTitles = {
+    'dashboard': 'Dashboard',
+    'campaign': 'Chiến dịch',
+    'ai_module': 'Module AI',
+    'statistics': 'Thống kê',
+  };
+
+  final Map<String, String> _permissionLabels = {
+    'dashboard.view': 'Truy cập',
+    'campaign_review.view': 'Xem',
+    'campaign_review.manage': 'Quản lý',
+    'ai_management.view': 'Truy cập',
+    'trust_eval.view': 'Xem',
+    'trust_eval.refresh': 'Làm mới',
+    'statistics.view': 'Truy cập',
   };
 
   final Map<String, List<String>> _draftPermissions = {};
@@ -88,7 +95,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       _users = [];
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(result.message ?? 'Khong tai duoc du lieu'),
+            content: Text(result.message ?? 'Không tải được dữ liệu'),
             backgroundColor: Colors.red),
       );
     }
@@ -161,7 +168,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(result.message ?? 'Luu that bai'),
+            content: Text(result.message ?? 'Lưu thất bại'),
             backgroundColor: Colors.red),
       );
     }
@@ -186,7 +193,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                     child: Center(child: CircularProgressIndicator()))
               else if (_users.isEmpty)
                 const SliverFillRemaining(
-                    child: Center(child: Text('Khong co du lieu')))
+                    child: Center(child: Text('Không có dữ liệu')))
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
@@ -218,14 +225,14 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Phan quyen kiem duyet',
+          const Text('Phân quyền kiểm duyệt',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Text(
-              'Tong: $total | Mac dinh: $defaultCount | Tuy chinh: $customCount',
+              'Tổng: $total | Mặc định: $defaultCount | Tùy chỉnh: $customCount',
               style: const TextStyle(color: Colors.white70)),
         ],
       ),
@@ -243,7 +250,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
               TextField(
                 decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search),
-                    hintText: 'Tim theo ten/email'),
+                    hintText: 'Tìm theo tên/email'),
                 onChanged: (v) {
                   _searchQuery = v;
                   _searchDebounce?.cancel();
@@ -258,11 +265,11 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       initialValue: _filterRole.isEmpty ? null : _filterRole,
-                      decoration: const InputDecoration(labelText: 'Vai tro'),
+                      decoration: const InputDecoration(labelText: 'Vai trò'),
                       items: const [
                         DropdownMenuItem(
                             value: 'kiem_duyet_vien',
-                            child: Text('Kiem duyet vien')),
+                            child: Text('Kiểm duyệt viên')),
                       ],
                       onChanged: (v) => _filterRole = v ?? '',
                     ),
@@ -271,12 +278,12 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       initialValue: _filterMode.isEmpty ? null : _filterMode,
-                      decoration: const InputDecoration(labelText: 'Che do'),
+                      decoration: const InputDecoration(labelText: 'Chế độ'),
                       items: const [
                         DropdownMenuItem(
-                            value: 'mac_dinh', child: Text('Mac dinh')),
+                            value: 'mac_dinh', child: Text('Mặc định')),
                         DropdownMenuItem(
-                            value: 'tuy_chinh', child: Text('Tuy chinh')),
+                            value: 'tuy_chinh', child: Text('Tùy chỉnh')),
                       ],
                       onChanged: (v) => _filterMode = v ?? '',
                     ),
@@ -289,7 +296,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                   Expanded(
                       child: OutlinedButton(
                           onPressed: () => _loadUsers(page: 1),
-                          child: const Text('Ap dung'))),
+                          child: const Text('Áp dụng'))),
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton(
@@ -301,7 +308,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                         });
                         _loadUsers(page: 1);
                       },
-                      child: const Text('Dat lai'),
+                      child: const Text('Đặt lại'),
                     ),
                   ),
                 ],
@@ -324,7 +331,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: ExpansionTile(
         title: Text(user.hoTen),
         subtitle: Text(
-            '${user.email}\n${user.vaiTro} - ${user.suDungMacDinh ? 'mac dinh' : 'tuy chinh'}'),
+            '${user.email}\n${user.vaiTro} - ${user.suDungMacDinh ? 'mặc định' : 'tùy chỉnh'}'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: [
           for (final entry in _permissionGroups.entries)
@@ -336,7 +343,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                 child: OutlinedButton(
                   onPressed:
                       user.suDungMacDinh ? null : () => _resetToDefault(user),
-                  child: const Text('Reset mac dinh'),
+                  child: const Text('Reset mặc định'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -350,7 +357,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
                           height: 16,
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Luu thay doi'),
+                      : const Text('Lưu thay đổi'),
                 ),
               ),
             ],
@@ -363,6 +370,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   Widget _buildPermissionGroup(String group, List<String> permissions,
       PermissionUser user, List<String> draft) {
     final hasAll = permissions.every(draft.contains);
+    final groupTitle = _groupTitles[group] ?? group;
     return Card(
       color: Colors.grey[50],
       child: Padding(
@@ -373,7 +381,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
             Row(
               children: [
                 Expanded(
-                    child: Text(group,
+                    child: Text(groupTitle,
                         style: const TextStyle(fontWeight: FontWeight.w600))),
                 Checkbox(
                   value: hasAll,
@@ -388,7 +396,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
               CheckboxListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(permission, style: const TextStyle(fontSize: 12)),
+                title: Text(
+                  _permissionLabels[permission] ?? permission,
+                  style: const TextStyle(fontSize: 12),
+                ),
                 value: draft.contains(permission),
                 onChanged: user.suDungMacDinh
                     ? null
@@ -408,11 +419,11 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton(
+      child: OutlinedButton(
               onPressed: _currentPage > 1
                   ? () => _loadUsers(page: _currentPage - 1)
                   : null,
-              child: const Text('Trang truoc'),
+              child: const Text('Trang trước'),
             ),
           ),
           Padding(

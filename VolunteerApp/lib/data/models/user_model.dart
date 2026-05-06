@@ -1,5 +1,21 @@
 import 'package:equatable/equatable.dart';
 
+/// Backend đôi khi trả số dưới dạng chuỗi (vd "16.0750000") — parse an toàn.
+double? _asDouble(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
+int? _asInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v);
+  return null;
+}
+
 class User extends Equatable {
   final int id;
   final String hoTen;
@@ -57,10 +73,10 @@ class User extends Equatable {
       soCccd: json['so_cccd'],
       gioiThieu: json['gioi_thieu'],
       diaChiDuong: json['dia_chi_duong'],
-      viDo: json['vi_do']?.toDouble(),
-      kinhDo: json['kinh_do']?.toDouble(),
-      tinhThanhId: json['tinh_thanh_id'],
-      phuongXaId: json['phuong_xa_id'],
+      viDo: _asDouble(json['vi_do']),
+      kinhDo: _asDouble(json['kinh_do']),
+      tinhThanhId: _asInt(json['tinh_thanh_id']),
+      phuongXaId: _asInt(json['phuong_xa_id']),
       vaiTro: json['vai_tro'] ?? 'tinh_nguyen_vien',
       xacThucEmail:
           json['xac_thuc_email'] == true || json['xac_thuc_email'] == 1,
@@ -204,6 +220,7 @@ class CompetencyProfile extends Equatable {
   final List<String> lichRanh;
   final String khungGioUuTien;
   final List<ExperienceItem> kinhNghiems;
+  final List<CertificateItem> chungChis;
 
   const CompetencyProfile({
     required this.id,
@@ -215,6 +232,7 @@ class CompetencyProfile extends Equatable {
     this.lichRanh = const [],
     this.khungGioUuTien = 'linh_hoat',
     this.kinhNghiems = const [],
+    this.chungChis = const [],
   });
 
   factory CompetencyProfile.fromJson(Map<String, dynamic> json) {
@@ -230,6 +248,9 @@ class CompetencyProfile extends Equatable {
       kinhNghiems: (json['kinh_nghiems'] as List? ?? [])
           .map((e) => ExperienceItem.fromJson(e))
           .toList(),
+      chungChis: (json['chung_chis'] as List? ?? [])
+          .map((e) => CertificateItem.fromJson(e))
+          .toList(),
     );
   }
 
@@ -242,6 +263,35 @@ class CompetencyProfile extends Equatable {
 
   @override
   List<Object?> get props => [id, email];
+}
+
+class CertificateItem extends Equatable {
+  final int? id;
+  final String ten;
+  final String? donViCap;
+
+  const CertificateItem({
+    this.id,
+    required this.ten,
+    this.donViCap,
+  });
+
+  factory CertificateItem.fromJson(Map<String, dynamic> json) {
+    return CertificateItem(
+      id: json['id'],
+      ten: json['ten'] ?? '',
+      donViCap: json['don_vi_cap'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
+        'ten': ten,
+        'don_vi_cap': donViCap,
+      };
+
+  @override
+  List<Object?> get props => [id, ten];
 }
 
 class ExperienceItem extends Equatable {

@@ -165,7 +165,12 @@ class ApiClient {
     if (error.response != null) {
       final data = error.response!.data;
       if (data is Map<String, dynamic>) {
-        return ApiError.fromJson(data);
+        final parsed = ApiError.fromJson(data);
+        return ApiError(
+          message: parsed.message,
+          errors: parsed.errors,
+          statusCode: error.response?.statusCode,
+        );
       }
     }
 

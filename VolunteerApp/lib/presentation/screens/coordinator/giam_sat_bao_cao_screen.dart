@@ -36,11 +36,21 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
   Widget build(BuildContext context) {
     final provider = context.watch<ReportMonitoringProvider>();
 
+    // Sync dropdown với campaign auto-select của provider
+    if (_selectedCampaignId == null && provider.activeCampaign != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedCampaignId == null && provider.activeCampaign != null) {
+          setState(() => _selectedCampaignId = provider.activeCampaign!.id.toString());
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Giám sát báo cáo'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -193,36 +203,24 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: AppTheme.primaryColor,
                 indicatorWeight: 3,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                unselectedLabelStyle: const TextStyle(fontSize: 12),
                 tabs: [
                   Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.people, size: 18),
-                        const SizedBox(width: 8),
-                        Text('Tham gia (${provider.participants.length})'),
-                      ],
-                    ),
+                    icon: const Icon(Icons.people, size: 16),
+                    iconMargin: const EdgeInsets.only(bottom: 2),
+                    text: 'Tham gia (${provider.participants.length})',
                   ),
                   Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.comment, size: 18),
-                        const SizedBox(width: 8),
-                        Text('Phản hồi (${provider.feedbacks.length})'),
-                      ],
-                    ),
+                    icon: const Icon(Icons.comment, size: 16),
+                    iconMargin: const EdgeInsets.only(bottom: 2),
+                    text: 'Phản hồi (${provider.feedbacks.length})',
                   ),
                   Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.folder_open, size: 18),
-                        const SizedBox(width: 8),
-                        Text('Báo cáo (${provider.reports.length})'),
-                      ],
-                    ),
+                    icon: const Icon(Icons.folder_open, size: 16),
+                    iconMargin: const EdgeInsets.only(bottom: 2),
+                    text: 'Báo cáo (${provider.reports.length})',
                   ),
                 ],
               ),
@@ -344,36 +342,30 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 9, color: Colors.grey[600], height: 1.1),
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -422,11 +414,13 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
                 hint: const Text('Trạng thái'),
                 items: const [
                   DropdownMenuItem(value: '', child: Text('Tất cả')),
-                  DropdownMenuItem(value: 'da_dang_ky', child: Text('Chờ xác nhận')),
-                  DropdownMenuItem(value: 'da_xac_nhan', child: Text('Đã xác nhận')),
+                  DropdownMenuItem(value: 'da_dang_ky', child: Text('Chờ TNV xác nhận')),
+                  DropdownMenuItem(value: 'da_xac_nhan', child: Text('Đã xác nhận, chờ duyệt')),
                   DropdownMenuItem(value: 'da_duyet', child: Text('Đã duyệt')),
                   DropdownMenuItem(value: 'dang_tham_gia', child: Text('Đang tham gia')),
                   DropdownMenuItem(value: 'hoan_thanh', child: Text('Hoàn thành')),
+                  DropdownMenuItem(value: 'tu_choi', child: Text('Từ chối')),
+                  DropdownMenuItem(value: 'da_huy', child: Text('Đã hủy')),
                 ],
                 onChanged: (value) =>
                     setState(() => _participantStatusFilter = value ?? ''),
@@ -498,11 +492,21 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
                                   ),
                                   Text(
                                     'Đăng ký: ${_formatDateTime(participant.dangKyLuc)}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey[500],
-                                    ),
+                                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                                   ),
+                                  if (participant.xacNhanLuc != null && participant.xacNhanLuc!.isNotEmpty)
+                                    Text(
+                                      'Xác nhận: ${_formatDateTime(participant.xacNhanLuc)}',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                    ),
+                                  if (participant.ghiChu != null && participant.ghiChu!.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        'Ghi chú: ${participant.ghiChu}',
+                                        style: TextStyle(fontSize: 11, color: Colors.orange[800], fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -865,8 +869,8 @@ class _GiamSatBaoCaoScreenState extends State<GiamSatBaoCaoScreen>
 
   String _getParticipationStatusLabel(String status) {
     return {
-      'da_dang_ky': 'Chờ xác nhận',
-      'da_xac_nhan': 'Đã xác nhận',
+      'da_dang_ky': 'Chờ TNV xác nhận',
+      'da_xac_nhan': 'Đã xác nhận, chờ duyệt',
       'da_duyet': 'Đã duyệt',
       'dang_tham_gia': 'Đang tham gia',
       'hoan_thanh': 'Hoàn thành',

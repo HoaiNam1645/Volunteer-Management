@@ -127,14 +127,21 @@ class AdminProvider extends ChangeNotifier {
     required String hoTen,
     required String email,
     required String vaiTro,
+    String? trangThai,
     String? soDienThoai,
   }) async {
     _setLoading(true);
+    final currentStatus = _users
+            .cast<AdminUser?>()
+            .firstWhere((u) => u?.id == id, orElse: () => null)
+            ?.trangThai ??
+        'hoat_dong';
     final result = await _repo.updateUser(
       id: id,
       hoTen: hoTen,
       email: email,
       vaiTro: vaiTro,
+      trangThai: trangThai ?? currentStatus,
       soDienThoai: soDienThoai,
     );
 

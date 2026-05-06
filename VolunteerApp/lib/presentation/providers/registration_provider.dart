@@ -16,11 +16,13 @@ class RegistrationProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _trackingHistory = [];
   List<Map<String, dynamic>> _trackingRatings = [];
   List<Map<String, dynamic>> _trackingReports = [];
+  List<Map<String, dynamic>> _feedbackTags = [];
   Map<String, dynamic> _trackingStats = {};
 
   List<Map<String, dynamic>> get trackingHistory => _trackingHistory;
   List<Map<String, dynamic>> get trackingRatings => _trackingRatings;
   List<Map<String, dynamic>> get trackingReports => _trackingReports;
+  List<Map<String, dynamic>> get feedbackTags => _feedbackTags;
   Map<String, dynamic> get trackingStats => _trackingStats;
 
   List<Registration> get registrations => _registrations;
@@ -37,12 +39,13 @@ class RegistrationProvider extends ChangeNotifier {
     final result = await _repository.getTrackingData();
 
     if (result.success) {
-      final data = result.data ?? {};
+      final data = result.data;
 
-      _trackingStats = data['thong_ke'] ?? {};
+      _trackingStats = Map<String, dynamic>.from(data['thong_ke'] ?? {});
       _trackingHistory = List<Map<String, dynamic>>.from(data['lich_su_hoat_dong'] ?? []);
       _trackingRatings = List<Map<String, dynamic>>.from(data['diem_danh_gia'] ?? []);
       _trackingReports = List<Map<String, dynamic>>.from(data['bao_cao_chien_dich'] ?? []);
+      _feedbackTags = List<Map<String, dynamic>>.from(data['the_phan_hoi'] ?? []);
     } else {
       _error = result.message;
     }
@@ -116,6 +119,18 @@ class RegistrationProvider extends ChangeNotifier {
     return result.success;
   }
 
+  // ============ CONFIRM PARTICIPATION ============
+  Future<bool> confirmParticipation(int campaignId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    final result = await _repository.confirmParticipation(campaignId);
+    _isLoading = false;
+    if (!result.success) _error = result.message;
+    notifyListeners();
+    return result.success;
+  }
+
   // ============ CANCEL REGISTRATION ============
   Future<bool> cancelRegistration(int campaignId, {String? lyDoHuy}) async {
     _isLoading = true;
@@ -135,8 +150,9 @@ class RegistrationProvider extends ChangeNotifier {
   // ============ SUBMIT FEEDBACK ============
   Future<bool> submitFeedback({
     required int chienDichId,
-    required int diem,
-    String? noiDung,
+    required int soSao,
+    String? nhanXet,
+    List<int> theIds = const [],
   }) async {
     _isLoading = true;
     _error = null;
@@ -144,15 +160,18 @@ class RegistrationProvider extends ChangeNotifier {
 
     final result = await _repository.submitFeedback(
       chienDichId: chienDichId,
-      diem: diem,
-      noiDung: noiDung,
+      soSao: soSao,
+      nhanXet: nhanXet,
+      theIds: theIds,
     );
 
-    _isLoading = false;
-    if (!result.success) {
+    if (result.success) {
+      await loadTrackingData();
+    } else {
       _error = result.message;
+      _isLoading = false;
+      notifyListeners();
     }
-    notifyListeners();
     return result.success;
   }
 

@@ -3,6 +3,21 @@ import 'package:equatable/equatable.dart';
 /// Trust evaluation response from ML service
 /// Matching SPEC-TRUST-RISK-EVAL.md structure
 
+/// Parse số dạng String/num/null an toàn — backend ML đôi khi trả String "0.95"
+double _safeDouble(dynamic v, {double fallback = 0.0}) {
+  if (v == null) return fallback;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+double? _safeDoubleNullable(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
 enum TrustLabel {
   reliableHigh('RELIABLE_HIGH', 'Đáng tin cậy cao'),
   reliable('RELIABLE', 'Đáng tin cậy'),
@@ -57,10 +72,10 @@ class TrustScore extends Equatable {
 
   factory TrustScore.fromJson(Map<String, dynamic> json) {
     return TrustScore(
-      rawScore: (json['raw_score'] ?? 0).toDouble(),
-      calibratedScore: (json['calibrated_score'] ?? 0).toDouble(),
+      rawScore: _safeDouble(json['raw_score']),
+      calibratedScore: _safeDouble(json['calibrated_score']),
       label: json['label'] ?? 'NEUTRAL',
-      confidence: (json['confidence'] ?? 0).toDouble(),
+      confidence: _safeDouble(json['confidence']),
     );
   }
 
@@ -118,8 +133,8 @@ class SHAPFeature extends Equatable {
     return SHAPFeature(
       feature: json['feature'] ?? '',
       displayName: json['display_name'] ?? json['feature'] ?? '',
-      contribution: (json['contribution'] ?? 0).toDouble(),
-      value: json['value']?.toDouble(),
+      contribution: _safeDouble(json['contribution']),
+      value: _safeDoubleNullable(json['value']),
     );
   }
 
@@ -168,7 +183,7 @@ class CampaignEvaluation extends Equatable {
       topNegativeFactors: (json['top_negative_factors'] as List?)
           ?.map((e) => SHAPFeature.fromJson(e))
           .toList() ?? [],
-      anomalyScore: json['anomaly_score']?.toDouble(),
+      anomalyScore: _safeDoubleNullable(json['anomaly_score']),
       isAnomaly: json['is_anomaly'] ?? false,
       anomalyTypes: json['anomaly_types'] != null
           ? List<String>.from(json['anomaly_types'])
@@ -209,10 +224,10 @@ class VolunteerEvaluation extends Equatable {
     return VolunteerEvaluation(
       volunteerId: json['volunteer_id'] ?? 0,
       trustScore: TrustScore.fromJson(json['trust_score'] ?? {}),
-      registrationCount: (json['registration_count'] ?? 0).toDouble(),
-      cancellationRate: (json['cancellation_rate'] ?? 0).toDouble(),
-      noShowRate: (json['no_show_rate'] ?? 0).toDouble(),
-      completionRate: (json['completion_rate'] ?? 0).toDouble(),
+      registrationCount: _safeDouble(json['registration_count']),
+      cancellationRate: _safeDouble(json['cancellation_rate']),
+      noShowRate: _safeDouble(json['no_show_rate']),
+      completionRate: _safeDouble(json['completion_rate']),
       evaluatedAt: json['evaluated_at'] != null
           ? DateTime.parse(json['evaluated_at'])
           : DateTime.now(),
@@ -252,7 +267,7 @@ class TrustEvalDashboard extends Equatable {
       evaluatedCampaigns: json['evaluated_campaigns'] ?? 0,
       reliableCampaigns: json['reliable_campaigns'] ?? 0,
       suspiciousCampaigns: json['suspicious_campaigns'] ?? 0,
-      avgTrustScore: (json['avg_trust_score'] ?? 0).toDouble(),
+      avgTrustScore: _safeDouble(json['avg_trust_score']),
       trustDistribution: (json['trust_distribution'] as List?)
           ?.map((e) => TrustEvalStatsItem.fromJson(e))
           .toList() ?? [],
@@ -285,7 +300,7 @@ class TrustEvalStatsItem extends Equatable {
     return TrustEvalStatsItem(
       label: json['label'] ?? '',
       count: json['count'] ?? 0,
-      percentage: (json['percentage'] ?? 0).toDouble(),
+      percentage: _safeDouble(json['percentage']),
     );
   }
 

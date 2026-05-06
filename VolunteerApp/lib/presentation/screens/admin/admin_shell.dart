@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -21,15 +21,16 @@ class AdminShell extends StatelessWidget {
           body: child,
           bottomNavigationBar: _BottomNavBar(
             navItems: navItems,
-            selectedIndex: _getSelectedIndex(
-              location,
-              navItems,
-            ),
+            selectedIndex: _getSelectedIndex(location, navItems),
             onTap: (index) async {
               HapticFeedback.lightImpact();
               final item = navItems[index];
               if (item.isMore) {
-                await _showMoreMenu(context, auth);
+                if (isReviewer) {
+                  await _showReviewerMenu(context, auth);
+                } else {
+                  await _showMoreMenu(context, auth);
+                }
                 return;
               }
               context.go(item.paths.first);
@@ -43,12 +44,8 @@ class AdminShell extends StatelessWidget {
   static int _getSelectedIndex(String location, List<_NavItem> navItems) {
     for (int i = 0; i < navItems.length; i++) {
       for (final path in navItems[i].paths) {
-        if (location == path) {
-          return i;
-        }
-        if (path != '/admin' && location.startsWith('$path/')) {
-          return i;
-        }
+        if (location == path) return i;
+        if (path != '/admin' && location.startsWith('$path/')) return i;
       }
     }
     return 0;
@@ -101,10 +98,46 @@ class AdminShell extends StatelessWidget {
       label: 'Thống kê',
       paths: ['/reviewer/statistics'],
     ),
+    _NavItem(
+      icon: Icons.more_horiz,
+      selectedIcon: Icons.more_horiz,
+      label: 'Khác',
+      paths: ['/reviewer/campaigns', '/reviewer/statistics'],
+      isMore: true,
+    ),
   ];
 
+  static Future<void> _showReviewerMenu(
+    BuildContext context,
+    AuthProvider auth,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await auth.logout();
+                if (context.mounted) context.go('/login');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   static Future<void> _showMoreMenu(
-      BuildContext context, AuthProvider auth) async {
+    BuildContext context,
+    AuthProvider auth,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -114,7 +147,7 @@ class AdminShell extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
-              title: const Text('Phan quyen kiem duyet'),
+              title: const Text('Phân quyền kiểm duyệt'),
               onTap: () {
                 Navigator.pop(ctx);
                 context.go('/admin/permissions');
@@ -122,7 +155,7 @@ class AdminShell extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.person_pin_outlined),
-              title: const Text('Phan quyen nguoi dung'),
+              title: const Text('Phân quyền người dùng'),
               onTap: () {
                 Navigator.pop(ctx);
                 context.go('/admin/user-permissions');
@@ -131,8 +164,7 @@ class AdminShell extends StatelessWidget {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title:
-                  const Text('Dang xuat', style: TextStyle(color: Colors.red)),
+              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
               onTap: () async {
                 Navigator.pop(ctx);
                 await auth.logout();
@@ -191,14 +223,10 @@ class _BottomNavBar extends StatelessWidget {
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFF4F8CF7)
-                                    .withValues(alpha: 0.14)
+                                ? const Color(0xFF4F8CF7).withValues(alpha: 0.14)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -208,9 +236,7 @@ class _BottomNavBar extends StatelessWidget {
                             scale: isSelected ? 1.08 : 1.0,
                             child: Icon(
                               isSelected ? item.selectedIcon : item.icon,
-                              color: isSelected
-                                  ? const Color(0xFF4F8CF7)
-                                  : Colors.grey[500],
+                              color: isSelected ? const Color(0xFF4F8CF7) : Colors.grey[500],
                               size: 22,
                             ),
                           ),
@@ -221,12 +247,8 @@ class _BottomNavBar extends StatelessWidget {
                           curve: Curves.easeOutCubic,
                           style: TextStyle(
                             fontSize: isSelected ? 10.5 : 10,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? const Color(0xFF4F8CF7)
-                                : Colors.grey[500],
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+                            color: isSelected ? const Color(0xFF4F8CF7) : Colors.grey[500],
                           ),
                           child: Text(
                             item.label,
