@@ -43,7 +43,7 @@ class MainShell extends StatelessWidget {
 
   List<_NavItem> _buildVolunteerNav(AuthProvider auth) {
     final tree = auth.visibleTnvMenuTree();
-    return tree.map((item) {
+    final items = tree.map((item) {
       final icon = _tnvIcons[item.key] ?? const _NavIcon(Icons.circle_outlined, Icons.circle);
       return _NavItem(
         path: item.path,
@@ -53,6 +53,17 @@ class MainShell extends StatelessWidget {
         children: item.children,
       );
     }).toList();
+
+    if (!auth.isLoggedIn) {
+      items.add(const _NavItem(
+        path: '/login',
+        label: 'Đăng nhập',
+        icon: Icons.login_outlined,
+        selectedIcon: Icons.login,
+      ));
+    }
+
+    return items;
   }
 
   static int _getSelectedIndex(String location, List<_NavItem> nav) {

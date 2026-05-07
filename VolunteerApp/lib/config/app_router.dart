@@ -81,6 +81,13 @@ class AppRouter {
           return authProvider.firstAccessibleTnvRoute();
         }
 
+        // Admin/reviewer on TNV shell routes → redirect to their home
+        if (!path.startsWith('/admin') && !path.startsWith('/reviewer')) {
+          if (authProvider.isAdmin || authProvider.isReviewer) {
+            return _getHomeRoute(authProvider);
+          }
+        }
+
         // Admin routes
         if (path.startsWith('/admin')) {
           if (!authProvider.isAdminOrReviewer) {

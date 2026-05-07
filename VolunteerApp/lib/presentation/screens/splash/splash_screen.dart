@@ -22,7 +22,15 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _initialize() async {
     final authProvider = context.read<AuthProvider>();
     await authProvider.initialize();
-    if (mounted) {
+    if (!mounted) return;
+
+    if (!authProvider.isLoggedIn) {
+      context.go('/');
+    } else if (authProvider.isAdmin) {
+      context.go('/admin');
+    } else if (authProvider.isReviewer) {
+      context.go('/reviewer/campaigns');
+    } else {
       context.go('/');
     }
   }
