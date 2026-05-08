@@ -97,45 +97,30 @@ class MainShell extends StatelessWidget {
     final selectedIndex = navItems.isEmpty ? 0 : _getSelectedIndex(location, navItems);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          child,
-          if (navItems.isNotEmpty)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _BottomNavBar(
-                navItems: navItems,
-                selectedIndex: selectedIndex,
-                onTap: (index) {
-                  HapticFeedback.lightImpact();
-                  final item = navItems[index];
-                  // Nếu là tab cha có nhiều mục con
-                  if (item.children.length > 1) {
-                    if (index == selectedIndex) {
-                      // Tap lại tab đang chọn → mở sheet chọn mục con
-                      _showChildSheet(context, item);
-                    } else {
-                      // Lần đầu tap tab cha → đi tới mục con đầu tiên có quyền
-                      context.go(item.children.first.path);
-                    }
-                  } else {
-                    context.go(item.path);
-                  }
-                },
-                onLongPress: (index) {
-                  final item = navItems[index];
-                  if (item.children.length > 1) {
-                    _showChildSheet(context, item);
-                  } else {
-                    _showQuickMenu(context, authProvider, navItems);
-                  }
-                },
-              ),
+      body: child,
+      bottomNavigationBar: navItems.isEmpty
+          ? null
+          : _BottomNavBar(
+              navItems: navItems,
+              selectedIndex: selectedIndex,
+              onTap: (index) {
+                HapticFeedback.lightImpact();
+                final item = navItems[index];
+                if (item.children.length > 1) {
+                  _showChildSheet(context, item);
+                } else {
+                  context.go(item.path);
+                }
+              },
+              onLongPress: (index) {
+                final item = navItems[index];
+                if (item.children.length > 1) {
+                  _showChildSheet(context, item);
+                } else {
+                  _showQuickMenu(context, authProvider, navItems);
+                }
+              },
             ),
-        ],
-      ),
     );
   }
 

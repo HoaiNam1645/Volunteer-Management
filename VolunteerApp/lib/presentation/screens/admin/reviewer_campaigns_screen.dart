@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../data/repositories/reviewer_repository.dart';
+import '../../../data/repositories/admin_repository.dart'
+    show AdminRepository, CampaignTrustEval, ValidationResult, ContentAnalysis;
+import '../../widgets/osm_map_widget.dart';
 
 class ReviewerCampaignsScreen extends StatefulWidget {
   const ReviewerCampaignsScreen({super.key});
@@ -13,9 +16,15 @@ class ReviewerCampaignsScreen extends StatefulWidget {
 class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
     with SingleTickerProviderStateMixin {
   final ReviewerRepository _repository = ReviewerRepository();
+  final AdminRepository _adminRepository = AdminRepository();
 
   bool _isLoading = true;
   String? _error;
+
+  // Trust eval state (loaded async with detail)
+  CampaignTrustEval? _trustEval;
+  bool _isLoadingTrust = false;
+  String? _trustError;
 
   // Filters
   String _activeTab = 'pending';
@@ -408,9 +417,72 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
     );
   }
 
+  Future<void> _loadTrustEval(int campaignId) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingTrust = true;
+      _trustError = null;
+    });
+    try {
+      final result = await _adminRepository.getCampaignTrustEval(campaignId);
+      if (!mounted) return;
+      if (result.success) {
+        _trustEval = result.data;
+        _trustError = null;
+      } else {
+        _trustEval = null;
+        _trustError = result.message;
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _trustEval = null;
+      _trustError = 'Không tải được đánh giá tin cậy';
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingTrust = false);
+      }
+    }
+  }
+
+  Future<void> _refreshTrustEval(int campaignId, StateSetter setSheetState) async {
+    setSheetState(() {
+      _isLoadingTrust = true;
+      _trustError = null;
+    });
+    try {
+      final result = await _adminRepository.refreshCampaignTrustEval(campaignId);
+      if (!mounted) return;
+      if (result.success) {
+        setSheetState(() {
+          _trustEval = result.data;
+          _isLoadingTrust = false;
+        });
+        _showSnackBar('Đã làm mới đánh giá tin cậy');
+      } else {
+        setSheetState(() {
+          _trustError = result.message;
+          _isLoadingTrust = false;
+        });
+        _showSnackBar(result.message ?? 'Làm mới thất bại', isError: true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setSheetState(() {
+        _trustError = 'Không làm mới được';
+        _isLoadingTrust = false;
+      });
+    }
+  }
+
   Future<void> _showCampaignDetail(ReviewerCampaign campaign) async {
     _selectedCampaign = null;
-    await _loadCampaignDetail(campaign.id);
+    _trustEval = null;
+    _trustError = null;
+    // Load detail + trust eval song song
+    await Future.wait([
+      _loadCampaignDetail(campaign.id),
+      _loadTrustEval(campaign.id),
+    ]);
     if (!mounted || _selectedCampaign == null) return;
     showModalBottomSheet(
       context: context,
@@ -593,28 +665,47 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                 const SizedBox(height: 20),
               ],
 
-              _buildSectionTitle('Ban do'),
+              _buildSectionTitle('Bản đồ địa điểm'),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+              if (campaign.viDo != 0 && campaign.kinhDo != 0) ...[
+                OsmMapWidget(
+                  latitude: campaign.viDo,
+                  longitude: campaign.kinhDo,
+                  draggable: false,
+                  height: 220,
                 ),
-                child: Row(
+                const SizedBox(height: 6),
+                Row(
                   children: [
-                    const Icon(Icons.map, color: Colors.red),
-                    const SizedBox(width: 8),
+                    Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Lat: ${campaign.viDo.toStringAsFixed(6)} | Lng: ${campaign.kinhDo.toStringAsFixed(6)}',
-                        style: TextStyle(color: Colors.grey.shade700),
+                        '${campaign.diaDiem}  •  ${campaign.viDo.toStringAsFixed(5)}, ${campaign.kinhDo.toStringAsFixed(5)}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                       ),
                     ),
                   ],
                 ),
-              ),
+              ] else
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_off, color: Colors.grey.shade500),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Chiến dịch chưa có toạ độ',
+                            style: TextStyle(color: Colors.grey.shade700)),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 20),
 
               // Feedbacks
@@ -642,14 +733,13 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
                 const SizedBox(height: 20),
               ],
 
-              // Trust Eval
-              if (campaign.trustEval != null &&
-                  campaign.trustEval!.isNotEmpty) ...[
-                _buildSectionTitle('Danh gia tin cay (AI)'),
-                const SizedBox(height: 8),
-                ...campaign.trustEval!.map((t) => _buildTrustEvalItem(t)),
-                const SizedBox(height: 20),
-              ],
+              // Trust Eval (full AI panel)
+              StatefulBuilder(
+                builder: (sheetCtx, setSheetState) {
+                  return _buildTrustEvalPanel(campaign.id, setSheetState);
+                },
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -998,78 +1088,586 @@ class _ReviewerCampaignsScreenState extends State<ReviewerCampaignsScreen>
     );
   }
 
-  Widget _buildTrustEvalItem(TrustEvalSummary eval) {
-    final scoreColor = eval.diem >= 0.7
-        ? Colors.green
-        : eval.diem >= 0.4
-            ? Colors.orange
-            : Colors.red;
+  // ============== TRUST EVAL PANEL (full AI evaluation) ==============
+  Widget _buildTrustEvalPanel(int campaignId, StateSetter setSheetState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Đánh giá tin cậy chiến dịch',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Làm mới đánh giá',
+              icon: _isLoadingTrust
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh, size: 20),
+              onPressed: _isLoadingTrust
+                  ? null
+                  : () => _refreshTrustEval(campaignId, setSheetState),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_isLoadingTrust && _trustEval == null)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_trustEval == null)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.psychology_outlined, color: Colors.grey.shade500),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _trustError ?? 'Chưa có dữ liệu đánh giá',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          _buildTrustScoreCard(_trustEval!),
+          const SizedBox(height: 10),
+          _buildRiskCard(_trustEval!),
+          const SizedBox(height: 10),
+          _buildRecommendationCard(_trustEval!),
+          if (_trustEval!.validation != null) ...[
+            const SizedBox(height: 10),
+            _buildValidationCard(_trustEval!.validation!),
+          ],
+          if (_trustEval!.contentAnalysis != null) ...[
+            const SizedBox(height: 10),
+            _buildContentAnalysisCard(_trustEval!.contentAnalysis!),
+          ],
+          if (_trustEval!.shapValues != null && _trustEval!.shapValues!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _buildShapCard(_trustEval!.shapValues!),
+          ],
+          if (_trustEval!.evaluatedAt != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Đánh giá lúc: ${_formatDateTime(_trustEval!.evaluatedAt!)}',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
 
+  Widget _buildTrustScoreCard(CampaignTrustEval e) {
+    final scorePct = (e.trustScore * 100).clamp(0, 100).toStringAsFixed(0);
+    final color = _trustColor(e.trustLabel);
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [color.withValues(alpha: 0.18), color.withValues(alpha: 0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Center(
+              child: Text(
+                '$scorePct%',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Điểm tin cậy',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+                const SizedBox(height: 2),
+                Text(
+                  _trustLabelDisplay(e.trustLabel),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                if (e.confidence != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Độ tin tưởng: ${(e.confidence! * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiskCard(CampaignTrustEval e) {
+    final riskColor = _riskColor(e.riskLevel);
+    final riskPct = (e.riskScore * 100).clamp(0, 100).toStringAsFixed(0);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: riskColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: riskColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  eval.tieuDe,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+              Icon(Icons.warning_amber_rounded, color: riskColor, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Mức độ rủi ro',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: scoreColor.withValues(alpha: 0.1),
+                  color: riskColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${(eval.diem * 100).toInt()}%',
-                  style: TextStyle(
-                    fontSize: 12,
+                  _riskLevelDisplay(e.riskLevel),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: scoreColor,
                   ),
                 ),
               ),
             ],
           ),
-          if (eval.giaiThich != null) ...[
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: e.riskScore.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(riskColor),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Điểm rủi ro: $riskPct%',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+          ),
+          if (e.isAnomaly) ...[
             const SizedBox(height: 8),
-            Text(eval.giaiThich!,
-                style: TextStyle(color: Colors.grey.shade700)),
-          ],
-          if (eval.ruiRo.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: eval.ruiRo
-                  .map((r) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          r,
-                          style:
-                              const TextStyle(fontSize: 11, color: Colors.red),
-                        ),
-                      ))
-                  .toList(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.deepOrange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline,
+                      color: Colors.deepOrange.shade700, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Phát hiện bất thường — cần kiểm tra kỹ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepOrange.shade800,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
       ),
     );
+  }
+
+  Widget _buildRecommendationCard(CampaignTrustEval e) {
+    final action = e.recommendedAction;
+    final color = _actionColor(action);
+    final icon = _actionIcon(action);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Đề xuất hành động',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+                const SizedBox(height: 2),
+                Text(
+                  _actionDisplay(action),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValidationCard(ValidationResult v) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: v.passed ? Colors.green.shade50 : Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: v.passed ? Colors.green.shade200 : Colors.red.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                v.passed ? Icons.check_circle : Icons.cancel,
+                color: v.passed ? Colors.green : Colors.red,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                v.passed ? 'Kiểm tra hợp lệ: ĐẠT' : 'Kiểm tra hợp lệ: KHÔNG ĐẠT',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: v.passed ? Colors.green.shade800 : Colors.red.shade800,
+                ),
+              ),
+            ],
+          ),
+          if (v.criticalErrors.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...v.criticalErrors.map((e) => Padding(
+                  padding: const EdgeInsets.only(left: 24, top: 2),
+                  child: Text('• $e',
+                      style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+                )),
+          ],
+          if (v.warnings.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...v.warnings.map((w) => Padding(
+                  padding: const EdgeInsets.only(left: 24, top: 2),
+                  child: Text('⚠ $w',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentAnalysisCard(ContentAnalysis c) {
+    if (c.riskKeywords.isEmpty &&
+        c.vaguenessSignals.isEmpty &&
+        c.safetyDescriptions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueGrey.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Phân tích nội dung',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          if (c.riskKeywords.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('Từ khoá rủi ro:',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: c.riskKeywords
+                  .map((k) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(k.keyword,
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.red.shade800)),
+                      ))
+                  .toList(),
+            ),
+          ],
+          if (c.vaguenessSignals.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Tín hiệu mơ hồ:',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 4),
+            ...c.vaguenessSignals.map((s) => Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 2),
+                  child: Text('• $s', style: const TextStyle(fontSize: 12)),
+                )),
+          ],
+          if (c.safetyDescriptions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Mô tả an toàn:',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 4),
+            ...c.safetyDescriptions.map((s) => Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 2),
+                  child: Text('✓ $s',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.green.shade700)),
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShapCard(Map<String, double> shap) {
+    final entries = shap.entries.toList()
+      ..sort((a, b) => b.value.abs().compareTo(a.value.abs()));
+    final top = entries.take(8).toList();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.indigo.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Yếu tố ảnh hưởng (SHAP)',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          ...top.map((e) {
+            final positive = e.value >= 0;
+            final magnitude = e.value.abs().clamp(0.0, 1.0);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  Icon(
+                    positive ? Icons.arrow_upward : Icons.arrow_downward,
+                    size: 14,
+                    color: positive ? Colors.green : Colors.red,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      e.key,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: magnitude,
+                        minHeight: 6,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            positive ? Colors.green : Colors.red),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    e.value.toStringAsFixed(3),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: positive ? Colors.green.shade800 : Colors.red.shade800,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ============== Trust Eval helpers ==============
+  Color _trustColor(String label) {
+    switch (label) {
+      case 'RELIABLE_HIGH':
+        return Colors.green.shade700;
+      case 'RELIABLE':
+        return Colors.green;
+      case 'NEUTRAL':
+        return Colors.blueGrey;
+      case 'SUSPICIOUS':
+        return Colors.orange;
+      case 'SUSPICIOUS_HIGH':
+        return Colors.red;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
+  String _trustLabelDisplay(String label) {
+    switch (label) {
+      case 'RELIABLE_HIGH':
+        return 'Đáng tin cậy cao';
+      case 'RELIABLE':
+        return 'Đáng tin cậy';
+      case 'NEUTRAL':
+        return 'Trung lập';
+      case 'SUSPICIOUS':
+        return 'Đáng ngờ';
+      case 'SUSPICIOUS_HIGH':
+        return 'Đáng ngờ cao';
+      default:
+        return label;
+    }
+  }
+
+  Color _riskColor(String level) {
+    switch (level) {
+      case 'LOW':
+        return Colors.green;
+      case 'MEDIUM':
+        return Colors.orange;
+      case 'HIGH':
+        return Colors.deepOrange;
+      case 'CRITICAL':
+        return Colors.red.shade800;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _riskLevelDisplay(String level) {
+    switch (level) {
+      case 'LOW':
+        return 'Thấp';
+      case 'MEDIUM':
+        return 'Trung bình';
+      case 'HIGH':
+        return 'Cao';
+      case 'CRITICAL':
+        return 'Nghiêm trọng';
+      default:
+        return level;
+    }
+  }
+
+  Color _actionColor(String action) {
+    switch (action) {
+      case 'APPROVE':
+        return Colors.green;
+      case 'APPROVE_WITH_NOTE':
+        return Colors.lightGreen.shade700;
+      case 'REQUEST_ADDITIONAL_INFO':
+        return Colors.blue;
+      case 'REJECT':
+        return Colors.red;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
+  IconData _actionIcon(String action) {
+    switch (action) {
+      case 'APPROVE':
+        return Icons.check_circle;
+      case 'APPROVE_WITH_NOTE':
+        return Icons.fact_check;
+      case 'REQUEST_ADDITIONAL_INFO':
+        return Icons.help_outline;
+      case 'REJECT':
+        return Icons.cancel;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  String _actionDisplay(String action) {
+    switch (action) {
+      case 'APPROVE':
+        return 'Duyệt chiến dịch';
+      case 'APPROVE_WITH_NOTE':
+        return 'Duyệt kèm ghi chú';
+      case 'REQUEST_ADDITIONAL_INFO':
+        return 'Yêu cầu bổ sung thông tin';
+      case 'REJECT':
+        return 'Từ chối';
+      default:
+        return action;
+    }
   }
 
   void _showVolunteerListModal(List<VolunteerRegistration> volunteers) {

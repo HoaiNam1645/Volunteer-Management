@@ -27,6 +27,31 @@ int _safeInt(dynamic v, {int fallback = 0}) {
   return fallback;
 }
 
+/// Cast về `List<String>` an toàn, kể cả khi list chứa Map hoặc number.
+List<String> _safeStringList(dynamic v) {
+  if (v is! List) return const [];
+  final out = <String>[];
+  for (final e in v) {
+    if (e == null) continue;
+    if (e is String) {
+      if (e.isNotEmpty) out.add(e);
+    } else if (e is Map) {
+      final s = (e['message'] ??
+              e['text'] ??
+              e['ten'] ??
+              e['name'] ??
+              e['label'] ??
+              e['value'] ??
+              '')
+          .toString();
+      if (s.isNotEmpty) out.add(s);
+    } else {
+      out.add(e.toString());
+    }
+  }
+  return out;
+}
+
 class AdminRepository {
   final ApiClient _apiClient = ApiClient.instance;
 
@@ -648,9 +673,19 @@ class AdminRepository {
           await _apiClient.get(ApiEndpoints.trustEvalCampaign(campaignId));
 
       if (response.data['status'] == 1) {
-        return AdminResult.success(
-          CampaignTrustEval.fromJson(response.data['data']),
-        );
+        final raw = response.data['data'];
+        if (raw is! Map) {
+          return AdminResult.failure('Dữ liệu đánh giá không hợp lệ');
+        }
+        try {
+          return AdminResult.success(
+            CampaignTrustEval.fromJson(Map<String, dynamic>.from(raw)),
+          );
+        } catch (e) {
+          // ignore: avoid_print
+          print('[TrustEval parse error] $e\nRaw: $raw');
+          return AdminResult.failure('Lỗi phân tích đánh giá: $e');
+        }
       }
       return AdminResult.failure(
           response.data['message'] ?? 'Không lấy được đánh giá');
@@ -668,9 +703,19 @@ class AdminRepository {
           await _apiClient.post(ApiEndpoints.trustEvalRefresh(campaignId));
 
       if (response.data['status'] == 1) {
-        return AdminResult.success(
-          CampaignTrustEval.fromJson(response.data['data']),
-        );
+        final raw = response.data['data'];
+        if (raw is! Map) {
+          return AdminResult.failure('Dữ liệu đánh giá không hợp lệ');
+        }
+        try {
+          return AdminResult.success(
+            CampaignTrustEval.fromJson(Map<String, dynamic>.from(raw)),
+          );
+        } catch (e) {
+          // ignore: avoid_print
+          print('[TrustEval parse error] $e\nRaw: $raw');
+          return AdminResult.failure('Lỗi phân tích đánh giá: $e');
+        }
       }
       return AdminResult.failure(
           response.data['message'] ?? 'Làm mới đánh giá thất bại');
@@ -1687,27 +1732,107 @@ class CampaignTrustEval {
   });
 
   factory CampaignTrustEval.fromJson(Map<String, dynamic> json) {
+    // Backend có thể trả 2 shape:
+    // (a) flat:    { trust_score: 0.7, risk_score: 0.2, risk_level: 'LOW', ... }
+    // (b) nested:  { trust_score: { calibrated_probability: 0.7, label, confidence },
+    //               risk_assessment: { risk_score, overall_risk_level, is_anomaly, anomaly_types, flags },
+    //               decision_support: { recommended_action, reason, ... },
+    //               shap_explanation: { top_positive_factors, top_negative_factors }, ... }
+    final trustObj = json['trust_score'];
+    final riskObj = json['risk_assessment'];
+    final decisionObj = json['decision_support'];
+    final shapObj = json['shap_values'] ?? json['shap_explanation'];
+
+    double trustScore = 0;
+    String trustLabel = 'NEUTRAL';
+    double? confidence;
+    if (trustObj is Map) {
+      trustScore = _safeDouble(trustObj['calibrated_probability'] ??
+          trustObj['calibrated_score'] ??
+          trustObj['raw_score']);
+      trustLabel = trustObj['label']?.toString() ?? 'NEUTRAL';
+      confidence = _safeDoubleNullable(trustObj['confidence']);
+    } else {
+      trustScore = _safeDouble(trustObj);
+      trustLabel = json['trust_label']?.toString() ?? 'NEUTRAL';
+      confidence = _safeDoubleNullable(json['confidence']);
+    }
+
+    double riskScore = 0;
+    String riskLevel = 'UNKNOWN';
+    bool isAnomaly = false;
+    if (riskObj is Map) {
+      riskScore = _safeDouble(riskObj['risk_score']);
+      riskLevel = (riskObj['overall_risk_level'] ?? riskObj['risk_level'])
+              ?.toString() ??
+          'UNKNOWN';
+      isAnomaly = riskObj['is_anomaly'] == true;
+    } else {
+      riskScore = _safeDouble(json['risk_score']);
+      riskLevel = json['risk_level']?.toString() ?? 'UNKNOWN';
+      isAnomaly = json['is_anomaly'] == true;
+    }
+
+    String recommendedAction = 'APPROVE';
+    if (decisionObj is Map) {
+      recommendedAction =
+          decisionObj['recommended_action']?.toString() ?? 'APPROVE';
+    } else {
+      recommendedAction = json['recommended_action']?.toString() ?? 'APPROVE';
+    }
+
+    Map<String, double>? shapValues;
+    if (shapObj is Map) {
+      // Nested: top_positive_factors / top_negative_factors
+      final positives = shapObj['top_positive_factors'];
+      final negatives = shapObj['top_negative_factors'];
+      if (positives is List || negatives is List) {
+        shapValues = <String, double>{};
+        for (final list in [positives, negatives]) {
+          if (list is List) {
+            for (final f in list) {
+              if (f is Map) {
+                final feature =
+                    (f['feature'] ?? f['display_name'] ?? '').toString();
+                if (feature.isEmpty) continue;
+                shapValues[feature] = _safeDouble(f['contribution']);
+              }
+            }
+          }
+        }
+      } else {
+        // Flat map<String, num>
+        shapValues = <String, double>{};
+        shapObj.forEach((k, v) {
+          shapValues![k.toString()] = _safeDouble(v);
+        });
+      }
+    }
+
+    final evaluatedRaw =
+        json['evaluated_at'] ?? json['evaluation_timestamp'];
+
     return CampaignTrustEval(
-      campaignId: json['campaign_id'] ?? 0,
-      tieuDe: json['tieu_de'] ?? '',
-      trustScore: _safeDouble(json['trust_score']),
-      riskScore: _safeDouble(json['risk_score']),
-      riskLevel: json['risk_level'] ?? 'UNKNOWN',
-      trustLabel: json['trust_label'] ?? 'NEUTRAL',
-      recommendedAction: json['recommended_action'] ?? 'APPROVE',
-      isAnomaly: json['is_anomaly'] == true,
-      confidence: _safeDoubleNullable(json['confidence']),
-      validation: json['validation'] != null
-          ? ValidationResult.fromJson(json['validation'])
+      campaignId: _safeInt(json['campaign_id']),
+      tieuDe: json['tieu_de']?.toString() ?? '',
+      trustScore: trustScore,
+      riskScore: riskScore,
+      riskLevel: riskLevel,
+      trustLabel: trustLabel,
+      recommendedAction: recommendedAction,
+      isAnomaly: isAnomaly,
+      confidence: confidence,
+      validation: json['validation'] is Map
+          ? ValidationResult.fromJson(
+              Map<String, dynamic>.from(json['validation'] as Map))
           : null,
-      contentAnalysis: json['content_analysis'] != null
-          ? ContentAnalysis.fromJson(json['content_analysis'])
+      contentAnalysis: json['content_analysis'] is Map
+          ? ContentAnalysis.fromJson(
+              Map<String, dynamic>.from(json['content_analysis'] as Map))
           : null,
-      shapValues: (json['shap_values'] as Map<String, dynamic>?)
-          ?.map((k, v) => MapEntry(k, _safeDouble(v))),
-      evaluatedAt: json['evaluated_at'] != null
-          ? DateTime.parse(json['evaluated_at'])
-          : null,
+      shapValues: shapValues,
+      evaluatedAt:
+          evaluatedRaw != null ? DateTime.tryParse(evaluatedRaw.toString()) : null,
     );
   }
 }
@@ -1726,8 +1851,8 @@ class ValidationResult {
   factory ValidationResult.fromJson(Map<String, dynamic> json) {
     return ValidationResult(
       passed: json['passed'] == true,
-      criticalErrors: List<String>.from(json['critical_errors'] ?? []),
-      warnings: List<String>.from(json['warnings'] ?? []),
+      criticalErrors: _safeStringList(json['critical_errors']),
+      warnings: _safeStringList(json['warnings']),
     );
   }
 }
@@ -1744,12 +1869,22 @@ class ContentAnalysis {
   });
 
   factory ContentAnalysis.fromJson(Map<String, dynamic> json) {
+    final keywords = json['risk_keywords'];
+    final keywordList = <RiskKeyword>[];
+    if (keywords is List) {
+      for (final e in keywords) {
+        if (e is Map) {
+          keywordList
+              .add(RiskKeyword.fromJson(Map<String, dynamic>.from(e)));
+        } else if (e is String) {
+          keywordList.add(RiskKeyword(keyword: e));
+        }
+      }
+    }
     return ContentAnalysis(
-      riskKeywords: (json['risk_keywords'] as List? ?? [])
-          .map((e) => RiskKeyword.fromJson(e))
-          .toList(),
-      vaguenessSignals: List<String>.from(json['vagueness_signals'] ?? []),
-      safetyDescriptions: List<String>.from(json['safety_descriptions'] ?? []),
+      riskKeywords: keywordList,
+      vaguenessSignals: _safeStringList(json['vagueness_signals']),
+      safetyDescriptions: _safeStringList(json['safety_descriptions']),
     );
   }
 }
@@ -1763,9 +1898,10 @@ class RiskKeyword {
 
   factory RiskKeyword.fromJson(Map<String, dynamic> json) {
     return RiskKeyword(
-      keyword: json['keyword'] ?? '',
+      keyword:
+          (json['keyword'] ?? json['ten'] ?? json['text'] ?? '').toString(),
       score: _safeDoubleNullable(json['score']),
-      context: json['context'],
+      context: json['context']?.toString(),
     );
   }
 }

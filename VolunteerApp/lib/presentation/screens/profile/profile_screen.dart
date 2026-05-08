@@ -310,18 +310,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Tài khoản'),
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.red),
+            icon: const Icon(Icons.logout),
+            color: Colors.white,
             tooltip: 'Đăng xuất',
             onPressed: _logout,
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryColor,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.person, size: 18), text: 'Thông tin'),
             Tab(icon: Icon(Icons.lock, size: 18), text: 'Mật khẩu'),

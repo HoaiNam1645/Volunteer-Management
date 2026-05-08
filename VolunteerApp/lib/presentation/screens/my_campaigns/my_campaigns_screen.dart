@@ -132,9 +132,10 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryColor,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabAlignment: TabAlignment.start,
           tabs: _statusTabs.map((tab) {
             final count = _getCountByStatus(tab['value'], campaignProvider);
@@ -149,8 +150,8 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: _tabController.index == _statusTabs.indexOf(tab)
-                            ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                            : Colors.grey[200],
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -160,7 +161,7 @@ class _MyCampaignsScreenState extends State<MyCampaignsScreen>
                           fontWeight: FontWeight.w600,
                           color: _tabController.index == _statusTabs.indexOf(tab)
                               ? AppTheme.primaryColor
-                              : Colors.grey[600],
+                              : Colors.white,
                         ),
                       ),
                     ),
