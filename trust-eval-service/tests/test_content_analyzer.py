@@ -83,6 +83,58 @@ class TestRiskKeywordDetection:
         assert result["text_risk_keyword_count"] > 0
 
 
+class TestEvasionResistance:
+    """Người tạo cố gây nhiễu keyword vẫn phải bị phát hiện."""
+
+    def test_repeated_chars_in_phrase(self):
+        analyzer = ContentAnalyzer(
+            title="Chiến dịch",
+            description="Vui lòng chuyểnnnn khoảnggg trước khi tham gia.",
+        )
+        result = analyzer.analyze()
+        keywords = [kw["keyword"] for kw in result["risk_keywords_found"]]
+        assert "chuyển khoản" in keywords
+
+    def test_repeated_chars_in_single_word(self):
+        analyzer = ContentAnalyzer(
+            title="Chiến dịch",
+            description="Cần cccccmnddd để xác minh, gửi quaaaa zaloooo.",
+        )
+        result = analyzer.analyze()
+        keywords = [kw["keyword"] for kw in result["risk_keywords_found"]]
+        assert "cmnd" in keywords
+        assert "zalo" in keywords
+
+    def test_punctuation_inserted_between_chars(self):
+        analyzer = ContentAnalyzer(
+            title="Chiến dịch",
+            description="Vui lòng chuyển-khoản hoặc đặt.cọc trước.",
+        )
+        result = analyzer.analyze()
+        keywords = [kw["keyword"] for kw in result["risk_keywords_found"]]
+        assert "chuyển khoản" in keywords or "đặt cọc" in keywords
+
+    def test_extra_spaces_between_words(self):
+        analyzer = ContentAnalyzer(
+            title="Chiến dịch",
+            description="Yêu cầu  chuyển   khoản  trước cho an toàn.",
+        )
+        result = analyzer.analyze()
+        keywords = [kw["keyword"] for kw in result["risk_keywords_found"]]
+        assert "chuyển khoản" in keywords
+
+    def test_combined_evasion(self):
+        analyzer = ContentAnalyzer(
+            title="Chiến dịch",
+            description="Vui lòng chuyểnnn--khoảnnng trước, gửi cm.n.d qua zaloooo.",
+        )
+        result = analyzer.analyze()
+        keywords = [kw["keyword"] for kw in result["risk_keywords_found"]]
+        assert "chuyển khoản" in keywords
+        assert "cmnd" in keywords
+        assert "zalo" in keywords
+
+
 class TestVaguenessScoring:
     """Test vagueness score computation."""
 

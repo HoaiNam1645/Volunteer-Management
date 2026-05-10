@@ -17,11 +17,35 @@ from typing import Any
 from app.core.risk_keywords import RISK_KEYWORD_MAP, RISK_PATTERN_MAP
 
 
+_REPEAT_CHAR_RE = re.compile(r"(.)\1{2,}", re.UNICODE)
+_NON_WORD_RE = re.compile(r"[^\w\sÀ-ỹ]+", re.UNICODE)
+_MULTI_SPACE_RE = re.compile(r"\s+", re.UNICODE)
+
+
+def _normalize_for_match(text: str) -> str:
+    """Chuẩn hóa text để chống các thủ thuật né luật:
+
+    - Lowercase
+    - Lặp ký tự: 'chuyểnnnn' → 'chuyển' (rút mọi run ≥2 về 1)
+    - Ký tự xen kẽ ('chuyển-khoản', 'chuyển.khoản') → đổi về khoảng trắng
+    - Gom nhiều khoảng trắng thành một
+    """
+    if not text:
+        return ""
+    lowered = text.lower()
+    collapsed = _REPEAT_CHAR_RE.sub(r"\1", lowered)
+    cleaned = _NON_WORD_RE.sub(" ", collapsed)
+    return _MULTI_SPACE_RE.sub(" ", cleaned).strip()
+
+
 class ContentAnalyzer:
     def __init__(self, title: str = "", description: str = ""):
         self.title = title or ""
         self.description = description or ""
         self.full_text = f"{self.title} {self.description}".lower()
+        self.normalized_full_text = _normalize_for_match(f"{self.title} {self.description}")
+        self.normalized_title = _normalize_for_match(self.title)
+        self.normalized_description = _normalize_for_match(self.description)
 
     def analyze(self) -> dict[str, Any]:
         keywords_found = self._detect_risk_keywords()
@@ -55,7 +79,10 @@ class ContentAnalyzer:
         seen: set[str] = set()
 
         for pattern, risk_kw in RISK_PATTERN_MAP.items():
-            if pattern in self.full_text and pattern not in seen:
+            normalized_pattern = _normalize_for_match(pattern)
+            if not normalized_pattern or normalized_pattern in seen:
+                continue
+            if normalized_pattern in self.normalized_full_text:
                 found.append({
                     "keyword": risk_kw.keyword,
                     "severity": risk_kw.severity,
@@ -66,13 +93,15 @@ class ContentAnalyzer:
                     "match": pattern,
                     "locations": self._find_match_positions(pattern, whole_word=False),
                 })
-                seen.add(pattern)
+                seen.add(normalized_pattern)
 
-        words = re.findall(r"\b\w+\b", self.full_text)
-        for word in words:
-            if word not in RISK_KEYWORD_MAP or word in seen:
+        normalized_words = re.findall(r"\b\w+\b", self.normalized_full_text, flags=re.UNICODE)
+        for word in normalized_words:
+            if word in seen:
                 continue
-            risk_kw = RISK_KEYWORD_MAP[word]
+            risk_kw = RISK_KEYWORD_MAP.get(word)
+            if risk_kw is None:
+                continue
             found.append({
                 "keyword": risk_kw.keyword,
                 "severity": risk_kw.severity,
@@ -85,6 +114,26 @@ class ContentAnalyzer:
             })
             seen.add(word)
 
+        # Single-word keyword bị chèn ký tự xen kẽ ('c.m.n.d', 'z-a-l-o') —
+        # check trên bản compact (bỏ hết khoảng trắng) cho các keyword không có space.
+        compact = self.normalized_full_text.replace(" ", "")
+        if compact:
+            for keyword, risk_kw in RISK_KEYWORD_MAP.items():
+                if " " in keyword or keyword in seen:
+                    continue
+                if keyword in compact:
+                    found.append({
+                        "keyword": risk_kw.keyword,
+                        "severity": risk_kw.severity,
+                        "category": risk_kw.category,
+                        "display_name": risk_kw.display_name,
+                        "description": risk_kw.description,
+                        "suggestion": risk_kw.suggestion,
+                        "match": keyword,
+                        "locations": self._find_match_positions(keyword, whole_word=True),
+                    })
+                    seen.add(keyword)
+
         return found
 
     def _find_match_positions(self, pattern: str, whole_word: bool = False) -> list[dict[str, Any]]:
@@ -92,9 +141,16 @@ class ContentAnalyzer:
         regex = rf"\b{escaped}\b" if whole_word else escaped
         locations: list[dict[str, Any]] = []
 
-        for source_name, source_text in (("title", self.title), ("description", self.description)):
+        sources = (
+            ("title", self.title, self.normalized_title),
+            ("description", self.description, self.normalized_description),
+        )
+
+        for source_name, source_text, normalized_text in sources:
             source_lower = source_text.lower()
+            matched_in_original = False
             for match in re.finditer(regex, source_lower):
+                matched_in_original = True
                 start = match.start()
                 end = match.end()
                 left = max(0, start - 25)
@@ -107,14 +163,36 @@ class ContentAnalyzer:
                     "snippet": snippet,
                 })
 
+            if matched_in_original or not normalized_text:
+                continue
+
+            normalized_pattern = _normalize_for_match(pattern)
+            if not normalized_pattern:
+                continue
+            norm_regex = rf"\b{re.escape(normalized_pattern)}\b" if whole_word else re.escape(normalized_pattern)
+            for match in re.finditer(norm_regex, normalized_text):
+                start = match.start()
+                end = match.end()
+                left = max(0, start - 25)
+                right = min(len(normalized_text), end + 25)
+                snippet = normalized_text[left:right].strip()
+                locations.append({
+                    "source": source_name,
+                    "start": start,
+                    "end": end,
+                    "snippet": snippet,
+                    "matched_on": "normalized",
+                })
+
         return locations
 
     def _detect_suspicious_contact_only(self) -> bool:
         informal_keywords = ["zalo", "facebook", "messenger", "inbox", "fb"]
         official_keywords = ["email", "điện thoại", "số điện thoại", "hotline", "phone", "liên hệ"]
 
-        has_informal = any(kw in self.full_text for kw in informal_keywords)
-        has_official = any(kw in self.full_text for kw in official_keywords)
+        text = self.normalized_full_text
+        has_informal = any(kw in text for kw in informal_keywords)
+        has_official = any(kw in text for kw in official_keywords)
         return has_informal and not has_official
 
     def _detect_external_urls(self) -> bool:
@@ -165,7 +243,7 @@ class ContentAnalyzer:
             "có thể sẽ",
             "tùy theo",
         ]
-        matched_generic = [phrase for phrase in generic_phrases if phrase in self.full_text]
+        matched_generic = [phrase for phrase in generic_phrases if phrase in self.normalized_full_text]
         generic_penalty = min(1.0, len(matched_generic) / 3) * 0.3
         score += generic_penalty
         if matched_generic:
@@ -187,7 +265,7 @@ class ContentAnalyzer:
 
         has_numbers = bool(re.search(r"\d+", desc))
         has_specific_location = any(
-            kw in self.full_text
+            kw in self.normalized_full_text
             for kw in ["quận", "huyện", "phường", "xã", "tỉnh", "thành phố", "đường", "phố", "km", "m2"]
         )
         if not has_numbers:
@@ -212,7 +290,7 @@ class ContentAnalyzer:
         return score
 
     def _calculate_safety_score_with_signals(self) -> tuple[float, list[dict[str, Any]]]:
-        text = self.full_text
+        text = self.normalized_full_text
 
         strong_patterns = [
             "phương án an toàn",

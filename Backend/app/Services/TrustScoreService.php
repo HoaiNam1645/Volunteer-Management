@@ -445,7 +445,7 @@ class TrustScoreService
             }
 
             $creatorAccountAge = $creator->tao_luc
-                ? max(0, Carbon::today()->startOfDay()->diffInDays(Carbon::parse($creator->tao_luc)->startOfDay(), false))
+                ? max(0, Carbon::parse($creator->tao_luc)->startOfDay()->diffInDays(Carbon::today()->startOfDay(), false))
                 : null;
 
             $creatorCampaigns = $creator->chienDichs()->count();
@@ -668,7 +668,7 @@ class TrustScoreService
         }
 
         $accountAge = $volunteer->tao_luc
-            ? max(0, Carbon::today()->startOfDay()->diffInDays(Carbon::parse($volunteer->tao_luc)->startOfDay(), false))
+            ? max(0, Carbon::parse($volunteer->tao_luc)->startOfDay()->diffInDays(Carbon::today()->startOfDay(), false))
             : null;
 
         if ($accountAge !== null && $accountAge < 7) {
